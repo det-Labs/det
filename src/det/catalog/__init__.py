@@ -70,8 +70,8 @@ class CatalogStore:
         temp_file = f"{self.filepath}.tmp"
         with open(temp_file, 'w') as f:
             yaml.dump(data, f, default_flow_style=False, sort_keys=False)
-        # Atomic replace
-        os.rename(temp_file, self.filepath)
+        # Atomic replace (cross-platform safe overwrite)
+        os.replace(temp_file, self.filepath)
 
     def register(self, dataset: DatasetDescriptor) -> None:
         """Register a new dataset or update an existing one without saving credentials."""
