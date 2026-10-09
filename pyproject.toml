@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "det"
+version = "0.1.0"
+description = "A modular, Python-first data engineering framework"
+readme = "README.md"
+requires-python = ">=3.14"
+authors = [
+    { name = "Author Name", email = "author@example.com" }
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    # Core dependencies to be added later (e.g. duckdb, polars, pyarrow)
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/example/det"
+"Bug Tracker" = "https://github.com/example/det/issues"
