@@ -1,0 +1,2615 @@
+# Modular SQL and Python Data Engineering Framework
+
+
+
+																## 1. Purpose and status
+
+
+
+																This document is the product requirements specification, architecture decision record, contributor blueprint, and implementation plan for a new open-source data engineering framework.
+
+
+
+																The product combines a dbt-inspired developer experience with multi-source extraction, DuckDB and Polars execution, multi-destination publishing, and optional catalog and documentation modules.
+
+
+
+																This is a greenfield design. The current chat workspace contains no existing implementation or repository to analyze. No application code has been created, no dependencies have been installed, and no product name has been selected. `framework` and `framework-*` below are illustrative namespace/package placeholders, not claims that these names are available.
+
+
+
+																The document distinguishes:
+
+
+
+																- Confirmed requirements: decisions explicitly supplied or confirmed by the user.
+
+																- Architecture decisions: concrete implementation recommendations chosen here to make development actionable.
+
+																- Extension roadmap: desirable capabilities outside the initial release.
+
+																- Acceptance criteria: observable behavior required before claiming a feature is delivered.
+
+
+
+																The plan contains no delivery dates or time estimates.
+
+
+
+																## 2. Product definition and public positioning
+
+
+
+																### 2.1 One-sentence proposition
+
+
+
+																A modular, Python-first data engineering framework that lets teams extract from multiple sources, transform with SQL or Polars, and publish to multiple destinations using explicit dependencies, tests, contracts, and optional portable catalog and documentation modules.
+
+
+
+																### 2.2 Problem being solved
+
+
+
+																Data engineers currently assemble extraction scripts, SQL transformations, dataframe code, connector libraries, destination loaders, and documentation into separate systems. The integration work obscures lineage, complicates retries and schema changes, and makes reusable projects harder to maintain.
+
+
+
+																This framework provides a consistent project and execution lifecycle without requiring a warehouse, distributed cluster, or always-on service.
+
+
+
+																The differentiator is a coherent lifecycle across heterogeneous systems, not a claim that SQL is intrinsically slow or that every workload is faster in Polars.
+
+
+
+																### 2.3 Public-facing capabilities
+
+
+
+																The following are target capabilities. Until implemented and verified, promotional material must label them as planned.
+
+
+
+																| Capability | User benefit |
+
+																| --- | --- |
+
+																| Python-first authoring with embedded SQL | Use one familiar environment without being forced into a single transformation language. |
+
+																| Polars and DuckDB included | Use established analytical engines rather than a newly invented execution engine. |
+
+																| Multiple sources in one project | Combine files, APIs, and independently installed database connectors. |
+
+																| Multiple destinations per model | Publish the same validated logical result to several systems with explicit success and failure reporting. |
+
+																| Connector installation on demand | Install only the database and platform integrations a project needs. |
+
+																| Capability-aware pushdown | Reduce transferred or processed data where a source and reader genuinely support it. |
+
+																| Declarative dependencies, tests, and contracts | Make transformations understandable, reviewable, and repeatable. |
+
+																| Optional YAML catalog | Discover dataset names, locations, schemas, and limited refresh metadata without storing credentials. |
+
+																| Optional single-file documentation | Share a standalone Markdown or HTML description of the project and its lineage. |
+
+																| Open plugin contracts | Let community contributors implement connectors and extensions without forking the framework. |
+
+
+
+																Avoid claims of universal SQL compatibility, zero-copy interchange in every case, exactly-once effects across all systems, automatic column lineage for arbitrary Python, or transactional publication across unrelated destinations.
+
+
+
+																### 2.4 Intended users and environments
+
+
+
+																- Data engineers developing reusable file/API/database pipelines.
+
+																- Analytics engineers who like dbt's model, reference, test, and documentation conventions.
+
+																- Python users working in scripts, notebooks, and local or hosted development environments.
+
+																- Teams running scheduled batch jobs through existing external orchestrators.
+
+																- Contributors building source, destination, format, catalog, or documentation plugins.
+
+
+
+																Initial execution is single-machine batch processing. Windows, Linux, and macOS are supported development/runtime targets subject to dependency compatibility.
+
+
+
+																## 3. Confirmed requirements and boundaries
+
+
+
+																### 3.1 Decisions confirmed with the user
+
+
+
+																1. Build a dbt-like framework, not a universal SQL translator.
+
+																2. Everything must have clear modular boundaries.
+
+																3. Users initially interact through Python and may embed SQL queries.
+
+																4. DuckDB and Polars are core engines.
+
+																5. Initial core source families are Parquet, CSV, general delimited files, Excel, JSON, and HTTP/REST APIs.
+
+																6. Iceberg and Delta are initially optional installable modules; a later release may promote them into the core distribution.
+
+																7. Individual SQL source/destination integrations are independently installable modules, developed by maintainers or community contributors.
+
+																8. Arrow/PyArrow is used as an interoperability/read path where direct DuckDB or Polars support is unavailable and the source supports Arrow.
+
+																9. Compile into execution plans rather than generated Python strings.
+
+																10. Predicate and projection pushdown are connector capabilities, not universal promises.
+
+																11. SQL models default to DuckDB; dataframe Python models default to Polars.
+
+																12. Engine overrides are explicit; unsupported execution must not silently switch engines.
+
+																13. Multiple destinations per model are required.
+
+																14. A model may specify destination variables; project defaults are supported.
+
+																15. When exactly one project destination is configured, it is automatically selected if a model has no explicit destination or project default.
+
+																16. All explicitly selected destinations are required by default. Failure at any destination fails the model/run; successful writes are preserved and failed publications can be retried.
+
+																17. The catalog is an optional, separate module.
+
+																18. The catalog stores dataset identifiers, database/table or file locations, schema and descriptive metadata, and at most last successful refresh and exact row count for framework-built datasets.
+
+																19. The catalog is not a transaction manager, snapshot tracker, or lakehouse storage engine.
+
+																20. Catalog registration is opt-in when a catalog is attached; attaching it must not register all sources automatically.
+
+																21. Catalog users can discover a source and connect using credentials supplied separately.
+
+																22. Catalog credentials are never stored.
+
+																23. The initial catalog is a friendly, editable single YAML file, not a read-only or literally immutable file.
+
+																24. Documentation follows dbt's model/column descriptions, tests, and lineage approach and is a separate module.
+
+																25. Documentation supports single-file Markdown and standalone HTML output.
+
+																26. Declared contracts and explicit schema-evolution policies are encouraged.
+
+																27. Adding or removing an unused source column must not break a job that does not read or depend on it.
+
+																28. Python 3.15 is the preferred development/runtime target; Python 3.14 is the minimum supported version.
+
+
+
+																### 3.2 Clarifications that prevent incorrect implementation
+
+
+
+																- An Iceberg source is a table reference, metadata reference, or compatible catalog/table identifier. An arbitrary Parquet data file is not an Iceberg table.
+
+																- DuckLake inspires portable discoverability, not the catalog's storage semantics. YAML is not DuckLake and does not provide SQL transactions.
+
+																- Catalog metadata is distinct from operational run state. The latter needs durable retry/checkpoint records and must not be stored in the public YAML catalog.
+
+																- API extraction is a core feature; arbitrary business-specific API connectors are not all bundled.
+
+																- Core support means a supported capability is available in the standard installation, including necessary reader dependencies. It does not mean writing each reader from scratch.
+
+																- Source support does not imply that the same system is a writable destination.
+
+																- Cloud object stores are connection/filesystem integrations, distinct from the Parquet/CSV/JSON format reader. Local files and HTTP retrieval are the initial baseline; S3 and Azure/OneLake credentials and access are separate integrations.
+
+																- SQL and Python functions are trusted project code, not sandboxed untrusted programs.
+
+
+
+																## 4. Explicit functional requirements
+
+
+
+																Every requirement has an ID for issues, tests, documentation, and release coverage.
+
+
+
+																### 4.1 Project and authoring
+
+
+
+																| ID | Requirement | Required behavior |
+
+																| --- | --- | --- |
+
+																| AUT-01 | Python SDK | Build, inspect, validate, execute, and retry a project from Python without requiring the CLI. |
+
+																| AUT-02 | Embedded SQL | A Python model can declare a SQL query plus explicit dependencies and parameters. |
+
+																| AUT-03 | Polars authoring | Python dataframe models receive lazy sources/references and return a supported lazy result. |
+
+																| AUT-04 | Explicit DAG | Sources and models have stable logical names; dependencies are declared and validated before execution. |
+
+																| AUT-05 | Safe references | Resolve logical source/model names through registered bindings, not string interpolation of paths or arbitrary SQL fragments. |
+
+																| AUT-06 | Variables | Resolve non-secret runtime variables with a deterministic precedence and validate types and identifiers. |
+
+																| AUT-07 | Project configuration | Separate connections, sources, destinations, models, defaults, and optional extensions. |
+
+																| AUT-08 | CLI parity | CLI commands call the same SDK services and have meaningful nonzero exit codes. |
+
+																| AUT-09 | No execution on import | Declaring/importing a project must not extract data, write destinations, or collect a LazyFrame. |
+
+																| AUT-10 | Deterministic definition | Detect duplicate names, cycles, missing references, ambiguous outputs, and incompatible configuration before writing data. |
+
+																| AUT-11 | Supported SQL surface | Publish a tested SQL capability matrix per engine; initially allow read-oriented SELECT/CTE transformations, not arbitrary DDL/DML scripts. |
+
+																| AUT-12 | Declaration-driven Python dependencies | Require dependency declarations; validate framework-mediated source/ref access against them. Do not claim to discover arbitrary filesystem/network calls. |
+
+
+
+																### 4.2 Sources, extraction, and connectors
+
+
+
+																| ID | Requirement | Required behavior |
+
+																| --- | --- | --- |
+
+																| SRC-01 | Parquet | Read a file, explicit file set, or directory dataset; support projected scans and supported partition/row-group pruning. |
+
+																| SRC-02 | CSV | Configure headers, delimiter, quoting, encoding, null values, schema hints, and malformed-record policy. |
+
+																| SRC-03 | Delimited text | Support TSV and other reader-supported separators; reject unsupported delimiters explicitly rather than guessing. |
+
+																| SRC-04 | JSON | Distinguish record arrays, object/record paths, and NDJSON/JSONL; preserve nested structures until explicitly flattened. |
+
+																| SRC-05 | Excel | Support initial `.xlsx` reading with an explicit sheet/range or documented default and type hints; expose format limitations. |
+
+																| SRC-06 | HTTP/REST | Provide bounded requests, authentication references, pagination, response record selection, retries, and incremental cursor contracts. |
+
+																| SRC-07 | Multi-source models | A model can consume several unrelated source connections within a single run. |
+
+																| SRC-08 | Optional SQL modules | Install database connectors independently; missing plugins report the required package without importing all integrations. |
+
+																| SRC-09 | Arrow fallback | Consume Arrow tables/batches/readers from compatible adapters; prefer batch readers for large transfers. |
+
+																| SRC-10 | No mandatory pandas bridge | Standard paths do not convert through pandas merely for interoperability. |
+
+																| SRC-11 | Extraction state | Persist cursors/checkpoints in private operational state and advance them only after required downstream publications succeed. |
+
+																| SRC-12 | Capability reporting | Expose projection, filtering, streaming/batching, schema discovery, native query, and write capabilities separately. |
+
+																| SRC-13 | Optional table formats | Iceberg and Delta plugins access table semantics through existing libraries, not by treating table directories as ordinary file collections. |
+
+																| SRC-14 | Filesystem modularity | Separate format capabilities from transport/filesystem/authentication capabilities. |
+
+																| SRC-15 | Inference disclosure | Mark inferred schemas and inference limits; do not present sampled inference as an enforced complete source contract. |
+
+																| SRC-16 | Explicit extraction mode | Distinguish direct scans, extracted/staged inputs, and published source outputs; avoid hidden durable writes. |
+
+
+
+																### 4.3 Planning and execution
+
+
+
+																| ID | Requirement | Required behavior |
+
+																| --- | --- | --- |
+
+																| EXE-01 | Core engines | Include DuckDB and Polars; Python framework code coordinates native execution. |
+
+																| EXE-02 | Defaults | SQL -> DuckDB; dataframe Python -> Polars. Explicit per-model override wins. |
+
+																| EXE-03 | Polars SQL | Route supported SQL to Polars SQLContext and lazy expressions when explicitly selected. |
+
+																| EXE-04 | Native SQL | A SQL plugin may execute on its remote engine when selected and all referenced data is accessible there. |
+
+																| EXE-05 | Typed plan | Produce a serializable framework plan describing dependencies, scans/extractions, engine choice, validation, and publications. |
+
+																| EXE-06 | Engine plans | Preserve engine-native lazy/query plans; do not serialize Python callables or native plans as if portable across versions. |
+
+																| EXE-07 | Explain | Show selected engine, accepted and residual filters, projected columns, staging boundaries, and destination resolution. |
+
+																| EXE-08 | Capability-aware pushdown | Connector returns exactly which projections/predicates were accepted, plus residual operations; residual filters execute exactly once locally. |
+
+																| EXE-09 | Semantic safety | Push only expressions with established semantics for nulls, dates, decimals, collation, and types; unsafe expressions remain local. |
+
+																| EXE-10 | Explicit unsupported errors | Unsupported syntax, connector behavior, or engine capability raises a typed actionable error without automatic engine switching. |
+
+																| EXE-11 | Cross-source processing | Reduce each source where safe, then join/process on the selected local engine; do not pretend unrelated systems share a transaction or optimizer. |
+
+																| EXE-12 | Durable boundaries | Materialize explicitly when needed for fan-out, recovery, or engine interchange; report conversion/staging in explain output. |
+
+																| EXE-13 | Resource limits | Configure concurrency, native thread counts, memory budgets where supported, and temporary storage; report unenforceable limits. |
+
+																| EXE-14 | Honest streaming | Advertise batch transfer separately from streaming query execution; an Arrow reader alone does not prove bounded-memory joins. |
+
+																| EXE-15 | Parameterization | Bind values through engine/driver parameters; allow-list and quote identifiers separately. |
+
+																| EXE-16 | No universal optimization layer | Initially use engine optimizers and bounded scan/pushdown planning; no custom universal relational optimizer. |
+
+
+
+																### 4.4 Publishing and recovery
+
+
+
+																| ID | Requirement | Required behavior |
+
+																| --- | --- | --- |
+
+																| PUB-01 | Multi-destination | Each model resolves a nonempty list of destinations before execution. |
+
+																| PUB-02 | Default resolution | Explicit model destinations -> project defaults -> sole configured destination -> actionable ambiguity/missing error. |
+
+																| PUB-03 | Variable resolution | Destination variables must resolve to configured destination IDs; no implicit creation or random selection. |
+
+																| PUB-04 | Required outputs | All selected destinations are required in the first release; any publication failure fails the model/run. |
+
+																| PUB-05 | Compute once where practical | Reuse one validated durable result for several publications; do not claim all native remote workflows share one materialization. |
+
+																| PUB-06 | Publication receipts | Record destination ID, output identity, write mode, status, row count availability, and retry identity. |
+
+																| PUB-07 | Preserve success | Do not roll back unrelated successful destinations when another fails. |
+
+																| PUB-08 | Retry failed outputs | Reuse an intact staged result and retry only unfinished outputs; refuse unsafe recovery if result identity or required state is missing. |
+
+																| PUB-09 | Write semantics | Explicit replace/append and later merge modes; unsupported modes fail before writing. |
+
+																| PUB-10 | Idempotency | Declare and test connector guarantees; no blanket exactly-once promise for append or arbitrary APIs. |
+
+																| PUB-11 | File publication | Stage and replace single local files safely; directory datasets need generation directories and a commit manifest/pointer. |
+
+																| PUB-12 | Type compatibility | Validate destination type mappings before writes; lossy conversions require explicit configuration. |
+
+																| PUB-13 | Refresh semantics | Catalog refresh/row-count values change only for each successfully committed physical output, not for failed attempts. |
+
+																| PUB-14 | Dependency semantics | A model ref resolves to its logical canonical result, not whichever destination happened to finish first. |
+
+																| PUB-15 | Checkpoint ordering | Advance a shared source cursor only when all required affected outputs have succeeded for that extraction window. |
+
+
+
+																### 4.5 Contracts and validation
+
+
+
+																| ID | Requirement | Required behavior |
+
+																| --- | --- | --- |
+
+																| VAL-01 | Declared output contracts | Encourage explicit names, types, nullability, keys/tests, and evolution policies for model outputs. |
+
+																| VAL-02 | Required-column checking | Check all columns needed by projection, filters, joins, expressions, and ordering, not just returned columns. |
+
+																| VAL-03 | Unused-column tolerance | Added/removed unused file columns do not invalidate an explicit projected dependency contract. |
+
+																| VAL-04 | Used-column errors | Missing or incompatible used columns fail with source/model/column context. |
+
+																| VAL-05 | Wildcard behavior | `SELECT *` and equivalent whole-frame transformations depend on the whole schema; warn that irrelevant-column tolerance does not apply. |
+
+																| VAL-06 | Explicit evolution | No silent type coercion or dropped required columns; allow configured additive policies and declared safe casts. |
+
+																| VAL-07 | Standard tests | Support not-null, uniqueness, accepted values, and relationship checks with actionable bounded failure summaries. |
+
+																| VAL-08 | Custom tests | Support engine-compatible SQL checks and trusted Python checks against model results. |
+
+																| VAL-09 | Quality gate | Validate outputs before required publication; a failing error-level test prevents publishing. |
+
+																| VAL-10 | No inference-driven false breaks | A malformed unused field does not fail where the chosen parser safely supports excluding it; document formats where global parsing errors remain unavoidable. |
+
+
+
+																### 4.6 Optional catalog and documentation
+
+
+
+																| ID | Requirement | Required behavior |
+
+																| --- | --- | --- |
+
+																| CAT-01 | Optional standalone module | Run the framework without catalog dependencies; use catalog independently without executing a project. |
+
+																| CAT-02 | Single YAML file | Persist versioned, safe-loadable, human-editable YAML with stable dataset IDs. |
+
+																| CAT-03 | Opt-in registration | Attaching a catalog enables registration; project/model/source settings select what is registered. |
+
+																| CAT-04 | Automatic model registration | Selected framework outputs are registered/updated automatically after successful publication. |
+
+																| CAT-05 | Source registration | Register external source locations without copying data or implying ownership. |
+
+																| CAT-06 | Minimal metadata | Store name, namespace/database/schema/table or file/table reference, format, description, columns, owner/tags, and optional last-successful-refresh/exact-row-count. |
+
+																| CAT-07 | No credential persistence | Reject or sanitize secret-bearing config, URLs, DSNs, headers, tokens, signed URLs, and embedded passwords. |
+
+																| CAT-08 | Discover and reconnect | Resolve a dataset to a descriptor requiring caller-provided connection/authentication; catalog grants no access. |
+
+																| CAT-09 | No snapshots/transactions | Do not store table snapshot history, time travel, lakehouse commits, run logs, extraction cursors, or transaction management. |
+
+																| CAT-10 | Safe edits | Validate file/schema version and preserve unrelated valid entries; detect conflicts and malformed manual edits. |
+
+																| CAT-11 | Single-file update integrity | Local locking plus same-directory temporary write and replace; never overwrite a concurrent/manual edit silently. |
+
+																| CAT-12 | Multi-output identity | Register each selected physical publication separately and associate it with the originating logical model ID. |
+
+																| DOC-01 | Optional documentation module | Generate from project manifests, descriptions, tests, contracts, lineage, and selected sanitized run summaries. |
+
+																| DOC-02 | Single Markdown file | Produce readable text with tables and adjacency/diagram descriptions without required external assets. |
+
+																| DOC-03 | Standalone HTML | Embed styles/scripts/diagrams; no required CDN, fonts, server, or network requests. |
+
+																| DOC-04 | dbt-inspired descriptions | Support source/model/column descriptions, owners/tags, and test definitions near model definitions. |
+
+																| DOC-05 | Secret/data exclusion | Exclude credentials and sample data by default; only include sanitized SQL/configuration. |
+
+																| DOC-06 | Disclosed lineage scope | Show declared/runtime table-level lineage, with column-level lineage only where supported and verified. |
+
+																| DOC-07 | Independent catalog | Documentation must work with the catalog disabled, and the catalog must work without documentation. |
+
+
+
+																### 4.7 Nonfunctional requirements
+
+
+
+																| ID | Requirement | Acceptance expectation |
+
+																| --- | --- | --- |
+
+																| NFR-01 | Modular packages | Core imports do not import optional database clients, catalog, docs renderer, or future table-format packages. |
+
+																| NFR-02 | Public plugin compatibility | Versioned contracts and capability checks; incompatible plugins fail at discovery/preflight. |
+
+																| NFR-03 | Secure configuration | Credentials resolved at runtime and never serialized into public plans, catalog, docs, or run logs. |
+
+																| NFR-04 | Bounded extraction | Pagination limits, timeouts, batch sizes, and retry ceilings prevent accidental unbounded requests. |
+
+																| NFR-05 | Portability | Use pathlib/platform APIs internally; no hard-coded OS-specific separators in runtime logic. |
+
+																| NFR-06 | Error transparency | Typed structured errors with remediation; no broad silent catches or success-shaped fallback. |
+
+																| NFR-07 | Reproducible releases | Locked development/test environments, documented supported dependency ranges, and compatibility fixtures. |
+
+																| NFR-08 | Honest performance | Benchmark complete pipelines and engine-only baselines; publish hardware, data, memory, I/O, and correctness constraints. |
+
+																| NFR-09 | Stable outputs | Explicit schema/order/null/decimal/timezone semantics; distinguish unordered relation results from ordered presentation. |
+
+																| NFR-10 | Contributor accessibility | Python plugin development requires no Rust toolchain. |
+
+
+
+																## 5. Language and dependency decisions
+
+
+
+																### 5.1 Decision: Python framework, native engine execution
+
+
+
+																Use Python for:
+
+
+
+																- Public SDK and CLI.
+
+																- Project configuration and declarations.
+
+																- Plugin protocols and discovery.
+
+																- Planning and connector capability negotiation.
+
+																- Runtime coordination, retry state, catalog, and documentation.
+
+																- Tests, fixtures, and contributor tooling.
+
+
+
+																Use DuckDB and Polars for analytical execution, and PyArrow for supported readers, schema/interchange, and batch transfer.
+
+
+
+																Do not build a Rust framework core initially. Polars, DuckDB, PyArrow, and the chosen Excel reader already use native implementations for heavy processing. Rewriting orchestration in Rust would increase contributor and packaging costs without proving a material bottleneck.
+
+
+
+																Rust becomes justified only after reproducible profiling identifies a framework-owned hot path that cannot be removed by batching, native expressions, or an existing library. Any later extension should sit behind the same Python contract, use a small native boundary, and ship wheels. It must not require ordinary connector authors to use Rust.
+
+
+
+																### 5.2 Supported versions
+
+
+
+																Target CPython 3.15 for development and preferred runtime use, with CPython 3.14 as the minimum supported version. Set package metadata to `requires-python = ">=3.14"` and test both 3.14 and 3.15 on the supported operating systems. Reference language semantics and standard-library APIs against the corresponding official version-specific documentation.
+
+
+
+																Keep shared framework and plugin code parseable on Python 3.14. Do not use Python 3.15-only `lazy import` syntax in shared modules. Use explicit on-demand imports/plugin loading as the compatibility baseline; Python 3.15's documented `__lazy_modules__` mechanism may be adopted selectively after tests verify equivalent behavior on both versions. Do not enable global lazy imports for user applications or third-party dependencies. Validate selected plugins during preflight so deferred imports do not conceal missing dependencies until publication.
+
+
+
+																Verify DuckDB, Polars, PyArrow, fastexcel, and each plugin's dependencies on both supported versions before declaring release compatibility. Missing compatible wheels or failing integration tests are release blockers to resolve, not grounds to silently lower the agreed minimum. Free-threaded interpreter builds are outside the initial supported matrix.
+
+
+
+																At the dependency feasibility milestone, record actual tested versions and supported ranges in the repository. Do not pin arbitrary future versions in this planning document.
+
+
+
+																### 5.3 Dependency selection
+
+
+
+																| Component | Initial choice | Role and constraint |
+
+																| --- | --- | --- |
+
+																| Analytical SQL | DuckDB | Local SQL, analytical scans, explain/query plans. |
+
+																| Dataframe/lazy SQL | Polars | Lazy Python expressions and explicit Polars SQLContext execution. |
+
+																| Interchange/fallback scans | PyArrow | Record batches/readers, schemas, supported dataset readers. |
+
+																| SQL syntax tooling | SQLGlot | Dialect-aware ASTs, reference/column analysis, identifier binding, bounded transpilation. Parsing alone is not semantic validation. |
+
+																| Typed configuration | Pydantic | Validate project/connector configuration and schema versions. |
+
+																| HTTP client | HTTPX | Timeouts, streaming transport, explicit retry layer and authentication hooks. |
+
+																| Excel reader | fastexcel through Polars | Initial `.xlsx` support; engine-specific limitations documented. |
+
+																| YAML | A safe YAML implementation | Recommended PyYAML safe loader/dumper initially; do not instantiate arbitrary YAML objects. Comments/format round-tripping are not guaranteed. |
+
+																| Local state | Python sqlite3 | Private operational run/checkpoint/publication database, separate from catalog. |
+
+																| Plugin discovery | importlib.metadata entry points | Standard Python package discovery. |
+
+																| CLI | Typer | Thin layer over SDK; optional rich formatting does not determine behavior. |
+
+																| Tests | pytest | Unit, contract, recovery, integration, and benchmark fixtures. |
+
+																| Quality tooling | Ruff and one type checker | Select mypy initially; maintain public protocol/type coverage. |
+
+																| Documentation HTML | Escaping templates, e.g. Jinja2 | Isolated in documentation package; offline output. |
+
+
+
+																Do not make dlt or Ibis mandatory runtime layers initially. They can be evaluated behind connector adapters if they reduce work without conflicting with checkpoints, lazy scan semantics, or public contracts. Prefer direct engine APIs for the first bounded implementation.
+
+
+
+																## 6. Package architecture and dependency direction
+
+
+
+																### 6.1 Proposed distributions
+
+
+
+																| Distribution | Included behavior | Dependencies |
+
+																| --- | --- | --- |
+
+																| `framework` | Public SDK, CLI, models/DAG/plans, operational state, plugin contracts, core readers/writers, DuckDB/Polars adapters | Core dependencies only. |
+
+																| `framework-catalog` | YAML catalog SDK and optional lifecycle integration | Lightweight catalog dependencies; no engine dependency for standalone browsing. |
+
+																| `framework-docs` | Single-file Markdown and HTML generation | Public sanitized manifest schema and renderer dependencies. |
+
+																| `framework-postgresql` | PostgreSQL source/destination/native execution capabilities | Framework plugin contracts and selected PostgreSQL driver. |
+
+																| `framework-snowflake` | Snowflake integration | Optional vendor driver/dependencies. |
+
+																| `framework-bigquery` | BigQuery integration | Optional vendor client/dependencies. |
+
+																| `framework-fabric-*` | Endpoint-specific Fabric integrations | Later modules with distinct Warehouse/Lakehouse/SQL endpoint/API behavior. |
+
+																| `framework-mysql`, `framework-oracle` | Individual database integrations | Separate drivers and licenses reviewed. |
+
+																| `framework-iceberg` | Iceberg table reading and later supported writes | Existing compatible Iceberg library. |
+
+																| `framework-delta` | Delta table reading and later supported writes | Existing compatible Delta library. |
+
+																| `framework-filesystem-*` | S3/Azure/etc. transports and credential integration | Independent from data format. |
+
+
+
+																Do not create empty package distributions just to reserve names. Create concrete packages as their implementation work begins.
+
+
+
+																Initial development may use one monorepo for consistent contract tests, while publishing independent packages. No plugin must import private framework internals.
+
+
+
+																### 6.2 Module boundaries inside core
+
+
+
+																```text
+
+																Public Python SDK / CLI
+
+																         |
+
+																Project definitions + validated configuration
+
+																         |
+
+																Dependency resolver + bounded planner
+
+																         |
+
+																Runtime coordinator
+
+																   |         |          |             |
+
+																Readers   Engines    Validation     Publishers
+
+																   |         |                          |
+
+																Polars / DuckDB / Arrow / native connector APIs
+
+																         |
+
+																Private state + sanitized lifecycle events
+
+																         |
+
+																Optional catalog listener / optional docs renderer
+
+																```
+
+
+
+																Core interfaces should be small and typed. Prefer composition over a deep inheritance tree. A source-only connector must not implement unrelated publishing methods.
+
+
+
+																### 6.3 Proposed repository layout
+
+
+
+																```text
+
+																repository
+
+																  pyproject.toml
+
+																  packages
+
+																    framework
+
+																      src
+
+																        framework
+
+																          api
+
+																          project
+
+																          contracts
+
+																          planning
+
+																          execution
+
+																          engines
+
+																          sources
+
+																          destinations
+
+																          state
+
+																          events
+
+																          cli
+
+																      tests
+
+																    catalog
+
+																      src
+
+																      tests
+
+																    docs
+
+																      src
+
+																      tests
+
+																    postgresql
+
+																      src
+
+																      tests
+
+																  examples
+
+																  docs
+
+																  benchmarks
+
+																  connector_conformance
+
+																```
+
+
+
+																Names above are organizational suggestions. Avoid creating a file per tiny helper or adding abstraction layers without a real boundary.
+
+
+
+																## 7. Project model and Python user experience
+
+
+
+																### 7.1 Core domain entities
+
+
+
+																| Entity | Responsibility |
+
+																| --- | --- |
+
+																| Project | Names sources/models/destinations, defaults, variables, and attached optional modules. |
+
+																| Connection | Driver/transport selection and non-secret config plus runtime secret reference. |
+
+																| Source | Logical dataset, schema policy, read/extract settings, and connection/location reference. |
+
+																| Model | Dependencies, transformation, execution engine, output contract, tests, and destination declarations. |
+
+																| Destination | Writable target, output naming, supported materialization/write modes. |
+
+																| ExecutionPlan | Resolved graph, engine placement, read requests, staging, tests, and publication steps. |
+
+																| DatasetHandle | Logical relation/lazy scan/Arrow batch provider or durable artifact reference. |
+
+																| Run | Private execution state, publication receipts, and extraction checkpoint candidates. |
+
+																| CatalogDataset | Sanitized location/schema descriptor, separate from execution state. |
+
+
+
+																### 7.2 Illustrative API
+
+
+
+																The following is a proposed public API contract, not runnable shipped code. Freeze naming only after the first implementation spike. Avoid introducing a second competing declaration language.
+
+
+
+																```python
+
+																from framework import Project, Source, Destination, col, var
+
+
+
+																project = Project(
+
+																    name="sales_pipeline",
+
+																    default_destinations=["analytics_files"],
+
+																)
+
+
+
+																project.add_source(
+
+																    "orders",
+
+																    Source.parquet(
+
+																        location=r"C:\data\orders",
+
+																        columns={"customer_id": "int64", "amount": "decimal(18,2)"},
+
+																        schema_policy="required_columns",
+
+																    ),
+
+																)
+
+
+
+																project.add_source(
+
+																    "customers",
+
+																    Source.csv(
+
+																        location=r"C:\data\customers.csv",
+
+																        schema={"customer_id": "int64", "region": "string"},
+
+																    ),
+
+																)
+
+
+
+																project.add_destination(
+
+																    "analytics_files",
+
+																    Destination.parquet(location=r"C:\data\published"),
+
+																)
+
+
+
+																@project.sql_model(
+
+																    name="regional_sales",
+
+																    inputs={"o": "source:orders", "c": "source:customers"},
+
+																    destinations=var("sales_destinations", default=["analytics_files"]),
+
+																    contract={"region": "string", "sales": "decimal(18,2)"},
+
+																)
+
+																def regional_sales(ctx):
+
+																    return ctx.sql(
+
+																        """
+
+																        SELECT c.region, SUM(o.amount) AS sales
+
+																        FROM o
+
+																        JOIN c ON o.customer_id = c.customer_id
+
+																        GROUP BY c.region
+
+																        """
+
+																    )
+
+
+
+																@project.polars_model(
+
+																    name="large_orders",
+
+																    inputs={"orders": "source:orders"},
+
+																)
+
+																def large_orders(ctx):
+
+																    return (
+
+																        ctx.scan("orders", columns=["customer_id", "amount"])
+
+																        .filter(col("amount") > 100)
+
+																    )
+
+
+
+																plan = project.plan()
+
+																result = project.run(plan)
+
+																```
+
+
+
+																Design details:
+
+
+
+																- `inputs` maps safe logical aliases to explicit source/model references.
+
+																- SQL source aliases are registered as engine relations or rewritten through AST identifier bindings. They are not replaced with unescaped SQL fragments.
+
+																- Native Polars expression authoring should accept normal Polars expressions. A convenience `col` export may alias Polars; avoid building another dataframe DSL.
+
+																- Python models can request columns and typed source filters in `ctx.scan` explicitly, allowing extraction pushdown even before arbitrary Python expressions are analyzable.
+
+																- For remote extracted sources, declared scan requests are necessary before fetching. Initial planning does not magically introspect a Python function's future dataframe operations.
+
+																- SQL analysis includes filter/join/order expression columns when deriving required source columns.
+
+																- Contracts use validated logical type descriptors mapped to actual engine types. They are not merely string labels.
+
+																- The SDK supports notebooks and scripts. SQL-file declarations may be added later using the same model contract, not a separate engine.
+
+																- No full Jinja macro language is required initially. Parameterized values, named references, descriptions, and variables cover the initial needs.
+
+
+
+																### 7.3 Configuration precedence
+
+
+
+																Non-secret runtime variables:
+
+
+
+																1. Explicit SDK/CLI run overrides.
+
+																2. Selected project environment configuration.
+
+																3. Project variable defaults.
+
+																4. Missing required value -> configuration error.
+
+
+
+																Credentials:
+
+
+
+																- Runtime credential provider or explicitly supplied in-memory secret object.
+
+																- Environment/secret-store lookup through a reference.
+
+																- No fallback to catalog values.
+
+																- Persist references only in private project configuration where appropriate, never resolved secret values.
+
+
+
+																Resolve model output target names and destination lists once during preflight. Reuse those resolved values during retries.
+
+
+
+																### 7.4 Destination selection
+
+
+
+																```text
+
+																Model explicit destination list?
+
+																  yes -> use it, after variables resolve
+
+																  no  -> project default destination list?
+
+																           yes -> use it
+
+																           no  -> exactly one configured destination?
+
+																                    yes -> use it
+
+																                    no  -> fail with available choices
+
+																```
+
+
+
+																An explicitly empty list is invalid for a publishable model. Exactly one model destination does not alter other models' defaults. Deduplicate repeated destination IDs only when output targets are identical; conflicting duplicate declarations fail.
+
+
+
+																Intermediate models may explicitly declare a nonpublished materialization. This is distinct from an accidentally missing destination and still needs a durable canonical result when recovery/fan-out requires one.
+
+
+
+																## 8. Plugin contracts and extension SDK
+
+
+
+																### 8.1 Discovery and compatibility
+
+
+
+																Use Python entry-point groups for connectors and optional lifecycle modules. Entry-point group names are provisional until the real namespace is chosen.
+
+
+
+																Each plugin descriptor exposes:
+
+
+
+																- Plugin ID, distribution version, and supported framework contract version range.
+
+																- Configuration schema and secret fields.
+
+																- Implemented roles: source, destination, native engine, filesystem, format, catalog, docs.
+
+																- Capabilities, limitations, and optional dependencies.
+
+
+
+																Discovery reads metadata first; import the plugin only when explicitly selected. Discovery does not open connections or install packages.
+
+
+
+																Plugins are trusted installed code. Entry points are not a sandbox or a guarantee of safety.
+
+
+
+																### 8.2 Required typed contracts
+
+
+
+																Use protocols and validated records with these responsibilities:
+
+
+
+																| Contract | Operations / data |
+
+																| --- | --- |
+
+																| SourceAdapter | Validate config, describe dataset, negotiate scan, create lazy/batch/staged read handle. |
+
+																| ScanRequest | Required columns, typed filters, schema expectations, batch/window hints, safe limits. |
+
+																| ScanNegotiation | Accepted filters/projection, residual filters, physical pruning notes, transport/materialization requirements. |
+
+																| BatchProvider | Arrow schema plus repeatable or explicitly single-use batch iterator and resource cleanup. |
+
+																| EngineAdapter | Validate supported model, bind inputs, explain, execute, expose result handle. |
+
+																| DestinationAdapter | Validate output schema/mode, prepare, write, commit, report receipt, recover supported publication. |
+
+																| CredentialProvider | Resolve secret references in memory for a specific connection. |
+
+																| CatalogStore | Validate, list/search/get, register/update/remove metadata descriptors with conflict handling. |
+
+																| LifecycleListener | Consume sanitized versioned events with explicit failure semantics. |
+
+
+
+																Do not force every source into eager Arrow conversion. A DatasetHandle has distinct lazy Polars, DuckDB-accessible, Arrow batch, or durable artifact variants.
+
+
+
+																### 8.3 Capability granularity
+
+
+
+																Examples of independent capabilities:
+
+
+
+																- Column projection, predicate operators, parameter binding, limit support.
+
+																- Exact source row counts versus unknown/estimated counts.
+
+																- Arrow batches versus fully materialized Arrow tables.
+
+																- Native query execution and supported dialect.
+
+																- Replace, append, merge, staged commit, idempotent retry.
+
+																- File globbing, directory datasets, partition pruning.
+
+																- Source read consistency and repeatability.
+
+
+
+																Capability reports are evaluated for the selected source/format/options. Do not declare "supports filtering" when only one special API endpoint supports a date parameter.
+
+
+
+																### 8.4 Contributor conformance suite
+
+
+
+																Supply a reusable test harness for:
+
+
+
+																- Config errors, missing secret references, and redaction.
+
+																- Exact projection/filter/residual behavior.
+
+																- Nulls, decimals, timezone boundaries, Unicode, and nested values.
+
+																- Batch cleanup and cancellation.
+
+																- Publication failures before/during/after commit.
+
+																- Retry and cursor advancement.
+
+																- Dataset identity and catalog descriptor sanitization.
+
+
+
+																Source-only modules run only applicable tests. Platform integrations document unsupported roles instead of pretending to implement them.
+
+
+
+																## 9. Execution-plan design and pushdown
+
+
+
+																### 9.1 Compilation stages
+
+
+
+																1. Load declarations and validate config without extraction or writes.
+
+																2. Resolve variables, model/source references, and destination IDs.
+
+																3. Validate DAG and select the requested/default engine.
+
+																4. Parse SQL using its declared dialect; bind aliases and analyze required columns.
+
+																5. Validate supported SQL/engine behavior beyond syntax parsing.
+
+																6. Negotiate connector scan/extraction requests.
+
+																7. Identify residual local operations and required staging/conversion.
+
+																8. Validate output contract and destination capabilities where schema is statically available.
+
+																9. Produce a sanitized plan with per-step dependencies.
+
+																10. At execution, perform any necessary runtime schema/prepublication validation before writes.
+
+
+
+																Schema discovery may perform bounded metadata I/O when explicitly permitted. Explain/plan should disclose discovery calls and support an offline mode using declared schemas.
+
+
+
+																### 9.2 Plan node types
+
+
+
+																- SourceScan: file/engine-native lazy read.
+
+																- Extract: external retrieval with pending checkpoint.
+
+																- Stage: durable local representation when required.
+
+																- Transform: selected engine and sanitized SQL or callable reference.
+
+																- Validate: output contract and tests.
+
+																- Publish: one explicit destination/output target.
+
+																- RegisterCatalog: optional metadata update after publication.
+
+
+
+																The operational plan is not a complete relational algebra or a replacement for DuckDB/Polars optimization.
+
+
+
+																### 9.3 SQL paths
+
+
+
+																- DuckDB default: register safe input aliases, keep compatible file scans visible to DuckDB, execute SQL using bound values.
+
+																- Polars override: register explicit LazyFrames in SQLContext; supported SQL becomes Polars expressions through Polars itself.
+
+																- Native SQL override: use the connector engine if all input references are accessible in that execution context. Otherwise fail with instructions to choose local execution or explicit staging.
+
+																- SQLGlot transpilation: require declared input/output dialects and strict unsupported handling. Verify fixture semantics; successful parsing/transpilation is not proof of compatibility.
+
+
+
+																No SQL-to-Python code-string generation or arbitrary `eval`/`exec` is needed.
+
+
+
+																### 9.4 Pushdown guarantees by source
+
+
+
+																| Source | Logical reduction | Physical I/O caveat |
+
+																| --- | --- | --- |
+
+																| Parquet | Projection, supported filters, partition pruning | Row-group skipping depends on statistics and layout; not every filter skips bytes. |
+
+																| CSV/delimited | Reader projection and early filtering where supported | Usually must read text; projected parsing is not columnar byte skipping. |
+
+																| NDJSON | Lazy projection/filtering where supported | Generally reads underlying records; inferred schema can still require inspection. |
+
+																| JSON arrays/objects | Configured record selection and local filtering | May require eager parse; no promise of random access or streaming arrays. |
+
+																| Excel | Sheet/range/column selection where reader supports it | Not a general lazy predicate-pushdown source; processing may be eager. |
+
+																| REST | Explicit field/filter/cursor parameter mappings | Only actual API capabilities apply; residual conditions remain local. |
+
+																| SQL connector | Supported projected/filtered parameterized query | Remote query plan and indexes determine physical work. |
+
+																| Arrow dataset source | Scanner projection/filtering where supported | Actual pruning depends on source format/implementation. |
+
+
+
+																Arrow is a representation/API, not an independent promise of source-side filtering.
+
+
+
+																### 9.5 Cross-source joins
+
+
+
+																Derive source-local predicates only when safe, reduce each source, then join on the local engine. Joins across independently changing systems are not globally snapshot-consistent by default.
+
+
+
+																Record read-window details in private operational state when available. Do not add snapshots to the optional catalog. Public documentation must disclose consistency limits.
+
+
+
+																### 9.6 Python analysis boundary
+
+
+
+																Do not attempt to reverse-engineer arbitrary Python functions. Explicit inputs establish table lineage; `ctx.scan(columns=..., filters=...)` establishes remote read requirements. File-native lazy execution lets Polars optimize subsequent expressions naturally.
+
+
+
+																If a Python model requests the whole frame, the planner cannot promise minimal-column extraction. Explain this difference instead of advertising universal pushdown.
+
+
+
+																## 10. Core source and destination scope
+
+
+
+																### 10.1 Core readers
+
+
+
+																**Parquet**
+
+
+
+																- Single files, explicit file lists, and directory datasets.
+
+																- Schema hints, partition-aware reading, projected dependencies.
+
+																- Known behavior for mixed-file schemas: required-column policy reconciles compatible used columns; conflicting used types fail.
+
+
+
+																**CSV and delimited text**
+
+
+
+																- CSV/TSV and supported separators, headers/no headers, quoting/escaping.
+
+																- Explicit encoding behavior, null tokens, schema overrides.
+
+																- Default malformed used-record errors; no silent row dropping.
+
+																- Multi-character separators are not promised initially.
+
+
+
+																**JSON**
+
+
+
+																- NDJSON/JSONL lazy path.
+
+																- JSON arrays/object record-path extraction.
+
+																- Explicit flattening; preserve structs/lists where supported.
+
+																- Reject ambiguous payload shapes and unsupported nesting mappings.
+
+
+
+																**Excel**
+
+
+
+																- `.xlsx` initial contract, sheet selection, header/schema options.
+
+																- Additional workbook formats only after fixtures verify reader support.
+
+																- No formula execution; expose handling of stored formula results and missing caches.
+
+																- No Excel source predicate-pushdown claim.
+
+
+
+																**HTTP/REST**
+
+
+
+																- GET-based paginated extraction as the initial supported baseline.
+
+																- Offset/page/cursor/link patterns explicitly configured.
+
+																- JSON/NDJSON and downloadable supported file payloads.
+
+																- Runtime bearer/basic/header auth references; pluggable token provider.
+
+																- Connect/read/pool timeouts, batch sizes, retry ceilings, max pages/records.
+
+																- Retry transient failures and respect Retry-After where appropriate.
+
+																- Stable incremental cursor/window contracts; late-arrival behavior configured.
+
+																- Do not promise built-in OAuth flows for every provider or arbitrary API writes.
+
+
+
+																### 10.2 Core writers
+
+
+
+																Initial durable destinations:
+
+
+
+																- Local Parquet.
+
+																- Local CSV/general supported delimited text.
+
+																- Local JSONL.
+
+																- Local DuckDB tables with documented connection/write concurrency.
+
+
+
+																These provide genuine multi-destination delivery before remote database modules ship.
+
+
+
+																Excel export is a later bounded writer capability unless promoted explicitly; it is not implied by Excel read support. Arbitrary REST POST/PUT destinations are deferred because publication and idempotency semantics are provider-specific.
+
+
+
+																### 10.3 Optional module sequence
+
+
+
+																1. PostgreSQL as the reference SQL source/destination plugin with native SQL capability.
+
+																2. Iceberg and Delta reader plugins with tested table references and Arrow paths.
+
+																3. Object-store filesystem modules as needed.
+
+																4. Snowflake, BigQuery, MySQL, Oracle, and Fabric endpoint-specific connectors.
+
+
+
+																Fabric Lakehouse files/OneLake access, Warehouse T-SQL, Lakehouse SQL analytics endpoints, and Fabric SQL Database must not be collapsed into one misleading adapter capability.
+
+
+
+																Later promotion of Iceberg/Delta to core is a packaging change, not a rewrite of their public source contract. Preserve plugin IDs/configuration compatibility and announce dependency changes.
+
+
+
+																## 11. Schema contracts and evolution
+
+
+
+																### 11.1 Separate three contracts
+
+
+
+																1. Source observed schema: what discovery/inference currently sees.
+
+																2. Model dependency schema: columns and types actually required for the model.
+
+																3. Model output contract: validated published schema and quality expectations.
+
+
+
+																Source-wide strictness is an explicit policy, not a consequence of catalog registration or schema inference.
+
+
+
+																### 11.2 Required-column policy
+
+
+
+																For explicitly projected models, dependency validation applies only to required columns. The set includes columns used in filtering and joins even if absent from the final output.
+
+
+
+																| Source change | Required-column policy |
+
+																| --- | --- |
+
+																| Add unused column | Continue. |
+
+																| Remove unused column | Continue. |
+
+																| Reorder columns | Continue with name-based resolution. |
+
+																| Change unused column type | Continue where reader can safely omit it. |
+
+																| Remove used column | Fail with required-column error. |
+
+																| Incompatibly change used type | Fail unless explicit approved cast/evolution policy. |
+
+																| Add/remove column under `SELECT *` | Full-schema dependency applies; output policy decides acceptance. |
+
+																| Corrupt file structure | Fail; projection does not guarantee structural corruption can be ignored. |
+
+
+
+																Column pruning must be applied before whole-source schema checks where supported. For parsers that inspect all fields, distinguish unavoidable parser limitations from framework-imposed strictness.
+
+
+
+																### 11.3 Output policies
+
+
+
+																- Strict output contract when declared.
+
+																- Additive evolution only when explicitly configured and supported by every selected destination.
+
+																- No silent decimal truncation, timezone dropping, overflow, or stringify-all coercion.
+
+																- No automatic output removal or destructive target changes.
+
+																- When no output contract is declared, allow inferred execution but mark contract status as inferred and encourage declarations.
+
+
+
+																Nullability and data tests may need execution; static plan validation must not pretend to prove row-level validity.
+
+
+
+																## 12. Publishing, operational state, and recovery
+
+
+
+																### 12.1 Local runtime state
+
+
+
+																Use a project/run-directory SQLite database for:
+
+
+
+																- Run/model status and attempt IDs.
+
+																- Resolved plan/config fingerprints, with secret values excluded.
+
+																- Staged artifact identity and schema.
+
+																- Publication status/receipts.
+
+																- Pending and committed extraction checkpoints.
+
+																- Catalog synchronization status.
+
+
+
+																This state is private operational metadata, not the shareable catalog. It is configurable and separate from published data.
+
+
+
+																### 12.2 Model lifecycle
+
+
+
+																```text
+
+																planned
+
+																  -> reading/extracting
+
+																  -> transforming
+
+																  -> validating
+
+																  -> staging canonical result when required
+
+																  -> publishing each selected destination
+
+																  -> updating opted-in catalog entries
+
+																  -> succeeded
+
+																```
+
+
+
+																Failures have separate categories: extraction, transformation, validation, publication, catalog synchronization, and configuration. Preserve which side effects have already occurred.
+
+
+
+																### 12.3 Recovery rules
+
+
+
+																- Validate before publication.
+
+																- Record each publication independently.
+
+																- Reuse an intact durable staged result after partial publication.
+
+																- On crash after destination commit but before receipt persistence, reconcile through an idempotency/commit marker supported by that connector.
+
+																- If reconciliation is unavailable, mark outcome unknown and require a documented safe recovery action; do not blindly append.
+
+																- If the staged result is missing or changed, never rerun a nondeterministic transformation and combine it silently with earlier successful outputs.
+
+																- Successful single-file local replace is a safe baseline; append/merge require connector-specific guarantees.
+
+																- Checkpoint updates wait until all required affected outputs succeed.
+
+																- Cancellation stops further publications and retains already committed effects explicitly.
+
+
+
+																### 12.4 Incremental processing boundary
+
+
+
+																Initial usable slice supports full-refresh/replace materialization and bounded extraction windows. The core release adds explicit append support only for connectors with tested replay behavior.
+
+
+
+																Model-level incremental merge/upsert, delete propagation, late-arrival windows, and historical backfills are subsequent reliability features. They are not automatic consequences of extracting by cursor.
+
+
+
+																A source cursor shared by multiple selected models advances only after all affected required publications for that window succeed. If only part of a project is selected, store consumer-specific progress or refuse an unsafe shared advance; never skip data for an unselected consumer.
+
+
+
+																### 12.5 Catalog synchronization failure
+
+
+
+																Default for opted-in registration: mark a catalog synchronization failure explicitly and return failure, while preserving successful data publication receipts. Retry metadata registration without rewriting published data.
+
+
+
+																An explicit configuration may downgrade catalog synchronization to a visible warning, recorded as a degraded result. Never silently ignore it.
+
+
+
+																Catalog registration is not a transaction with the destination.
+
+
+
+																## 13. Optional catalog module
+
+
+
+																### 13.1 Scope
+
+
+
+																The module is a location-and-schema index, not a storage engine or centralized security authority.
+
+
+
+																It can be used:
+
+
+
+																- Independently to register/browse sources.
+
+																- Attached to a project for selected automatic output registration.
+
+																- By another project to resolve a dataset descriptor and supply its own credentials.
+
+
+
+																Core has no mandatory catalog import.
+
+
+
+																### 13.2 YAML format
+
+
+
+																Illustrative versioned format:
+
+
+
+																```yaml
+
+																catalog_version: 1
+
+																datasets:
+
+																  - id: sales.regional_sales.analytics_files
+
+																    name: regional_sales
+
+																    namespace: sales
+
+																    kind: model_output
+
+																    model_id: sales_pipeline.regional_sales
+
+																    location:
+
+																      type: parquet
+
+																      uri: 'C:\data\published\regional_sales.parquet'
+
+																    description: Regional sales totals.
+
+																    owner: analytics
+
+																    tags: [sales]
+
+																    columns:
+
+																      - name: region
+
+																        type: string
+
+																      - name: sales
+
+																        type: 'decimal(18,2)'
+
+																    last_refreshed_at: null
+
+																    row_count: null
+
+
+
+																  - id: external.customer_table
+
+																    name: customer_table
+
+																    namespace: external
+
+																    kind: source
+
+																    location:
+
+																      type: postgresql
+
+																      endpoint: database.internal
+
+																      database: crm
+
+																      schema: public
+
+																      table: customers
+
+																    columns:
+
+																      - name: customer_id
+
+																        type: int64
+
+
+
+																  - id: external.events_iceberg
+
+																    name: events
+
+																    namespace: external
+
+																    kind: source
+
+																    location:
+
+																      type: iceberg
+
+																      uri: 's3://example-data/events/metadata/table.metadata.json'
+
+																    description: A table metadata reference requiring the Iceberg module.
+
+																```
+
+
+
+																The object-store URI is a dataset identifier example, not a local Windows filesystem path.
+
+
+
+																Rules:
+
+
+
+																- No password, token, access key, auth header, credential object, signed URL query, or embedded DSN credentials.
+
+																- Endpoints/database/table names are non-secret metadata but may still be sensitive; catalogs are shared only with authorized users.
+
+																- Missing refresh/row count is null, not zero.
+
+																- Exact row count is optional and collected from a reliable result/receipt; do not run an expensive full source count just for registration.
+
+																- No row previews or underlying data.
+
+																- Latest framework-built metadata only, no history/snapshots.
+
+																- Each output destination has its own descriptor and refresh status.
+
+																- Catalog schema entries do not enforce source-wide schema equality at runtime.
+
+
+
+																### 13.3 Catalog operations
+
+
+
+																- Validate/open/create a local YAML catalog.
+
+																- List/search by name, namespace, type, tags, and columns.
+
+																- Register a source descriptor without reading or copying the full dataset.
+
+																- Register/update selected physical model outputs after successful publication.
+
+																- Resolve to a Source descriptor, requiring connection mapping/credentials at runtime.
+
+																- Remove a registration only; never delete underlying data.
+
+																- Export sanitized YAML.
+
+
+
+																### 13.4 Integrity and scalability
+
+
+
+																- Safe YAML loading with a bounded document size and duplicate-ID/key checks.
+
+																- Versioned schema with explicit migrations.
+
+																- Local file lock for framework writers.
+
+																- Content fingerprint comparison to catch external edits before replacement.
+
+																- Same-directory temporary file and platform-safe atomic replacement.
+
+																- Fail on unsupported network filesystem locking semantics; shared concurrent remote YAML updates are not an initial guarantee.
+
+																- Preserve valid unrelated entries; do not silently discard unknown versioned metadata.
+
+																- Human comments/formatting may be normalized by API updates; document this.
+
+																- For larger catalogs, a relational backend can later implement the same interface. YAML is not an unbounded-scale database.
+
+
+
+																## 14. Documentation module and lineage
+
+
+
+																### 14.1 Inputs
+
+
+
+																Use a sanitized versioned project manifest containing:
+
+
+
+																- Sources/models, names, descriptions, owners, tags.
+
+																- Declared dependencies and resolved table-level runtime read/write edges.
+
+																- Columns, declared/inferred contract status, tests.
+
+																- Engine choices and destination descriptions.
+
+																- Optional selected last-run summaries, excluding data samples and secrets.
+
+
+
+																Documentation does not depend on a live catalog or access to source credentials.
+
+
+
+																### 14.2 Markdown
+
+
+
+																Generate one file containing project overview, model/source index, per-model descriptions, columns/types/tests, destination summaries, and readable lineage adjacency.
+
+
+
+																Optional Mermaid code blocks may supplement but not replace a readable text/table representation because not every Markdown renderer supports diagrams.
+
+
+
+																### 14.3 HTML
+
+
+
+																Generate one offline HTML file with embedded styles and optional embedded scripts/SVG diagrams. Use escaped descriptions/configuration; raw user HTML is not trusted by default.
+
+
+
+																Required UX:
+
+
+
+																- Model/source index and anchor navigation.
+
+																- Search/filter over embedded metadata where feasible.
+
+																- Table-level lineage diagram plus accessible textual representation.
+
+																- Column descriptions/contracts/tests.
+
+																- Destination and engine details.
+
+																- Responsive readable layout, keyboard navigation, no network/CDN dependency.
+
+
+
+																Do not embed catalog secrets, result samples, or raw HTTP headers. Sanitized SQL still needs scrutiny for literal credentials in user-written SQL; redact/omit it when safety cannot be established.
+
+
+
+																### 14.4 Lineage truthfulness
+
+
+
+																- Declared lineage comes from inputs/ref declarations.
+
+																- Runtime lineage includes framework-mediated actual reads and committed writes.
+
+																- SQL column lineage is a later bounded AST/schema feature.
+
+																- Python table lineage comes from declared/framework-mediated access; arbitrary external reads are not automatically visible.
+
+																- Do not store full lineage history in the minimal YAML catalog; use sanitized project manifests and private runtime events.
+
+
+
+																## 15. Error, security, and operational policy
+
+
+
+																Typed error categories include ConfigurationError, PluginCompatibilityError, UnsupportedCapabilityError, SchemaContractError, ExtractionError, TransformationError, ValidationError, PublicationError, RecoveryRequiredError, and CatalogSyncError.
+
+
+
+																Each error includes relevant model/source/destination IDs, a sanitized cause, and a specific corrective action.
+
+
+
+																Security requirements:
+
+
+
+																- Parameterize SQL values and separately validate identifiers.
+
+																- Keep HTTP auth in runtime memory; redact URLs/headers/errors before logging.
+
+																- Reject credential-bearing catalog locations, including signed URLs.
+
+																- Safe YAML loading, no arbitrary constructors.
+
+																- Escape HTML documentation.
+
+																- Disable arbitrary remote extension installation by default; any DuckDB extension/network behavior is explicit configuration.
+
+																- Do not fetch pagination links outside the configured origin by default; cross-origin links need an explicit allow-list and credentials must not be forwarded accidentally.
+
+																- Bound response/download size and validate extraction limits.
+
+																- Clean up connection/file handles deterministically.
+
+																- Do not log raw records by default; test failure samples require explicit bounded, redacted policy.
+
+																- Treat temporary/staged data as potentially sensitive with configurable retention and restrictive permissions.
+
+
+
+																Performance/operations:
+
+
+
+																- Default deterministic bounded model concurrency; tune native engine threads to avoid oversubscription.
+
+																- Use isolated/appropriately serialized DuckDB connection ownership; verify supported read/write concurrency against the selected version.
+
+																- Lazy scan wherever practical, avoid Python per-row loops for standard transforms.
+
+																- Do not promise out-of-core execution for every operator.
+
+																- Instrument rows/bytes when measured, extraction/compute/publication durations, staging size, and peak memory in benchmark runs.
+
+
+
+																## 16. Validation and acceptance blueprint
+
+
+
+																### 16.1 Required functional scenarios
+
+
+
+																1. Join Parquet orders and CSV customers in a DuckDB SQL model and publish to Parquet and local DuckDB.
+
+																2. Express an equivalent transformation in Polars Python and compare results under a declared contract.
+
+																3. Execute supported SQL explicitly through Polars SQLContext with no generated Python strings.
+
+																4. Read Excel plus paginated REST data into one model and publish to two file destinations.
+
+																5. Read JSON arrays and NDJSON with explicit nested-field handling.
+
+																6. With one project destination and no defaults, auto-resolve it.
+
+																7. With several destinations and no model/default choice, fail before writes.
+
+																8. Resolve a destination list from runtime variables and persist its resolved values for retry.
+
+																9. Disable catalog/docs packages and run the pipeline successfully.
+
+																10. Attach catalog, select one source and one model for registration, and ensure unselected datasets are not added.
+
+																11. Discover catalog dataset metadata and require fresh caller-supplied credentials to connect.
+
+																12. Generate Markdown and HTML documents from the manifest without network access.
+
+																13. Install PostgreSQL module independently and use it as both source and destination.
+
+																14. Attempt native SQL over inaccessible external inputs and get a preflight capability error.
+
+																15. Install incompatible/missing plugins and get actionable discovery errors.
+
+
+
+																### 16.2 Required schema scenarios
+
+
+
+																- Add/remove/retype unused columns in projected Parquet sources: pipeline still succeeds.
+
+																- Required-column changes in Parquet, CSV, NDJSON: fail accurately.
+
+																- Filter-only and join-only columns count as required.
+
+																- `SELECT *` schema drift is visible and follows the output contract policy.
+
+																- Mixed-file schema changes reconcile used compatible columns only.
+
+																- Malformed input is not silently skipped.
+
+																- Decimal overflow, timezone loss, and nested destination mismatches are rejected unless explicitly permitted.
+
+
+
+																### 16.3 Required recovery scenarios
+
+
+
+																- Second publication fails after first succeeds: model/run fails; first output remains.
+
+																- Retry writes only the failed destination using the same staged result.
+
+																- Crash before commit versus after commit: distinguish/reconcile; never blindly duplicate append.
+
+																- Missing staged artifact: refuse unsafe partial recovery.
+
+																- Validation fails: no required destination writes.
+
+																- Catalog write fails after data commits: failure is reported; metadata retry does not rewrite data.
+
+																- Extraction cursor does not advance on failed required publication.
+
+																- Shared source cursor never skips an unselected/downstream failed consumer.
+
+																- Concurrent/manual YAML edits are detected without losing unrelated registrations.
+
+
+
+																### 16.4 Pushdown tests must test the real requirement
+
+
+
+																- Assert actual source read requests include required columns and accepted filters.
+
+																- For mock REST sources, verify the exact allowed fields/query parameters and that residual conditions run locally.
+
+																- For SQL connectors, inspect executed parameterized SQL.
+
+																- For Parquet, verify engine plans/scanner requests and use controlled partitions/row groups to measure physical skipping.
+
+																- Do not use wall-clock speed alone as proof of pushdown.
+
+																- Assert filters are not dropped or applied with changed semantics.
+
+																- Compare optimized and nonoptimized output correctness across edge cases.
+
+
+
+																### 16.5 Performance acceptance
+
+
+
+																Do not choose arbitrary speed claims before establishing baselines.
+
+
+
+																Benchmark:
+
+
+
+																- Project/plan startup.
+
+																- Engine-only transformation versus framework transformation.
+
+																- Extraction and end-to-end multi-destination publication separately.
+
+																- Narrow/wide Parquet scans, CSV/JSON parsing, joins, aggregations, and API pagination.
+
+																- Memory usage, bytes read/written where measurable, and staging overhead.
+
+																- Warm/cold data/cache conditions and fixed concurrency.
+
+
+
+																The first benchmark milestone produces a versioned baseline and proposes justified regression thresholds for review. No release claims "Polars speed everywhere."
+
+
+
+																### 16.6 Test layers
+
+
+
+																- Pure unit tests for resolution, types, DAG, redaction, catalog edits.
+
+																- Engine/format integration fixtures.
+
+																- Plugin conformance tests.
+
+																- Local mock HTTP service for pagination/auth/retries.
+
+																- Isolated PostgreSQL integration environment.
+
+																- Fault injection for publishing/state/catalog.
+
+																- Offline single-file docs checks and HTML security checks.
+
+																- OS CI matrix for path/file-lock behavior and native dependency compatibility.
+
+
+
+																## 17. Implementation workstreams and dependency graph
+
+
+
+																These are execution todos, not Markdown checkboxes. SQL tracking mirrors these IDs.
+
+
+
+																### T01 - Establishing contracts and dependency feasibility
+
+
+
+																Create the greenfield repository in a user-selected project session, choose actual namespace/license, define public configuration/contract versions, and verify Python/native dependency compatibility.
+
+
+
+																Deliverables: bootstrap metadata, tested dependency matrix, minimal engine probes, documented public IDs/types.
+
+
+
+																Acceptance: core engines/Excel/Arrow can run fixtures on Python 3.14 and 3.15 across supported operating systems; optional imports remain isolated and shared code is parseable on 3.14.
+
+
+
+																Prerequisites: none.
+
+
+
+																### T02 - Building project declarations and plugin discovery
+
+
+
+																Implement Project/Source/Model/Destination records, typed variables, explicit input/ref declarations, DAG validation, plugin entry points, and compatibility checks.
+
+
+
+																Deliverables: Python declaration API and configuration validation.
+
+
+
+																Acceptance: no execution on import, deterministic resolution, missing/duplicate/cycle/plugin errors tested.
+
+
+
+																Prerequisites: T01.
+
+
+
+																### T03 - Building plans and engine adapters
+
+
+
+																Implement typed operational plans, explicit engine routing, safe SQL bindings, DuckDB execution, Polars LazyFrame/SQLContext paths, and explain output.
+
+
+
+																Deliverables: plans and engine integration fixtures.
+
+
+
+																Acceptance: SQL and Python equivalent models run without code-string compilation or silent engine switching.
+
+
+
+																Prerequisites: T02.
+
+
+
+																### T04 - Building core file readers and Arrow boundaries
+
+
+
+																Implement Parquet, CSV/delimited, JSON/NDJSON, Excel, schema hints, lazy handle variants, and Arrow batch fallback.
+
+
+
+																Deliverables: supported format matrix and parser/read fixtures.
+
+
+
+																Acceptance: all core formats read through the selected path with explicit limitations; no mandatory pandas bridge.
+
+
+
+																Prerequisites: T02.
+
+
+
+																### T05 - Building REST extraction and checkpoint candidates
+
+
+
+																Implement HTTP auth references, bounded pagination, record selection, safe retries, approved API filter/field mapping, and pending extraction windows.
+
+
+
+																Deliverables: REST source and mock-server fixtures.
+
+
+
+																Acceptance: bounded retries, sanitized errors, no checkpoint advance merely because retrieval succeeded.
+
+
+
+																Prerequisites: T02.
+
+
+
+																### T06 - Implementing pushdown and required-column contracts
+
+
+
+																Wire SQL required-column analysis, explicit Python scan requests, connector negotiation, residual operations, output contracts, and standard tests.
+
+
+
+																Deliverables: capability-aware planning and schema/test gates.
+
+
+
+																Acceptance: unused-column changes pass; required-column changes fail; actual source requests prove pushdown.
+
+
+
+																Prerequisites: T03, T04, T05.
+
+
+
+																### T07 - Building private run state and multi-destination publication
+
+
+
+																Implement SQLite state, canonical staged results, local Parquet/CSV/JSONL/DuckDB writers, destination default/variable resolution, publication receipts, and failure statuses.
+
+
+
+																Deliverables: publishing/state machine with required outputs.
+
+
+
+																Acceptance: two destinations from one model; first publication preserved when second fails; prepublication contracts enforced.
+
+
+
+																Prerequisites: T06.
+
+
+
+																### T08 - Implementing recovery and incremental extraction safety
+
+
+
+																Implement publication reconciliation, failed-output retries, checkpoint ordering/consumer semantics, cancellation, retention, and explicit replay guarantees.
+
+
+
+																Deliverables: fault-injection/recovery suite.
+
+
+
+																Acceptance: no silent duplicated append or unsafe replay; missing artifacts require action.
+
+
+
+																Prerequisites: T07.
+
+
+
+																### T09 - Building optional YAML catalog
+
+
+
+																Implement standalone CatalogStore API, safe YAML schema, registration/search/resolve, atomic/conflict-aware edits, credential exclusion, and optional successful-publication integration.
+
+
+
+																Deliverables: independent package and catalog integration.
+
+
+
+																Acceptance: selected sources/outputs register; secrets never persist; catalog failure is retryable without data rewrite.
+
+
+
+																Prerequisites: T02, T07.
+
+
+
+																### T10 - Building optional documentation and table lineage
+
+
+
+																Implement sanitized manifests, declared/runtime table lineage, model/column descriptions, single Markdown output, and offline HTML rendering.
+
+
+
+																Deliverables: independent docs module and representative artifact fixtures.
+
+
+
+																Acceptance: both formats work without catalog/live credentials; HTML requires no external assets.
+
+
+
+																Prerequisites: T02, T03, T07.
+
+
+
+																### T11 - Building the reference PostgreSQL module
+
+
+
+																Implement independently installed source/destination/native SQL adapter, parameterized pushdown, Arrow batches where supported, schema mapping, and verified commit/retry semantics.
+
+
+
+																Deliverables: connector SDK example and executable conformance suite.
+
+
+
+																Acceptance: multi-source/multi-destination pipeline uses PostgreSQL without core importing its driver.
+
+
+
+																Prerequisites: T06, T08.
+
+
+
+																### T12 - Building optional Iceberg and Delta modules
+
+
+
+																Implement separate table-format readers using established libraries, correct table references, projected Arrow/native reads, and documented capability limits.
+
+
+
+																Deliverables: optional distributions and format fixtures.
+
+
+
+																Acceptance: table metadata semantics respected; no directory-as-table shortcut.
+
+
+
+																Prerequisites: T04, T06.
+
+
+
+																### T13 - Building CLI, examples, and contributor guide
+
+
+
+																Expose SDK-backed validate/plan/explain/run/retry commands, optional catalog/docs commands, complete examples, and plugin-authoring guide.
+
+
+
+																Deliverables: user/contributor documentation with requirement coverage and limitation matrix.
+
+
+
+																Acceptance: Python-first examples and CLI produce matching behavior/exit status.
+
+
+
+																Prerequisites: T08, T09, T10, T11.
+
+
+
+																### T14 - Hardening and measuring the core release
+
+
+
+																Run cross-platform compatibility, fault/security-focused fixtures, correctness comparisons, and baseline benchmarks; define justified regression budgets and build independent release packages.
+
+
+
+																Deliverables: supported matrix, tested packages, release acceptance report.
+
+
+
+																Acceptance: all core release gates below pass; roadmap features are not advertised as delivered.
+
+
+
+																Prerequisites: T12, T13.
+
+
+
+																### T15 - Extending model incrementality and connector coverage
+
+
+
+																Add connector-specific merge/upsert/delete/backfill support and additional SQL/filesystem/platform modules through the same public contracts.
+
+
+
+																Deliverables: bounded module-specific capabilities and recovery tests.
+
+
+
+																Acceptance: behavior remains explicit; no universal exactly-once/SQL support claims.
+
+
+
+																Prerequisites: T14.
+
+
+
+																### T16 - Promoting table formats and advanced metadata features
+
+
+
+																Evaluate moving Iceberg/Delta into the core distribution, relational catalog backends, bounded SQL column lineage, and OpenLineage-compatible event export.
+
+
+
+																Deliverables: packaging migration, measured dependency impact, compatibility plan.
+
+
+
+																Acceptance: existing plugin IDs/config work; the minimal catalog remains location/metadata-focused.
+
+
+
+																Prerequisites: T14.
+
+
+
+																## 18. Release gates
+
+
+
+																### First usable vertical slice
+
+
+
+																- Python model declarations and explicit refs.
+
+																- Parquet/CSV sources.
+
+																- DuckDB SQL and Polars Python execution.
+
+																- Contract/quality gates.
+
+																- Two local destinations with explicit default selection and partial failure reporting.
+
+																- Durable result/state sufficient for safe failed-output retries.
+
+
+
+																This slice is not the complete core release.
+
+
+
+																### Core release
+
+
+
+																- All confirmed core source families including JSON, Excel, and REST.
+
+																- DuckDB, Polars, and Arrow paths with tested capability limits.
+
+																- Required-column schema-change tolerance.
+
+																- Bounded REST extraction/checkpoint safety.
+
+																- Multi-destination publication and fault-tested recovery.
+
+																- Optional YAML catalog and Markdown/HTML docs packages usable independently.
+
+																- Reference independently installable PostgreSQL connector.
+
+																- Optional Iceberg/Delta modules validated before core promotion.
+
+																- CLI/SDK examples, plugin conformance guide, supported OS/dependency matrix.
+
+																- Published benchmark baseline and limitation/requirement coverage matrix.
+
+
+
+																### Explicitly deferred
+
+
+
+																- Universal SQL translation or automatic optimal engine selection.
+
+																- Distributed scheduler or replacement for Airflow/Dagster/Prefect.
+
+																- Globally atomic multi-system writes.
+
+																- Catalog snapshot/history/time-travel management.
+
+																- Automatic full lineage for arbitrary Python.
+
+																- Arbitrary REST write connectors, universal OAuth, or all enterprise DB drivers in core.
+
+																- Enterprise multiuser catalog web service and access-control authority.
+
+																- General CDC log replication.
+
+																- Rust orchestration core without a measured reason.
+
+
+
+																## 19. Risks and mitigation
+
+
+
+																| Risk | Mitigation |
+
+																| --- | --- |
+
+																| Scope resembles several mature products combined | Deliver one vertical slice first; keep future connectors/features explicitly deferred. |
+
+																| Public plugin API becomes unstable | Freeze a small contract, version it, and test connectors through conformance fixtures. |
+
+																| SQL transpilation changes semantics | Bounded support, explicit dialects, engine validation, semantic fixtures, strict errors. |
+
+																| Python transformations hide read requirements | Explicit inputs/scan requests; no universal static-analysis claim. |
+
+																| CSV/JSON schema inference breaks unused columns | Projection-aware readers and required-column checks; document unavoidable parser limitations. |
+
+																| Multi-destination retry duplicates data | Durable canonical result, per-output receipts, reconciliation/idempotency guarantees, unknown-outcome errors. |
+
+																| Catalog is mistaken for access control or lakehouse storage | Minimal schema and explicit separation from auth, transaction management, and runtime state. |
+
+																| YAML edits lose concurrent/manual updates | Locking, fingerprint checks, atomic replacement, explicit conflicts. |
+
+																| Catalog/docs leak secrets | Allow-listed metadata schemas, redaction fixtures, credential-bearing URI rejection. |
+
+																| Native dependencies complicate packaging | Python version/dependency feasibility matrix and OS CI before release promises. |
+
+																| Engine switches or staging erase performance gains | Explicit engine selection, visible boundaries, end-to-end benchmarks. |
+
+																| Required plugins lack compatible Arrow output | Batch conversion through supported APIs or explicit staging, never fake zero-copy. |
+
+
+
+																## 20. Open-source collaboration package
+
+
+
+																Before soliciting contributions, produce repository-level:
+
+
+
+																- README with the proposition, runnable vertical slice, and actual implemented feature matrix.
+
+																- ARCHITECTURE explaining package boundaries, plans, state, and catalog separation.
+
+																- CONTRIBUTING with local setup, public protocol examples, and focused test commands.
+
+																- Connector development guide and conformance harness.
+
+																- Requirement-tagged issues corresponding to T01-T16 and smaller bounded tasks.
+
+																- Code of conduct, security reporting policy, and chosen license.
+
+																- Roadmap distinguishing implemented, actively developing, and proposed features.
+
+
+
+																These are future repository deliverables, not files created by this planning task.
+
+
+
+																A suitable call for contributors:
+
+
+
+																> We are building a modular Python-first data engineering framework inspired by dbt's model and documentation workflow. The goal is to combine file/API/database extraction, DuckDB and Polars transformations, and reliable multi-destination publishing in one project. Database connectors, the YAML metadata catalog, and single-file documentation are independently installable modules. We welcome focused contributions to connector contracts, format readers, retry correctness, tests, examples, and documentation. Features are released with an explicit capability matrix rather than universal compatibility or speed claims.
+
+
+
+																Select an open-source license with the project owner before publishing. Apache-2.0 is a reasonable recommendation for permissive community contribution and explicit patent terms, but this document does not treat the license as user-approved.
+
+
+
+																## 21. Reference sources and verification notes
+
+
+
+																Primary references consulted during planning:
+
+
+
+																- Python 3.12 `importlib.metadata`, consulted for standard discovery APIs before the version decision: https://docs.python.org/3.12/library/importlib.metadata.html
+
+																- Python 3.14 minimum-version reference: https://docs.python.org/3.14/
+
+																- Python 3.15 target-version reference: https://docs.python.org/3.15/
+
+																- Python 3.15 lazy-import features, consulted after the version decision: https://docs.python.org/3.15/whatsnew/3.15.html
+
+																- Python 3.15 release schedule: https://peps.python.org/pep-0790/
+
+																- Python packaging entry-point specification: https://packaging.python.org/en/latest/specifications/entry-points/
+
+																- Polars SQL introduction: https://docs.pola.rs/user-guide/sql/intro/
+
+																- Polars lazy optimizations: https://docs.pola.rs/user-guide/lazy/optimizations/
+
+																- Polars Excel reader/writer behavior: https://docs.pola.rs/user-guide/io/excel/
+
+																- Polars scan CSV reference: https://docs.pola.rs/api/python/stable/reference/api/polars.scan_csv.html
+
+																- Polars scan NDJSON reference: https://docs.pola.rs/api/python/stable/reference/api/polars.scan_ndjson.html
+
+																- PyArrow Dataset API: https://arrow.apache.org/docs/python/dataset.html
+
+																- SQLGlot upstream README: https://github.com/tobymao/sqlglot
+
+																- DuckDB concurrency documentation landing/redirect: https://duckdb.org/docs/stable/connect/concurrency
+
+																- dbt-duckdb upstream project, previously reviewed: https://github.com/duckdb/dbt-duckdb
+
+
+
+																Verified conclusions:
+
+
+
+																- Polars SQL translates queries to Polars expressions and can execute lazily; no custom universal SQL-to-Polars compiler is needed.
+
+																- Polars Excel parsing uses external readers; the default recommended fastexcel path is native-backed. It is not a normal lazy file predicate-pushdown path.
+
+																- PyArrow Dataset supports projection and filtering for supported sources/formats; batch APIs must still be used carefully to avoid materializing everything.
+
+																- SQLGlot parsing/transpilation does not establish semantic validity of a query on the target engine.
+
+																- Entry points and importlib.metadata provide standard plugin discovery.
+
+
+
+																The DuckDB concurrency landing URL returned a redirect rather than detailed policy text. Version-specific connection/write behavior must be verified during T01 before concurrency guarantees are claimed.
+
+
+
+																All library support claims must ultimately be matched to pinned/tested package versions. This plan is an architecture specification, not a substitute for an executable compatibility matrix.
