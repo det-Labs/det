@@ -17,6 +17,8 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
+    "pyyaml>=6.0",
+    "filelock>=3.12.0",
     # Core dependencies to be added later (e.g. duckdb, polars, pyarrow)
 ]
 
