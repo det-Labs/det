@@ -37,6 +37,7 @@ htmlcov/
 .det/
 det_state.db
 catalog.yaml
+pipelines.yaml
 *.lock
 sample_data/
 

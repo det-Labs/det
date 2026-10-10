@@ -88,6 +88,8 @@
       gap: 1rem;
       flex-shrink: 0;
       height: 52px;
+      position: relative;
+      z-index: 100;
     }
 
     .brand {
@@ -119,6 +121,235 @@
       font-weight: 600;
       color: var(--text-muted);
       letter-spacing: -0.01em;
+    }
+
+    /* Top Header Module Selector Dropdown */
+    .module-selector-container {
+      position: relative;
+      display: inline-block;
+    }
+    .module-selector-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      background: var(--bg-main);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 0.28rem 0.65rem;
+      border-radius: 6px;
+      font-size: 0.84rem;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: var(--font-sans);
+      transition: all 0.15s ease;
+      outline: none;
+    }
+    .module-selector-btn:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--primary);
+    }
+    .module-btn-icon {
+      color: var(--primary);
+      display: inline-flex;
+      align-items: center;
+    }
+    .module-chevron {
+      color: var(--text-dim);
+      transition: transform 0.15s ease;
+    }
+    .module-selector-container.open .module-chevron,
+    .module-menu.open ~ .module-selector-btn .module-chevron,
+    .module-selector-container.open .module-selector-btn .module-chevron {
+      transform: rotate(180deg);
+    }
+    .module-menu {
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 0;
+      min-width: 280px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      display: none;
+      padding: 0.35rem;
+    }
+    .module-selector-container.open .module-menu,
+    .module-menu.open {
+      display: block !important;
+    }
+    .module-option {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.55rem 0.65rem;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.12s ease;
+    }
+    .module-option:hover {
+      background: var(--item-hover);
+    }
+    .module-option.active {
+      background: var(--item-active);
+    }
+    .module-opt-icon {
+      width: 30px;
+      height: 30px;
+      border-radius: 6px;
+      background: var(--bg-main);
+      border: 1px solid var(--border-color);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      color: var(--text-main);
+    }
+    .module-option.active .module-opt-icon {
+      color: var(--primary);
+      border-color: var(--primary);
+    }
+    .module-opt-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .module-opt-title {
+      font-size: 0.84rem;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+    .module-opt-sub {
+      font-size: 0.72rem;
+      color: var(--text-dim);
+    }
+
+    /* Pipeline & Project Views in Content */
+    .pipeline-header-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    .pipeline-header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 1rem;
+    }
+    .pipeline-title-group {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+    }
+    .pipeline-title-group h2 {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+    .pipeline-actions-group {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-shrink: 0;
+    }
+    .pipeline-meta-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+    .pipeline-stat-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.25rem 0.55rem;
+      border-radius: 4px;
+      background: var(--bg-main);
+      border: 1px solid var(--border-color);
+      font-size: 0.76rem;
+      font-family: var(--font-mono);
+      color: var(--text-muted);
+    }
+    .category-cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 0.85rem;
+      margin-top: 0.75rem;
+    }
+    .category-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 0.9rem 1rem;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
+    }
+    .category-card:hover {
+      border-color: var(--primary);
+      transform: translateY(-1px);
+    }
+    .category-card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .category-card-title {
+      font-weight: 600;
+      font-size: 0.88rem;
+      color: var(--text-main);
+    }
+    .category-card-desc {
+      font-size: 0.76rem;
+      color: var(--text-dim);
+      line-height: 1.4;
+    }
+    .coming-soon-card {
+      background: var(--bg-card);
+      border: 1px dashed var(--border-color);
+      border-radius: 8px;
+      padding: 2.5rem 1.5rem;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .coming-soon-icon {
+      font-size: 2.2rem;
+      color: var(--primary);
+    }
+    .coming-soon-card h3 {
+      font-size: 1.15rem;
+      color: var(--text-main);
+      font-weight: 600;
+    }
+    .coming-soon-card p {
+      max-width: 480px;
+      font-size: 0.84rem;
+      color: var(--text-dim);
+      line-height: 1.5;
+    }
+    .project-node {
+      font-weight: 600;
+      background: rgba(0, 0, 0, 0.05);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    }
+    [data-theme="light"] .project-node {
+      background: rgba(0, 0, 0, 0.02);
+      border-bottom: 1px solid rgba(0, 0, 0, 0.03);
+    }
+    .proj-cat-node {
+      padding-left: 1.15rem;
+      color: var(--text-main);
     }
 
     .btn {
@@ -784,19 +1015,51 @@
 
   <!-- Top Clean Header (Brand & Theme Switcher on Right) -->
   <header>
-    <div class="brand" title="det Labs">
-      <svg class="brand-logo-svg" viewBox="0 0 1080 240" role="img" aria-label="det Labs">
-        <text
-          x="20"
-          y="205"
-          font-family="'Century Gothic', Futura, 'Inter', sans-serif"
-          font-size="210"
-          font-weight="400"
-          letter-spacing="-3"
-        ><tspan fill="#f45b00">det</tspan><tspan dx="28" class="brand-labs-fill">Labs</tspan></text>
-      </svg>
+    <div class="brand">
+      <div style="display:flex; align-items:center;" title="det Labs">
+        <svg class="brand-logo-svg" viewBox="0 0 1080 240" role="img" aria-label="det Labs">
+          <text
+            x="20"
+            y="205"
+            font-family="'Century Gothic', Futura, 'Inter', sans-serif"
+            font-size="210"
+            font-weight="400"
+            letter-spacing="-3"
+          ><tspan fill="#f45b00">det</tspan><tspan dx="28" class="brand-labs-fill">Labs</tspan></text>
+        </svg>
+      </div>
       <span class="brand-divider">/</span>
-      <span class="brand-tag">Catalog Explorer</span>
+
+      <!-- Product Module Dropdown Switcher (Requirement) -->
+      <div class="module-selector-container" id="moduleSelectorContainer">
+        <button class="module-selector-btn" id="moduleSelectorBtn" type="button" onclick="toggleModuleMenu(event)" title="Switch Product Module">
+          <span class="module-btn-icon" id="currentModuleIcon">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+          </span>
+          <span class="module-btn-label" id="currentModuleLabel">Catalog Explorer</span>
+          <svg class="module-chevron" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="module-menu" id="moduleMenu">
+          <div class="module-option active" id="optCatalog" onclick="selectProductModule('catalog')">
+            <div class="module-opt-icon">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+            </div>
+            <div class="module-opt-info">
+              <span class="module-opt-title">Catalog Explorer</span>
+              <span class="module-opt-sub">Data catalogs, schemas, tables & datasets</span>
+            </div>
+          </div>
+          <div class="module-option" id="optPipeline" onclick="selectProductModule('pipeline')">
+            <div class="module-opt-icon" style="color: var(--primary);">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            </div>
+            <div class="module-opt-info">
+              <span class="module-opt-title">Data Pipelines (ETL)</span>
+              <span class="module-opt-sub">Projects, categories & data workflows</span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Theme Switch (System / Light / Dark) on Far Right -->
@@ -839,10 +1102,11 @@
       <div class="sidebar-header">
         <div class="sidebar-title-row">
           <span class="sidebar-title">
-            <span>EXPLORER</span>
+            <span id="sidebarTitleLabel">EXPLORER</span>
             <span id="catalogCountBadge" class="count-badge">0</span>
           </span>
-          <div class="explorer-toolbar">
+          <!-- Catalog Explorer Toolbar -->
+          <div class="explorer-toolbar" id="catalogToolbar">
             <button class="action-icon-btn" id="btnToolbarNewCatalog" title="Create New Catalog YAML">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
             </button>
@@ -856,6 +1120,21 @@
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="14" x2="10" y2="14"/><line x1="10" y1="14" x2="10" y2="20"/><line x1="20" y1="10" x2="14" y2="10"/><line x1="14" y1="10" x2="14" y2="4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
             </button>
           </div>
+          <!-- Pipeline / ETL Explorer Toolbar -->
+          <div class="explorer-toolbar" id="pipelineToolbar" style="display:none;">
+            <button class="action-icon-btn" id="btnPipelineNewProject" title="Create New Project" onclick="handlePipelineNewProject()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></svg>
+            </button>
+            <button class="action-icon-btn" id="btnPipelineNewCategory" title="Create New Category in Project" onclick="handlePipelineNewCategory()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            </button>
+            <button class="action-icon-btn" id="btnPipelineRefresh" title="Refresh Pipelines" onclick="loadPipelineTree()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+            </button>
+            <button class="action-icon-btn" id="btnPipelineCollapseAll" title="Collapse All" onclick="handlePipelineCollapseAll()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="14" x2="10" y2="14"/><line x1="10" y1="14" x2="10" y2="20"/><line x1="20" y1="10" x2="14" y2="10"/><line x1="14" y1="10" x2="14" y2="4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+            </button>
+          </div>
         </div>
         <div class="search-box">
           <svg class="search-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -865,6 +1144,11 @@
 
       <!-- VS Code Style 3-Level Hierarchy Tree: Catalog > Namespace > Tables -->
       <div id="explorerTree" class="explorer-tree">
+        <!-- Dynamically rendered -->
+      </div>
+
+      <!-- VS Code Style Pipeline Hierarchy Tree: Project > Category > Data Pipeline -->
+      <div id="pipelineTree" class="explorer-tree" style="display: none;">
         <!-- Dynamically rendered -->
       </div>
     </aside>
@@ -943,7 +1227,161 @@
           </div>
         </div>
       </div>
+
+      <!-- Pipeline Mode: Empty View -->
+      <div id="pipelineEmptyView" class="empty-state" style="display: none;">
+        <div class="empty-icon">⚡</div>
+        <h3>No Pipeline or Project Selected</h3>
+        <p>Select a project or category from the explorer on the left, or create a new project to start organizing your data pipelines.</p>
+        <button class="btn btn-primary" onclick="handlePipelineNewProject()" style="margin-top: 0.85rem;">+ Create New Project</button>
+      </div>
+
+      <!-- Pipeline Mode: Project View -->
+      <div id="pipelineProjectView" class="detail-card" style="display: none;">
+        <div class="pipeline-header-card">
+          <div class="pipeline-header-top">
+            <div class="pipeline-title-group">
+              <span style="font-size: 1.5rem;">📦</span>
+              <div>
+                <h2 id="pipeProjName">analytics_project</h2>
+                <p id="pipeProjDesc" class="detail-desc" style="margin-top: 3px;">Project description</p>
+              </div>
+            </div>
+            <div class="pipeline-actions-group">
+              <button class="btn btn-sm btn-primary" onclick="handlePipelineAddCategory(event, selectedPipelineProject)">+ Add Category</button>
+              <button class="btn btn-sm" onclick="handlePipelineEditProject(event, selectedPipelineProject)">Edit Project</button>
+              <button class="btn btn-sm btn-danger" onclick="handlePipelineDeleteProject(event, selectedPipelineProject)">Delete</button>
+            </div>
+          </div>
+          <div class="pipeline-meta-row">
+            <span class="pipeline-stat-pill" id="pipeProjCatCount">📁 0 Categories</span>
+            <span class="pipeline-stat-pill" id="pipeProjPipeCount">⚡ 0 Data Pipelines</span>
+            <span class="pipeline-stat-pill" id="pipeProjUpdated">Updated: -</span>
+          </div>
+        </div>
+
+        <div class="schema-section">
+          <h3>
+            <span>Categories (<span id="pipeProjCategoriesTitleCount">0</span>)</span>
+            <span style="font-size:0.75rem; color:var(--text-dim); font-weight:normal;">Grouped pipeline workspaces</span>
+          </h3>
+          <div class="category-cards-grid" id="pipeProjCategoriesGrid">
+            <!-- Dynamically rendered category cards -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Pipeline Mode: Category View -->
+      <div id="pipelineCategoryView" class="detail-card" style="display: none;">
+        <div class="pipeline-header-card">
+          <div class="pipeline-header-top">
+            <div class="pipeline-title-group">
+              <span style="font-size: 1.5rem;">📁</span>
+              <div>
+                <div style="font-size: 0.74rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em;" id="pipeCatBreadcrumb">Projects / project</div>
+                <h2 id="pipeCatName" style="margin-top: 2px;">ingestion</h2>
+                <p id="pipeCatDesc" class="detail-desc" style="margin-top: 3px;">Category description</p>
+              </div>
+            </div>
+            <div class="pipeline-actions-group">
+              <button class="btn btn-sm" onclick="handlePipelineEditCategory(event, selectedPipelineProject, selectedPipelineCategory)">Edit Category</button>
+              <button class="btn btn-sm btn-danger" onclick="handlePipelineDeleteCategory(event, selectedPipelineProject, selectedPipelineCategory)">Delete Category</button>
+            </div>
+          </div>
+          <div class="pipeline-meta-row">
+            <span class="pipeline-stat-pill" id="pipeCatPipeCount">⚡ 0 Data Pipelines</span>
+          </div>
+        </div>
+
+        <!-- Placeholder for upcoming pipeline builder -->
+        <div class="coming-soon-card">
+          <div class="coming-soon-icon">⚡</div>
+          <h3>Data Pipelines Builder</h3>
+          <p>This category is ready for ETL & data workflows. Pipeline graph authoring, SQL transformations, and Python models will be enabled in the next milestone.</p>
+        </div>
+      </div>
     </main>
+  </div>
+
+  <!-- Pipeline Modal 1: Project Modal (Create / Edit) -->
+  <div class="modal-overlay" id="pipelineProjectModal">
+    <div class="modal" style="max-width: 500px;">
+      <div class="modal-header">
+        <h3 id="pipelineProjectModalTitle">New Project</h3>
+        <button class="action-icon-btn" onclick="closeModal('pipelineProjectModal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Project Name *</label>
+          <input type="text" id="pipeProjNameInput" class="form-input" placeholder="e.g. analytics_core">
+          <span style="font-size: 0.73rem; color: var(--text-dim);">Use letters, numbers, underscores, or hyphens.</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Description</label>
+          <textarea id="pipeProjDescInput" class="form-textarea" style="height: 80px;" placeholder="Describe the purpose or domain of this project..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" onclick="closeModal('pipelineProjectModal')">Cancel</button>
+        <button class="btn btn-primary" id="btnSavePipelineProject">Save Project</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pipeline Modal 2: Category Modal (Create / Edit) -->
+  <div class="modal-overlay" id="pipelineCategoryModal">
+    <div class="modal" style="max-width: 500px;">
+      <div class="modal-header">
+        <h3 id="pipelineCategoryModalTitle">New Category</h3>
+        <button class="action-icon-btn" onclick="closeModal('pipelineCategoryModal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Parent Project *</label>
+          <select id="pipeCatProjectSelect" class="form-select"></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Category Name *</label>
+          <input type="text" id="pipeCatNameInput" class="form-input" placeholder="e.g. ingestion">
+          <span style="font-size: 0.73rem; color: var(--text-dim);">Use letters, numbers, underscores, or hyphens.</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Description</label>
+          <textarea id="pipeCatDescInput" class="form-textarea" style="height: 80px;" placeholder="Describe what data pipelines belong to this category..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" onclick="closeModal('pipelineCategoryModal')">Cancel</button>
+        <button class="btn btn-primary" id="btnSavePipelineCategory">Save Category</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pipeline Modal 3: Delete Confirmation Warning Modal -->
+  <div class="modal-overlay" id="pipelineDeleteModal">
+    <div class="modal" style="max-width: 500px;">
+      <div class="modal-header">
+        <h3 id="pipelineDeleteModalTitle" style="color: var(--accent-rose);">Confirm Deletion</h3>
+        <button class="action-icon-btn" onclick="closeModal('pipelineDeleteModal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div style="display:flex; gap:0.85rem; align-items:flex-start;">
+          <span style="font-size: 1.8rem; line-height:1;">⚠️</span>
+          <div>
+            <p id="pipelineDeleteWarningMessage" style="font-size:0.88rem; color:var(--text-main); line-height:1.5;">
+              Deleting this project will permanently delete all categories and pipelines inside.
+            </p>
+            <p style="font-size:0.78rem; color:var(--text-dim); margin-top:0.4rem;">
+              This operation is permanent and cannot be undone.
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" onclick="closeModal('pipelineDeleteModal')">Cancel</button>
+        <button class="btn btn-danger" id="btnConfirmPipelineDelete">Delete Everything Inside</button>
+      </div>
+    </div>
   </div>
 
   <!-- Modal 1: Add / Edit Dataset Modal -->
@@ -1136,6 +1574,7 @@
   <!-- Client JavaScript Application -->
   <script>
     // --- Application State ---
+    let currentProductModule = localStorage.getItem('det-product-module') || 'catalog';
     let catalogTreeData = [];
     let selectedDataset = null;
     let selectedCatalogPath = null;
@@ -1146,6 +1585,18 @@
     let currentModalCatalogPath = null;
     let renamingNamespace = null;
     let renamingNamespaceCatalog = null;
+
+    // --- Pipeline State ---
+    let pipelineTreeData = [];
+    let selectedPipelineProject = null;
+    let selectedPipelineCategory = null;
+    let collapsedPipelineProjects = new Set();
+    let editingPipelineProject = null;
+    let editingPipelineCategory = null;
+    let editingPipelineCategoryParent = null;
+    let pendingDeleteType = null;
+    let pendingDeleteProject = null;
+    let pendingDeleteCategory = null;
 
     // --- Path Normalizer Helper ---
     function normalizePath(p) {
@@ -1251,7 +1702,9 @@
         if (!res.ok) throw new Error('Failed to load catalog tree');
         const data = await res.json();
         catalogTreeData = data.catalogs || [];
-        document.getElementById('catalogCountBadge').textContent = catalogTreeData.length;
+        if (currentProductModule === 'catalog') {
+          document.getElementById('catalogCountBadge').textContent = catalogTreeData.length;
+        }
         renderExplorerTree();
 
         // Refresh selected table details if currently viewing one
@@ -1600,7 +2053,11 @@
 
     // --- Search / Filter Instant Input ---
     document.getElementById('filterInput').oninput = () => {
-      renderExplorerTree();
+      if (currentProductModule === 'pipeline') {
+        renderPipelineTree();
+      } else {
+        renderExplorerTree();
+      }
     };
 
     // --- Catalog Actions (Hover Icons) ---
@@ -2122,9 +2579,631 @@
       showToast('YAML copied to clipboard!');
     };
 
+    // ==========================================
+    // --- MODULE SWITCHER (Catalog vs Pipeline)
+    // ==========================================
+    function toggleModuleMenu(event) {
+      if (event) {
+        event.stopPropagation();
+        event.preventDefault();
+      }
+      const container = document.getElementById('moduleSelectorContainer');
+      const menu = document.getElementById('moduleMenu');
+      if (container) container.classList.toggle('open');
+      if (menu) menu.classList.toggle('open');
+    }
+
+    window.addEventListener('click', (e) => {
+      const container = document.getElementById('moduleSelectorContainer');
+      const menu = document.getElementById('moduleMenu');
+      if (!e.target.closest('#moduleSelectorContainer')) {
+        if (container) container.classList.remove('open');
+        if (menu) menu.classList.remove('open');
+      }
+    });
+
+    async function selectProductModule(module) {
+      currentProductModule = module;
+      localStorage.setItem('det-product-module', module);
+
+      const container = document.getElementById('moduleSelectorContainer');
+      const menu = document.getElementById('moduleMenu');
+      if (container) container.classList.remove('open');
+      if (menu) menu.classList.remove('open');
+
+      const optCat = document.getElementById('optCatalog');
+      const optPipe = document.getElementById('optPipeline');
+      const lbl = document.getElementById('currentModuleLabel');
+      const icon = document.getElementById('currentModuleIcon');
+      const catToolbar = document.getElementById('catalogToolbar');
+      const pipeToolbar = document.getElementById('pipelineToolbar');
+      const expTree = document.getElementById('explorerTree');
+      const pipeTree = document.getElementById('pipelineTree');
+      const filter = document.getElementById('filterInput');
+      const sidebarTitle = document.getElementById('sidebarTitleLabel');
+
+      if (module === 'pipeline') {
+        if (optCat) optCat.classList.remove('active');
+        if (optPipe) optPipe.classList.add('active');
+        if (lbl) lbl.textContent = 'Data Pipelines (ETL)';
+        if (icon) {
+          icon.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`;
+        }
+        if (catToolbar) catToolbar.style.display = 'none';
+        if (pipeToolbar) pipeToolbar.style.display = 'flex';
+        if (expTree) expTree.style.display = 'none';
+        if (pipeTree) pipeTree.style.display = 'block';
+        if (sidebarTitle) sidebarTitle.textContent = 'PROJECTS & PIPELINES';
+        if (filter) filter.placeholder = 'Filter projects, categories, pipelines...';
+
+        // Hide Catalog detail views
+        document.getElementById('emptyView').style.display = 'none';
+        document.getElementById('detailView').style.display = 'none';
+
+        await loadPipelineTree();
+      } else {
+        if (optCat) optCat.classList.add('active');
+        if (optPipe) optPipe.classList.remove('active');
+        if (lbl) lbl.textContent = 'Catalog Explorer';
+        if (icon) {
+          icon.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>`;
+        }
+        if (catToolbar) catToolbar.style.display = 'flex';
+        if (pipeToolbar) pipeToolbar.style.display = 'none';
+        if (expTree) expTree.style.display = 'block';
+        if (pipeTree) pipeTree.style.display = 'none';
+        if (sidebarTitle) sidebarTitle.textContent = 'EXPLORER';
+        if (filter) filter.placeholder = 'Filter catalogs, categories, tables...';
+
+        // Hide Pipeline detail views
+        document.getElementById('pipelineEmptyView').style.display = 'none';
+        document.getElementById('pipelineProjectView').style.display = 'none';
+        document.getElementById('pipelineCategoryView').style.display = 'none';
+
+        await loadTree();
+        if (selectedDataset && selectedCatalogPath) {
+          document.getElementById('detailView').style.display = 'flex';
+        } else {
+          document.getElementById('emptyView').style.display = 'flex';
+        }
+      }
+    }
+
+    // ==========================================
+    // --- PIPELINES (ETL) TREE MANAGEMENT
+    // ==========================================
+    async function loadPipelineTree() {
+      try {
+        const res = await fetch('/api/pipelines/tree');
+        if (!res.ok) throw new Error('Failed to load pipeline projects');
+        const data = await res.json();
+        pipelineTreeData = data.projects || [];
+
+        if (currentProductModule === 'pipeline') {
+          const badge = document.getElementById('catalogCountBadge');
+          if (badge) badge.textContent = pipelineTreeData.length;
+        }
+
+        renderPipelineTree();
+
+        // Refresh or restore selected detail view
+        if (selectedPipelineProject && selectedPipelineCategory) {
+          const proj = pipelineTreeData.find(p => p.name === selectedPipelineProject);
+          if (proj) {
+            const cat = (proj.categories || []).find(c => c.name === selectedPipelineCategory);
+            if (cat) {
+              renderPipelineCategoryView(proj, cat);
+              return;
+            } else {
+              renderPipelineProjectView(proj);
+              return;
+            }
+          }
+        } else if (selectedPipelineProject) {
+          const proj = pipelineTreeData.find(p => p.name === selectedPipelineProject);
+          if (proj) {
+            renderPipelineProjectView(proj);
+            return;
+          }
+        }
+
+        renderPipelineEmptyView();
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    }
+
+    function renderPipelineTree() {
+      const treeEl = document.getElementById('pipelineTree');
+      if (!treeEl) return;
+      treeEl.innerHTML = '';
+
+      const filterVal = (document.getElementById('filterInput').value || '').trim().toLowerCase();
+
+      if (pipelineTreeData.length === 0) {
+        treeEl.innerHTML = `
+          <div style="padding: 1.5rem 1rem; text-align: center; color: var(--text-dim); font-size: 0.78rem;">
+            No projects created yet.<br>Click <strong>+</strong> above to create your first ETL project.
+          </div>
+        `;
+        return;
+      }
+
+      pipelineTreeData.forEach(p => {
+        const isCollapsed = collapsedPipelineProjects.has(p.name);
+
+        const pMatch = !filterVal || p.name.toLowerCase().includes(filterVal) || (p.description || '').toLowerCase().includes(filterVal);
+        let matchingCats = [];
+        (p.categories || []).forEach(cat => {
+          const catMatch = !filterVal || cat.name.toLowerCase().includes(filterVal) || (cat.description || '').toLowerCase().includes(filterVal);
+          const matchingPipes = (cat.pipelines || []).filter(pipe => {
+            if (!filterVal) return true;
+            return pipe.name.toLowerCase().includes(filterVal) || (pipe.description || '').toLowerCase().includes(filterVal);
+          });
+          if (catMatch || matchingPipes.length > 0 || pMatch) {
+            matchingCats.push({ cat, pipelines: filterVal ? matchingPipes : (cat.pipelines || []) });
+          }
+        });
+
+        if (filterVal && !pMatch && matchingCats.length === 0) return;
+
+        // Level 1: Project Node
+        const projNode = document.createElement('div');
+        const isProjSelected = selectedPipelineProject === p.name && !selectedPipelineCategory;
+        projNode.className = `tree-node project-node ${isProjSelected ? 'selected' : ''}`;
+        projNode.title = `${p.name} • ${p.description || 'ETL Project'}`;
+
+        projNode.onclick = (e) => {
+          if (e.target.closest('.tree-actions')) return;
+          if (e.target.closest('.tree-chevron')) {
+            if (isCollapsed) collapsedPipelineProjects.delete(p.name);
+            else collapsedPipelineProjects.add(p.name);
+            renderPipelineTree();
+            return;
+          }
+          selectPipelineProject(p.name);
+        };
+
+        projNode.innerHTML = `
+          <span class="tree-chevron ${isCollapsed ? 'collapsed' : ''}">▼</span>
+          <span class="tree-icon" style="color: var(--primary);">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+          </span>
+          <span class="tree-label" style="font-weight:600;">${p.name}</span>
+          <span class="count-pill" title="${p.total_categories} categories">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+            <span>${p.total_categories}</span>
+          </span>
+          <span class="count-pill" title="${p.total_pipelines} pipelines">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            <span>${p.total_pipelines}</span>
+          </span>
+          <div class="tree-actions">
+            <button class="action-icon-btn" title="Add Category in '${p.name}'" onclick="handlePipelineAddCategory(event, '${p.name}')">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></svg>
+            </button>
+            <button class="action-icon-btn" title="Edit Project '${p.name}'" onclick="handlePipelineEditProject(event, '${p.name}')">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+            </button>
+            <button class="action-icon-btn btn-delete-hover" title="Delete Project '${p.name}'" onclick="handlePipelineDeleteProject(event, '${p.name}')">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+          </div>
+        `;
+        treeEl.appendChild(projNode);
+
+        // Level 2 & 3: Container
+        const projChildrenContainer = document.createElement('div');
+        projChildrenContainer.style.display = isCollapsed ? 'none' : 'block';
+
+        const catsToRender = filterVal ? matchingCats.map(m => m.cat) : (p.categories || []);
+
+        catsToRender.forEach(cat => {
+          const isCatSelected = selectedPipelineProject === p.name && selectedPipelineCategory === cat.name;
+          const catNode = document.createElement('div');
+          catNode.className = `tree-node proj-cat-node ${isCatSelected ? 'selected' : ''}`;
+          catNode.title = `${p.name} / ${cat.name}`;
+
+          catNode.onclick = (e) => {
+            if (e.target.closest('.tree-actions')) return;
+            selectPipelineCategory(p.name, cat.name);
+          };
+
+          const pipeCount = (cat.pipelines || []).length;
+          catNode.innerHTML = `
+            <span class="tree-chevron ${pipeCount === 0 ? 'hidden' : ''}">▼</span>
+            <span class="tree-icon" style="color: var(--accent-amber);">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+            </span>
+            <span class="tree-label">${cat.name}</span>
+            <span class="count-pill" title="${pipeCount} pipelines">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+              <span>${pipeCount}</span>
+            </span>
+            <div class="tree-actions">
+              <button class="action-icon-btn" title="Edit Category '${cat.name}'" onclick="handlePipelineEditCategory(event, '${p.name}', '${cat.name}')">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+              </button>
+              <button class="action-icon-btn btn-delete-hover" title="Delete Category '${cat.name}'" onclick="handlePipelineDeleteCategory(event, '${p.name}', '${cat.name}')">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+              </button>
+            </div>
+          `;
+          projChildrenContainer.appendChild(catNode);
+
+          // Level 3: Pipelines inside category
+          (cat.pipelines || []).forEach(pipe => {
+            const pipeNode = document.createElement('div');
+            pipeNode.className = 'tree-node';
+            pipeNode.style.paddingLeft = '1.95rem';
+            pipeNode.title = pipe.name;
+            pipeNode.innerHTML = `
+              <span class="tree-chevron hidden">•</span>
+              <span class="tree-icon" style="color: var(--primary);">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+              </span>
+              <span class="tree-label">${pipe.name}</span>
+            `;
+            pipeNode.onclick = () => {
+              selectPipelineCategory(p.name, cat.name);
+            };
+            projChildrenContainer.appendChild(pipeNode);
+          });
+        });
+
+        treeEl.appendChild(projChildrenContainer);
+      });
+    }
+
+    function handlePipelineCollapseAll() {
+      pipelineTreeData.forEach(p => collapsedPipelineProjects.add(p.name));
+      renderPipelineTree();
+      showToast('All projects collapsed');
+    }
+
+    // ==========================================
+    // --- PIPELINE SELECTION & DETAIL VIEWS
+    // ==========================================
+    function renderPipelineEmptyView() {
+      document.getElementById('pipelineProjectView').style.display = 'none';
+      document.getElementById('pipelineCategoryView').style.display = 'none';
+      document.getElementById('pipelineEmptyView').style.display = 'flex';
+    }
+
+    function selectPipelineProject(projName) {
+      selectedPipelineProject = projName;
+      selectedPipelineCategory = null;
+      renderPipelineTree();
+      const proj = pipelineTreeData.find(p => p.name === projName);
+      if (proj) renderPipelineProjectView(proj);
+      else renderPipelineEmptyView();
+    }
+
+    function renderPipelineProjectView(p) {
+      document.getElementById('pipelineEmptyView').style.display = 'none';
+      document.getElementById('pipelineCategoryView').style.display = 'none';
+      document.getElementById('pipelineProjectView').style.display = 'flex';
+
+      document.getElementById('pipeProjName').textContent = p.name;
+      document.getElementById('pipeProjDesc').textContent = p.description || 'No description provided';
+      document.getElementById('pipeProjCatCount').textContent = `📁 ${p.categories.length} Categories`;
+      document.getElementById('pipeProjPipeCount').textContent = `⚡ ${p.total_pipelines} Data Pipelines`;
+      document.getElementById('pipeProjUpdated').textContent = `Updated: ${p.updated_at ? new Date(p.updated_at).toLocaleString() : 'Recent'}`;
+      document.getElementById('pipeProjCategoriesTitleCount').textContent = p.categories.length;
+
+      const grid = document.getElementById('pipeProjCategoriesGrid');
+      grid.innerHTML = '';
+      if (p.categories.length === 0) {
+        grid.innerHTML = `
+          <div style="grid-column: 1 / -1; padding: 1.8rem; text-align: center; color: var(--text-dim); border: 1px dashed var(--border-color); border-radius: 6px;">
+            No categories created yet in this project.<br>
+            <button class="btn btn-sm btn-primary" onclick="handlePipelineAddCategory(event, '${p.name}')" style="margin-top: 0.6rem;">+ Add First Category</button>
+          </div>
+        `;
+      } else {
+        p.categories.forEach(c => {
+          const card = document.createElement('div');
+          card.className = 'category-card';
+          card.onclick = () => selectPipelineCategory(p.name, c.name);
+          card.innerHTML = `
+            <div class="category-card-top">
+              <div style="display:flex; align-items:center; gap:0.4rem;">
+                <span style="font-size: 1.1rem;">📁</span>
+                <span class="category-card-title">${c.name}</span>
+              </div>
+              <span class="count-pill">⚡ ${(c.pipelines || []).length}</span>
+            </div>
+            <p class="category-card-desc">${c.description || 'No category description'}</p>
+            <div style="display:flex; justify-content:flex-end; gap:0.3rem; margin-top:0.3rem;">
+              <button class="action-icon-btn" title="Edit Category" onclick="handlePipelineEditCategory(event, '${p.name}', '${c.name}')">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+              </button>
+              <button class="action-icon-btn btn-delete-hover" title="Delete Category" onclick="handlePipelineDeleteCategory(event, '${p.name}', '${c.name}')">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+              </button>
+            </div>
+          `;
+          grid.appendChild(card);
+        });
+      }
+    }
+
+    function selectPipelineCategory(projName, catName) {
+      selectedPipelineProject = projName;
+      selectedPipelineCategory = catName;
+      renderPipelineTree();
+      const proj = pipelineTreeData.find(p => p.name === projName);
+      if (proj) {
+        const cat = (proj.categories || []).find(c => c.name === catName);
+        if (cat) {
+          renderPipelineCategoryView(proj, cat);
+          return;
+        }
+      }
+      renderPipelineEmptyView();
+    }
+
+    function renderPipelineCategoryView(p, c) {
+      document.getElementById('pipelineEmptyView').style.display = 'none';
+      document.getElementById('pipelineProjectView').style.display = 'none';
+      document.getElementById('pipelineCategoryView').style.display = 'flex';
+
+      document.getElementById('pipeCatBreadcrumb').textContent = `Projects / ${p.name}`;
+      document.getElementById('pipeCatName').textContent = c.name;
+      document.getElementById('pipeCatDesc').textContent = c.description || 'No description provided';
+      document.getElementById('pipeCatPipeCount').textContent = `⚡ ${(c.pipelines || []).length} Data Pipelines`;
+    }
+
+    // ==========================================
+    // --- PIPELINE MODAL & ACTION HANDLERS
+    // ==========================================
+    function handlePipelineNewProject() {
+      editingPipelineProject = null;
+      document.getElementById('pipelineProjectModalTitle').textContent = 'New Project';
+      document.getElementById('pipeProjNameInput').value = '';
+      document.getElementById('pipeProjDescInput').value = '';
+      openModal('pipelineProjectModal');
+    }
+
+    function handlePipelineEditProject(e, projName) {
+      if (e) e.stopPropagation();
+      const proj = pipelineTreeData.find(p => p.name === projName);
+      if (!proj) return;
+      editingPipelineProject = projName;
+      document.getElementById('pipelineProjectModalTitle').textContent = `Edit Project: ${projName}`;
+      document.getElementById('pipeProjNameInput').value = proj.name;
+      document.getElementById('pipeProjDescInput').value = proj.description || '';
+      openModal('pipelineProjectModal');
+    }
+
+    function handlePipelineDeleteProject(e, projName) {
+      if (e) e.stopPropagation();
+      pendingDeleteType = 'project';
+      pendingDeleteProject = projName;
+      pendingDeleteCategory = null;
+
+      document.getElementById('pipelineDeleteModalTitle').textContent = 'Confirm Delete Project';
+      document.getElementById('pipelineDeleteWarningMessage').innerHTML = `
+        Are you sure you want to delete project <strong style="color:var(--accent-rose);">${projName}</strong>?<br><br>
+        ⚠️ <strong>All contents inside (all categories and data pipelines) will also be permanently deleted.</strong>
+      `;
+      openModal('pipelineDeleteModal');
+    }
+
+    function handlePipelineNewCategory(defaultProjectName) {
+      if (pipelineTreeData.length === 0) {
+        showToast('Create a project first before adding a category', true);
+        handlePipelineNewProject();
+        return;
+      }
+      editingPipelineCategory = null;
+      editingPipelineCategoryParent = null;
+
+      const select = document.getElementById('pipeCatProjectSelect');
+      select.innerHTML = '';
+      pipelineTreeData.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.name;
+        opt.textContent = p.name;
+        if (defaultProjectName && p.name === defaultProjectName) {
+          opt.selected = true;
+        } else if (!defaultProjectName && selectedPipelineProject && p.name === selectedPipelineProject) {
+          opt.selected = true;
+        }
+        select.appendChild(opt);
+      });
+      select.disabled = false;
+
+      document.getElementById('pipelineCategoryModalTitle').textContent = 'New Category';
+      document.getElementById('pipeCatNameInput').value = '';
+      document.getElementById('pipeCatDescInput').value = '';
+      openModal('pipelineCategoryModal');
+    }
+
+    function handlePipelineAddCategory(e, projName) {
+      if (e) e.stopPropagation();
+      handlePipelineNewCategory(projName);
+    }
+
+    function handlePipelineEditCategory(e, projName, catName) {
+      if (e) e.stopPropagation();
+      const proj = pipelineTreeData.find(p => p.name === projName);
+      if (!proj) return;
+      const cat = (proj.categories || []).find(c => c.name === catName);
+      if (!cat) return;
+
+      editingPipelineCategory = catName;
+      editingPipelineCategoryParent = projName;
+
+      const select = document.getElementById('pipeCatProjectSelect');
+      select.innerHTML = `<option value="${projName}">${projName}</option>`;
+      select.disabled = true;
+
+      document.getElementById('pipelineCategoryModalTitle').textContent = `Edit Category: ${catName}`;
+      document.getElementById('pipeCatNameInput').value = cat.name;
+      document.getElementById('pipeCatDescInput').value = cat.description || '';
+      openModal('pipelineCategoryModal');
+    }
+
+    function handlePipelineDeleteCategory(e, projName, catName) {
+      if (e) e.stopPropagation();
+      pendingDeleteType = 'category';
+      pendingDeleteProject = projName;
+      pendingDeleteCategory = catName;
+
+      document.getElementById('pipelineDeleteModalTitle').textContent = 'Confirm Delete Category';
+      document.getElementById('pipelineDeleteWarningMessage').innerHTML = `
+        Are you sure you want to delete category <strong style="color:var(--accent-rose);">${catName}</strong> from project <strong>${projName}</strong>?<br><br>
+        ⚠️ <strong>All contents inside (all data pipelines) will also be permanently deleted.</strong>
+      `;
+      openModal('pipelineDeleteModal');
+    }
+
+    // --- Save Pipeline Project Handler ---
+    document.getElementById('btnSavePipelineProject').onclick = async () => {
+      const name = document.getElementById('pipeProjNameInput').value.trim();
+      const desc = document.getElementById('pipeProjDescInput').value.trim();
+
+      if (!name) {
+        showToast('Project name is required', true);
+        return;
+      }
+      if (!/^[a-zA-Z0-9_\-]+$/.test(name)) {
+        showToast('Project name must only contain alphanumeric characters, underscores, or hyphens', true);
+        return;
+      }
+
+      try {
+        let res;
+        if (editingPipelineProject) {
+          res = await fetch(`/api/pipelines/projects/${encodeURIComponent(editingPipelineProject)}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ new_name: name, description: desc })
+          });
+        } else {
+          res = await fetch('/api/pipelines/projects', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: name, description: desc })
+          });
+        }
+
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.detail || 'Failed to save project');
+        }
+
+        closeModal('pipelineProjectModal');
+        showToast(`Project '${name}' saved!`);
+        await loadPipelineTree();
+        selectPipelineProject(name);
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    };
+
+    // --- Save Pipeline Category Handler ---
+    document.getElementById('btnSavePipelineCategory').onclick = async () => {
+      const proj = document.getElementById('pipeCatProjectSelect').value.trim();
+      const name = document.getElementById('pipeCatNameInput').value.trim();
+      const desc = document.getElementById('pipeCatDescInput').value.trim();
+
+      if (!proj) {
+        showToast('Parent project is required', true);
+        return;
+      }
+      if (!name) {
+        showToast('Category name is required', true);
+        return;
+      }
+      if (!/^[a-zA-Z0-9_\-]+$/.test(name)) {
+        showToast('Category name must only contain alphanumeric characters, underscores, or hyphens', true);
+        return;
+      }
+
+      try {
+        let res;
+        if (editingPipelineCategory) {
+          res = await fetch(`/api/pipelines/projects/${encodeURIComponent(editingPipelineCategoryParent)}/categories/${encodeURIComponent(editingPipelineCategory)}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ new_name: name, description: desc })
+          });
+        } else {
+          res = await fetch(`/api/pipelines/projects/${encodeURIComponent(proj)}/categories`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: name, description: desc })
+          });
+        }
+
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.detail || 'Failed to save category');
+        }
+
+        closeModal('pipelineCategoryModal');
+        showToast(`Category '${name}' saved!`);
+        await loadPipelineTree();
+        selectPipelineCategory(proj, name);
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    };
+
+    // --- Confirm Deletion Handler (Both Project and Category with Warning) ---
+    document.getElementById('btnConfirmPipelineDelete').onclick = async () => {
+      if (!pendingDeleteType || !pendingDeleteProject) return;
+
+      try {
+        if (pendingDeleteType === 'project') {
+          const projToDelete = pendingDeleteProject;
+          const res = await fetch(`/api/pipelines/projects/${encodeURIComponent(projToDelete)}`, {
+            method: 'DELETE'
+          });
+          if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.detail || 'Failed to delete project');
+          }
+          closeModal('pipelineDeleteModal');
+          showToast(`Project '${projToDelete}' and all its contents deleted!`);
+          if (selectedPipelineProject === projToDelete) {
+            selectedPipelineProject = null;
+            selectedPipelineCategory = null;
+            renderPipelineEmptyView();
+          }
+          await loadPipelineTree();
+        } else if (pendingDeleteType === 'category') {
+          const parentProj = pendingDeleteProject;
+          const catToDelete = pendingDeleteCategory;
+          const res = await fetch(`/api/pipelines/projects/${encodeURIComponent(parentProj)}/categories/${encodeURIComponent(catToDelete)}`, {
+            method: 'DELETE'
+          });
+          if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.detail || 'Failed to delete category');
+          }
+          closeModal('pipelineDeleteModal');
+          showToast(`Category '${catToDelete}' and all its contents deleted!`);
+          if (selectedPipelineProject === parentProj && selectedPipelineCategory === catToDelete) {
+            selectedPipelineCategory = null;
+            selectPipelineProject(parentProj);
+          }
+          await loadPipelineTree();
+        }
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    };
+
     // --- Initial Boot ---
     window.onload = async () => {
-      await loadTree();
+      if (currentProductModule === 'pipeline') {
+        await selectProductModule('pipeline');
+      } else {
+        await selectProductModule('catalog');
+      }
     };
   </script>
 </body>

@@ -168,3 +168,53 @@ def test_gui_tree_and_multi_catalog(gui_client):
     rem_res = client.post("/api/catalog/remove", json={"path": str(cat2_path)})
     assert rem_res.status_code == 200
 
+
+def test_gui_pipeline_endpoints(tmp_path: Path):
+    """Test pipeline CRUD and tree endpoints on FastAPI server."""
+    from det.gui.server import set_pipeline_service
+    from det.pipeline import PipelineService
+
+    pipe_path = tmp_path / "gui_pipelines.yaml"
+    pipe_svc = PipelineService(file_path=pipe_path)
+    set_pipeline_service(pipe_svc)
+
+    client = TestClient(app)
+
+    # 1. Tree
+    tree_res = client.get("/api/pipelines/tree")
+    assert tree_res.status_code == 200
+    assert "projects" in tree_res.json()
+
+    # 2. Create project
+    proj_res = client.post(
+        "/api/pipelines/projects",
+        json={"name": "ecommerce_etl", "description": "Ecommerce data workflows"},
+    )
+    assert proj_res.status_code == 201
+    assert proj_res.json()["name"] == "ecommerce_etl"
+
+    # 3. Create category
+    cat_res = client.post(
+        "/api/pipelines/projects/ecommerce_etl/categories",
+        json={"name": "orders_stage", "description": "Order processing category"},
+    )
+    assert cat_res.status_code == 201
+    assert cat_res.json()["name"] == "orders_stage"
+
+    # 4. Update category
+    cat_up = client.put(
+        "/api/pipelines/projects/ecommerce_etl/categories/orders_stage",
+        json={"new_name": "orders_clean", "description": "Cleaned orders"},
+    )
+    assert cat_up.status_code == 200
+    assert cat_up.json()["name"] == "orders_clean"
+
+    # 5. Delete category
+    cat_del = client.delete("/api/pipelines/projects/ecommerce_etl/categories/orders_clean")
+    assert cat_del.status_code == 204
+
+    # 6. Delete project
+    proj_del = client.delete("/api/pipelines/projects/ecommerce_etl")
+    assert proj_del.status_code == 204
+
+

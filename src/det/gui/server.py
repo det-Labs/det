@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 from fastapi import FastAPI, HTTPException, Query, status
 from fastapi.responses import HTMLResponse, PlainTextResponse
@@ -11,15 +12,18 @@ from pydantic import BaseModel, Field
 from det.catalog.config import get_default_catalog_path
 from det.catalog.models import DatasetMetadata, ScanResult
 from det.catalog.service import CatalogService
+from det.pipeline import PipelineService
+from det.pipeline.models import PipelineCategory, Project
 
 app = FastAPI(
-    title="det Catalog Explorer",
-    description="Interactive graphical interface and REST API for the det YAML Catalog",
+    title="det Data Platform Studio",
+    description="Interactive graphical interface and REST API for det Catalog and Pipelines",
     version="0.1.0",
 )
 
 # Global catalog service instance managed by the server
 _service: CatalogService | None = None
+_pipeline_service: PipelineService | None = None
 
 
 def get_service() -> CatalogService:
@@ -36,7 +40,49 @@ def set_service(service: CatalogService) -> None:
     _service = service
 
 
+def get_pipeline_service() -> PipelineService:
+    """Retrieve the active PipelineService instance, initializing with default if needed."""
+    global _pipeline_service
+    if _pipeline_service is None:
+        _pipeline_service = PipelineService()
+    return _pipeline_service
+
+
+def set_pipeline_service(service: PipelineService) -> None:
+    """Explicitly assign the active PipelineService instance."""
+    global _pipeline_service
+    _pipeline_service = service
+
+
 # --- Request & Response Models ---
+
+
+class CreateProjectRequest(BaseModel):
+    """Payload to create a new pipeline project."""
+
+    name: str = Field(..., description="Project name")
+    description: str | None = Field(None, description="Optional project description")
+
+
+class UpdateProjectRequest(BaseModel):
+    """Payload to edit/rename a pipeline project."""
+
+    new_name: str | None = Field(None, description="New project name")
+    description: str | None = Field(None, description="New project description")
+
+
+class CreateCategoryRequest(BaseModel):
+    """Payload to create a category inside a project."""
+
+    name: str = Field(..., description="Category name")
+    description: str | None = Field(None, description="Optional category description")
+
+
+class UpdateCategoryRequest(BaseModel):
+    """Payload to rename/edit a category."""
+
+    new_name: str = Field(..., description="New category name")
+    description: str | None = Field(None, description="New category description")
 
 
 class SwitchCatalogRequest(BaseModel):
@@ -390,6 +436,130 @@ def scan_path(req: ScanRequest) -> ScanResult:
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Failed to scan '{req.location}': {exc}",
         ) from exc
+
+
+# --- Pipelines / ETL API Routes ---
+
+
+@app.get("/api/pipelines/tree")
+def get_pipelines_tree() -> dict[str, Any]:
+    """Retrieve full hierarchical tree of projects, categories, and pipelines."""
+    service = get_pipeline_service()
+    return service.get_tree()
+
+
+@app.get("/api/pipelines/projects", response_model=list[Project])
+def list_pipeline_projects() -> list[Project]:
+    """List all configured pipeline projects."""
+    service = get_pipeline_service()
+    return service.list_projects()
+
+
+@app.post("/api/pipelines/projects", response_model=Project, status_code=status.HTTP_201_CREATED)
+def create_pipeline_project(req: CreateProjectRequest) -> Project:
+    """Create a new data engineering project."""
+    service = get_pipeline_service()
+    try:
+        return service.create_project(name=req.name, description=req.description)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+
+
+@app.put("/api/pipelines/projects/{name}", response_model=Project)
+def update_pipeline_project(name: str, req: UpdateProjectRequest) -> Project:
+    """Update or rename an existing pipeline project."""
+    service = get_pipeline_service()
+    try:
+        return service.update_project(name=name, new_name=req.new_name, description=req.description)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+
+
+@app.delete("/api/pipelines/projects/{name}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_pipeline_project(name: str) -> None:
+    """Delete a project and all its categories and pipelines."""
+    service = get_pipeline_service()
+    try:
+        service.delete_project(name)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+
+
+@app.get("/api/pipelines/projects/{project}/categories", response_model=list[PipelineCategory])
+def list_pipeline_categories(project: str) -> list[PipelineCategory]:
+    """List categories inside a project."""
+    service = get_pipeline_service()
+    try:
+        return service.list_categories(project)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+
+
+@app.post("/api/pipelines/projects/{project}/categories", response_model=PipelineCategory, status_code=status.HTTP_201_CREATED)
+def create_pipeline_category(project: str, req: CreateCategoryRequest) -> PipelineCategory:
+    """Create a new category inside a project."""
+    service = get_pipeline_service()
+    try:
+        return service.create_category(
+            project_name=project,
+            category_name=req.name,
+            description=req.description,
+        )
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+
+
+@app.put("/api/pipelines/projects/{project}/categories/{category}", response_model=PipelineCategory)
+def update_pipeline_category(project: str, category: str, req: UpdateCategoryRequest) -> PipelineCategory:
+    """Rename or update a category inside a project."""
+    service = get_pipeline_service()
+    try:
+        return service.update_category(
+            project_name=project,
+            category_name=category,
+            new_name=req.new_name,
+            description=req.description,
+        )
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+
+
+@app.delete("/api/pipelines/projects/{project}/categories/{category}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_pipeline_category(project: str, category: str) -> None:
+    """Delete a category and all its pipelines from a project."""
+    service = get_pipeline_service()
+    try:
+        service.delete_category(project_name=project, category_name=category)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+
+
+@app.get("/api/pipelines/yaml", response_class=PlainTextResponse)
+def get_pipelines_yaml() -> PlainTextResponse:
+    """Return raw YAML content of the pipeline store."""
+    service = get_pipeline_service()
+    return PlainTextResponse(service.export_yaml())
 
 
 # --- Serve Frontend Single Page App ---
