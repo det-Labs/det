@@ -656,9 +656,9 @@
           <label class="form-label">Location (File or Directory Path) *</label>
           <div class="input-row">
             <input type="text" id="formLocation" class="form-input" placeholder="e.g. sample_data/orders.parquet">
-            <button class="btn btn-primary" id="btnTriggerScan">⚡ Scan Location</button>
+            <button class="btn btn-primary" id="btnTriggerScan">⚡ Discover Schema</button>
           </div>
-          <span style="font-size: 0.75rem; color: var(--text-dim);">Point to a Parquet, CSV, JSON, Excel file, or directory. Clicking Scan will auto-infer columns and types below.</span>
+          <span style="font-size: 0.75rem; color: var(--text-dim);">Point to a Parquet, CSV, JSON, Excel file, or directory. Clicking Discover Schema will auto-infer columns and types below.</span>
         </div>
 
         <div class="input-row">
@@ -1114,7 +1114,7 @@
       }
 
       const scanBtn = document.getElementById('btnTriggerScan');
-      scanBtn.textContent = 'Scanning...';
+      scanBtn.textContent = 'Discovering...';
       scanBtn.disabled = true;
 
       try {
@@ -1140,11 +1140,11 @@
         document.getElementById('formFormat').value = data.format.includes('parquet') ? 'parquet' : (data.format.includes('csv') ? 'csv' : (data.format.includes('json') ? 'json' : 'parquet'));
         modalColumns = data.columns || [];
         renderModalColumns();
-        showToast(`Schema scanned! Found ${modalColumns.length} columns.`);
+        showToast(`Schema discovered! Found ${modalColumns.length} columns.`);
       } catch (err) {
         showToast(err.message, true);
       } finally {
-        scanBtn.textContent = '⚡ Scan Location';
+        scanBtn.textContent = '⚡ Discover Schema';
         scanBtn.disabled = false;
       }
     };
