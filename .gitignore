@@ -1,0 +1,52 @@
+# Local plan / internal spec (kept local, never pushed)
+plan.txt
+*.docx
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# Testing and coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# Local state & databases (det operational state, checkpoints)
+*.db
+*.sqlite
+*.sqlite3
+.det/
+det_state.db
+
+# Environment variables & secrets
+.env
+.env.*
+*.pem
+*.key
+secrets.yaml
+
+# IDEs and editors
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
