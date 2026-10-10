@@ -46,6 +46,15 @@ class SwitchCatalogRequest(BaseModel):
     set_as_default: bool = Field(False, description="Whether to persist this as the default catalog")
 
 
+class CreateCatalogRequest(BaseModel):
+    """Payload to create a new catalog YAML file."""
+
+    path: str = Field(..., description="File path for the new catalog YAML file")
+    name: str = Field("det_catalog", description="Display name for the catalog")
+    set_as_default: bool = Field(False, description="Whether to persist this as default")
+    overwrite: bool = Field(False, description="Whether to overwrite if file exists")
+
+
 class CatalogStatusResponse(BaseModel):
     """Status details regarding active and default catalog paths."""
 
@@ -90,6 +99,39 @@ def switch_catalog(req: SwitchCatalogRequest) -> CatalogStatusResponse:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Failed to switch catalog file: {exc}",
+        ) from exc
+
+    active = str(new_path)
+    default = str(get_default_catalog_path())
+    datasets = service.list_datasets()
+    return CatalogStatusResponse(
+        active_path=active,
+        default_path=default,
+        is_default=(active == default),
+        dataset_count=len(datasets),
+    )
+
+
+@app.post("/api/catalog/create", response_model=CatalogStatusResponse)
+def create_catalog(req: CreateCatalogRequest) -> CatalogStatusResponse:
+    """Create a new catalog YAML file and switch to it as active."""
+    service = get_service()
+    try:
+        new_path = service.create_catalog(
+            req.path,
+            name=req.name,
+            set_as_default=req.set_as_default,
+            overwrite=req.overwrite,
+        )
+    except FileExistsError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(exc),
+        ) from exc
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Failed to create catalog file: {exc}",
         ) from exc
 
     active = str(new_path)

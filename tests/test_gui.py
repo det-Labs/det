@@ -97,6 +97,26 @@ def test_gui_switch_catalog(gui_client):
     assert res.json()["active_path"] == str(new_path.resolve())
 
 
+def test_gui_create_catalog(gui_client):
+    client = gui_client["client"]
+    new_path = gui_client["tmp_path"] / "created_catalog.yaml"
+
+    res = client.post(
+        "/api/catalog/create",
+        json={"path": str(new_path), "name": "API Catalog", "set_as_default": False},
+    )
+    assert res.status_code == 200
+    assert res.json()["active_path"] == str(new_path.resolve())
+    assert res.json()["dataset_count"] == 0
+
+    # Repeat without overwrite should fail with 409 Conflict
+    dup_res = client.post(
+        "/api/catalog/create",
+        json={"path": str(new_path), "name": "API Catalog", "overwrite": False},
+    )
+    assert dup_res.status_code == 409
+
+
 def test_gui_namespace_endpoints(gui_client):
     client = gui_client["client"]
 

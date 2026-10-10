@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from det.catalog.config import get_default_catalog_path, set_default_catalog_path
-from det.catalog.models import DatasetMetadata, ScanResult
+from det.catalog.models import CatalogFile, DatasetMetadata, ScanResult
 from det.catalog.scanner import scan_location
 from det.catalog.store import get_catalog_yaml_str, load_catalog, save_catalog
 
@@ -31,6 +31,43 @@ class CatalogService:
         if set_as_default:
             set_default_catalog_path(self._path)
         return self._path
+
+    def create_catalog(
+        self,
+        new_path: str | Path,
+        name: str = "det_catalog",
+        set_as_default: bool = False,
+        overwrite: bool = False,
+    ) -> Path:
+        """Create a new catalog YAML file and switch to it.
+
+        Args:
+            new_path: File path where the new catalog will be created.
+            name: Display name for the catalog file.
+            set_as_default: Whether to set this catalog as the default.
+            overwrite: If True, overwrite an existing file at new_path.
+
+        Returns:
+            Path: Absolute resolved path to the newly created catalog file.
+
+        Raises:
+            FileExistsError: If a file already exists at new_path and overwrite is False.
+        """
+        path = Path(new_path).resolve()
+        if path.exists() and not overwrite:
+            raise FileExistsError(f"Catalog file already exists at '{path}'.")
+
+        new_catalog = CatalogFile(
+            catalog_version=1,
+            catalog_name=name.strip() or "det_catalog",
+            datasets=[],
+            namespaces=["default"],
+        )
+        save_catalog(path, new_catalog)
+        self._path = path
+        if set_as_default:
+            set_default_catalog_path(path)
+        return path
 
     def list_datasets(
         self, search: str | None = None, namespace: str | None = None

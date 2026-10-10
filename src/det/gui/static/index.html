@@ -622,10 +622,21 @@
       <span id="activeCatalogPath" class="catalog-path">Loading...</span>
     </div>
 
-    <div style="display:flex; gap:0.5rem;">
-      <button class="btn" id="btnSwitchCatalog">Switch Catalog</button>
-      <button class="btn" id="btnViewYaml">Raw YAML</button>
-      <button class="btn btn-primary" id="btnAddDataset">+ Add Table / File</button>
+    <div style="display:flex; gap:0.5rem; align-items:center;">
+      <button class="btn" id="btnCreateCatalog" title="Create a new catalog YAML file">
+        <span class="circle-btn circle-btn-add" style="width:16px; height:16px; pointer-events:none;">
+          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        </span>
+        New Catalog
+      </button>
+      <button class="btn" id="btnSwitchCatalog" title="Switch to an existing catalog YAML file">Switch Catalog</button>
+      <button class="btn" id="btnViewYaml" title="View raw catalog YAML">Raw YAML</button>
+      <button class="btn" id="btnAddDataset" title="Register new table or file">
+        <span class="circle-btn circle-btn-add" style="width:16px; height:16px; pointer-events:none;">
+          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        </span>
+        Add Table / File
+      </button>
     </div>
   </header>
 
@@ -774,7 +785,12 @@
         <div class="form-group">
           <div style="display:flex; justify-content:space-between; align-items:center;">
             <label class="form-label">Schema Columns & Descriptions</label>
-            <button class="btn btn-sm" id="btnAddColumnRow" type="button">+ Add Column</button>
+            <button class="btn btn-sm" id="btnAddColumnRow" type="button">
+              <span class="circle-btn circle-btn-add" style="width:15px; height:15px; pointer-events:none;">
+                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+              </span>
+              Add Column
+            </button>
           </div>
           <div class="table-container" style="max-height: 250px; overflow-y: auto;">
             <table class="col-table">
@@ -821,18 +837,49 @@
     </div>
   </div>
 
-  <!-- Modal 3: Switch Catalog Modal -->
+  <!-- Modal 3: Create New Catalog Modal -->
+  <div class="modal-overlay" id="createCatalogModal">
+    <div class="modal" style="max-width: 520px;">
+      <div class="modal-header">
+        <h3>Create New Catalog</h3>
+        <button class="btn btn-sm" onclick="closeModal('createCatalogModal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">New Catalog File Path *</label>
+          <input type="text" id="createCatalogPathInput" class="form-input" placeholder="e.g. catalogs/marketing.yaml">
+          <span style="font-size: 0.75rem; color: var(--text-dim);">Specify where to save the new YAML catalog file.</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Catalog Display Name</label>
+          <input type="text" id="createCatalogNameInput" class="form-input" placeholder="e.g. Marketing Catalog">
+        </div>
+        <div style="display:flex; align-items:center; gap:0.5rem; margin-top:0.5rem;">
+          <input type="checkbox" id="chkCreateSetDefault">
+          <label for="chkCreateSetDefault" style="font-size:0.85rem; color: var(--text-main); cursor: pointer;">
+            ★ Set as default catalog (opens automatically on future sessions)
+          </label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" onclick="closeModal('createCatalogModal')">Cancel</button>
+        <button class="btn btn-primary" id="btnConfirmCreateCatalog">Create Catalog</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 4: Switch Catalog Modal -->
   <div class="modal-overlay" id="switchCatalogModal">
     <div class="modal" style="max-width: 520px;">
       <div class="modal-header">
-        <h3>Open / Switch Catalog</h3>
+        <h3>Switch to Existing Catalog</h3>
         <button class="btn btn-sm" onclick="closeModal('switchCatalogModal')">✕</button>
       </div>
       <div class="modal-body">
         <div class="form-group">
           <label class="form-label">Catalog YAML File Path</label>
           <input type="text" id="switchPathInput" class="form-input" placeholder="e.g. D:/projects/catalog.yaml">
-          <span style="font-size: 0.75rem; color: var(--text-dim);">Enter path to an existing catalog.yaml or specify a new path to create one.</span>
+          <span style="font-size: 0.75rem; color: var(--text-dim);">Enter path to an existing catalog.yaml file.</span>
         </div>
         <div style="display:flex; align-items:center; gap:0.5rem; margin-top:0.5rem;">
           <input type="checkbox" id="chkSetDefault">
@@ -1512,6 +1559,43 @@
         showToast('Schema rescanned and refreshed!');
         await loadDatasets();
         selectDataset(selectedDatasetId);
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    };
+
+    // --- Create Catalog Handlers ---
+    document.getElementById('btnCreateCatalog').onclick = () => {
+      document.getElementById('createCatalogPathInput').value = '';
+      document.getElementById('createCatalogNameInput').value = '';
+      document.getElementById('chkCreateSetDefault').checked = false;
+      openModal('createCatalogModal');
+    };
+    document.getElementById('btnConfirmCreateCatalog').onclick = async () => {
+      const path = document.getElementById('createCatalogPathInput').value.trim();
+      const name = document.getElementById('createCatalogNameInput').value.trim() || 'det_catalog';
+      const setDefault = document.getElementById('chkCreateSetDefault').checked;
+      if (!path) {
+        showToast('Catalog file path is required', true);
+        return;
+      }
+      try {
+        const res = await fetch('/api/catalog/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ path: path, name: name, set_as_default: setDefault })
+        });
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.detail || 'Failed to create catalog');
+        }
+        closeModal('createCatalogModal');
+        showToast(`New catalog created at '${path}'!`);
+        selectedDatasetId = null;
+        document.getElementById('detailView').style.display = 'none';
+        document.getElementById('emptyView').style.display = 'flex';
+        await loadCatalogStatus();
+        await loadDatasets();
       } catch (err) {
         showToast(err.message, true);
       }

@@ -103,6 +103,25 @@ def test_catalog_service_crud_and_scan(temp_catalog_dir):
     assert len(service.list_datasets()) == 0
 
 
+def test_catalog_create_catalog(tmp_path: Path):
+    initial_path = tmp_path / "initial.yaml"
+    service = CatalogService(initial_path)
+
+    new_cat = tmp_path / "created.yaml"
+    created_path = service.create_catalog(new_cat, name="Created Test Catalog")
+    assert created_path == new_cat.resolve()
+    assert service.active_path == new_cat.resolve()
+    assert len(service.list_datasets()) == 0
+
+    # Overwrite check without overwrite flag should raise FileExistsError
+    with pytest.raises(FileExistsError):
+        service.create_catalog(new_cat, overwrite=False)
+
+    # Overwrite check with overwrite=True should succeed
+    service.create_catalog(new_cat, overwrite=True)
+    assert service.active_path == new_cat.resolve()
+
+
 def test_default_catalog_persistence(tmp_path: Path, monkeypatch):
     test_conf_dir = tmp_path / ".det"
     monkeypatch.setattr("det.catalog.config.CONFIG_DIR", test_conf_dir)
