@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>
-    :root {
+    :root, [data-theme="dark"] {
       --bg-main: #0f172a;
       --bg-card: #1e293b;
       --bg-card-hover: #334155;
@@ -24,8 +24,40 @@
       --accent-purple: #8b5cf6;
       --accent-amber: #f59e0b;
       --accent-rose: #f43f5e;
+      --meta-bg: rgba(0, 0, 0, 0.2);
+      --th-bg: rgba(0, 0, 0, 0.25);
+      --item-hover: rgba(255, 255, 255, 0.04);
+      --item-active: rgba(99, 102, 241, 0.15);
+      --modal-overlay: rgba(0, 0, 0, 0.7);
+      --type-badge-bg: rgba(99, 102, 241, 0.15);
+      --type-badge-color: #a5b4fc;
       --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
       --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    [data-theme="light"] {
+      --bg-main: #f1f5f9;
+      --bg-card: #ffffff;
+      --bg-card-hover: #f8fafc;
+      --border-color: #cbd5e1;
+      --border-focus: #4f46e5;
+      --text-main: #0f172a;
+      --text-muted: #475569;
+      --text-dim: #64748b;
+      --primary: #4f46e5;
+      --primary-hover: #4338ca;
+      --accent-green: #059669;
+      --accent-blue: #2563eb;
+      --accent-purple: #7c3aed;
+      --accent-amber: #d97706;
+      --accent-rose: #e11d48;
+      --meta-bg: #f8fafc;
+      --th-bg: #f1f5f9;
+      --item-hover: rgba(0, 0, 0, 0.04);
+      --item-active: rgba(79, 70, 229, 0.12);
+      --modal-overlay: rgba(15, 23, 42, 0.5);
+      --type-badge-bg: rgba(79, 70, 229, 0.12);
+      --type-badge-color: #4338ca;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -120,7 +152,43 @@
     .btn-danger:hover { background: rgba(244, 63, 94, 0.1); border-color: var(--accent-rose); }
     .btn-sm { padding: 0.25rem 0.55rem; font-size: 0.75rem; }
     .btn-icon { padding: 0.2rem 0.4rem; border-radius: 4px; font-size: 0.75rem; border: none; background: transparent; color: var(--text-muted); }
-    .btn-icon:hover { color: #fff; background: rgba(255,255,255,0.1); }
+    .btn-icon:hover { color: var(--text-main); background: var(--item-hover); }
+
+    /* Theme Switcher Segmented Control */
+    .theme-switch-group {
+      display: inline-flex;
+      align-items: center;
+      background: var(--bg-main);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 2px;
+      gap: 2px;
+    }
+    .theme-toggle-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 0.28rem 0.6rem;
+      border-radius: 6px;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      line-height: 1;
+      font-family: var(--font-sans);
+    }
+    .theme-toggle-btn:hover {
+      color: var(--text-main);
+    }
+    .theme-toggle-btn.active {
+      background: var(--bg-card);
+      color: var(--text-main);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+      font-weight: 600;
+    }
 
     /* App Layout */
     .app-body {
@@ -407,7 +475,7 @@
     .detail-title-group h2 {
       font-size: 1.4rem;
       font-weight: 700;
-      color: #fff;
+      color: var(--text-main);
       display: flex;
       align-items: center;
       gap: 0.75rem;
@@ -428,14 +496,14 @@
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
       gap: 1rem;
-      background: rgba(0, 0, 0, 0.2);
-      border: 1px solid rgba(255, 255, 255, 0.05);
+      background: var(--meta-bg);
+      border: 1px solid var(--border-color);
       border-radius: 6px;
       padding: 0.9rem 1.2rem;
     }
     .meta-item { display: flex; flex-direction: column; gap: 0.2rem; }
     .meta-label { font-size: 0.75rem; text-transform: uppercase; color: var(--text-dim); letter-spacing: 0.05em; }
-    .meta-val { font-size: 0.85rem; font-family: var(--font-mono); color: #f1f5f9; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .meta-val { font-size: 0.85rem; font-family: var(--font-mono); color: var(--text-main); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
     /* Schema Table */
     .schema-section h3 {
@@ -459,7 +527,7 @@
       font-size: 0.85rem;
     }
     th {
-      background: rgba(0, 0, 0, 0.25);
+      background: var(--th-bg);
       color: var(--text-muted);
       padding: 0.65rem 1rem;
       font-weight: 600;
@@ -470,16 +538,16 @@
     }
     td {
       padding: 0.65rem 1rem;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      border-bottom: 1px solid var(--border-color);
       color: var(--text-main);
     }
     tr:last-child td { border-bottom: none; }
-    tr:hover td { background: rgba(255, 255, 255, 0.02); }
+    tr:hover td { background: var(--item-hover); }
     .type-badge {
       font-family: var(--font-mono);
       font-size: 0.75rem;
-      background: rgba(99, 102, 241, 0.15);
-      color: #a5b4fc;
+      background: var(--type-badge-bg);
+      color: var(--type-badge-color);
       padding: 0.15rem 0.4rem;
       border-radius: 4px;
     }
@@ -494,7 +562,7 @@
       min-width: 120px;
     }
     .editable-desc:hover {
-      background: rgba(255, 255, 255, 0.06);
+      background: var(--item-hover);
       text-decoration: underline;
     }
 
@@ -502,7 +570,7 @@
     .modal-overlay {
       position: fixed;
       inset: 0;
-      background: rgba(0, 0, 0, 0.7);
+      background: var(--modal-overlay);
       backdrop-filter: blur(4px);
       display: flex;
       align-items: center;
@@ -531,7 +599,7 @@
       justify-content: space-between;
       align-items: center;
     }
-    .modal-header h3 { font-size: 1.15rem; font-weight: 700; color: #fff; }
+    .modal-header h3 { font-size: 1.15rem; font-weight: 700; color: var(--text-main); }
     .modal-body {
       padding: 1.5rem;
       overflow-y: auto;
@@ -545,7 +613,7 @@
       display: flex;
       justify-content: flex-end;
       gap: 0.75rem;
-      background: rgba(0, 0, 0, 0.15);
+      background: var(--meta-bg);
     }
 
     .form-group { display: flex; flex-direction: column; gap: 0.4rem; }
@@ -554,7 +622,7 @@
       background: var(--bg-main);
       border: 1px solid var(--border-color);
       border-radius: 6px;
-      color: #fff;
+      color: var(--text-main);
       padding: 0.5rem 0.75rem;
       font-size: 0.85rem;
       outline: none;
@@ -574,7 +642,7 @@
     .col-table input, .col-table select {
       background: var(--bg-main);
       border: 1px solid var(--border-color);
-      color: #fff;
+      color: var(--text-main);
       padding: 0.35rem 0.5rem;
       border-radius: 4px;
       font-size: 0.8rem;
@@ -622,7 +690,41 @@
       <span id="activeCatalogPath" class="catalog-path">Loading...</span>
     </div>
 
-    <div style="display:flex; gap:0.5rem; align-items:center;">
+    <div style="display:flex; gap:0.6rem; align-items:center;">
+      <!-- Theme Switch (System / Light / Dark) -->
+      <div class="theme-switch-group" title="Theme mode: System, Light, Dark">
+        <button class="theme-toggle-btn active" id="btnThemeSystem" onclick="setThemeMode('system')" title="Follow System Theme">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+            <line x1="8" y1="21" x2="16" y2="21"></line>
+            <line x1="12" y1="17" x2="12" y2="21"></line>
+          </svg>
+          <span>Auto</span>
+        </button>
+        <button class="theme-toggle-btn" id="btnThemeLight" onclick="setThemeMode('light')" title="Light Theme">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="5"></circle>
+            <line x1="12" y1="1" x2="12" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="23"></line>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+            <line x1="1" y1="12" x2="3" y2="12"></line>
+            <line x1="21" y1="12" x2="23" y2="12"></line>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+          </svg>
+          <span>Light</span>
+        </button>
+        <button class="theme-toggle-btn" id="btnThemeDark" onclick="setThemeMode('dark')" title="Dark Theme">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+          </svg>
+          <span>Dark</span>
+        </button>
+      </div>
+
+      <div style="width: 1px; height: 22px; background: var(--border-color); margin: 0 0.1rem;"></div>
+
       <button class="btn" id="btnCreateCatalog" title="Create a new catalog YAML file">
         <span class="circle-btn circle-btn-add" style="width:16px; height:16px; pointer-events:none;">
           <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
@@ -924,6 +1026,43 @@
     let modalColumns = [];
     let collapsedCategories = new Set();
     let renamingNamespace = null;
+
+    // --- Theme Management (Light / Dark / System Default) ---
+    let currentThemePreference = localStorage.getItem('det-theme-mode') || 'system';
+
+    function applyTheme() {
+      const isSystemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const effectiveTheme = currentThemePreference === 'system'
+        ? (isSystemDark ? 'dark' : 'light')
+        : currentThemePreference;
+
+      document.documentElement.setAttribute('data-theme', effectiveTheme);
+
+      const btnSys = document.getElementById('btnThemeSystem');
+      const btnLight = document.getElementById('btnThemeLight');
+      const btnDark = document.getElementById('btnThemeDark');
+      if (btnSys) btnSys.classList.toggle('active', currentThemePreference === 'system');
+      if (btnLight) btnLight.classList.toggle('active', currentThemePreference === 'light');
+      if (btnDark) btnDark.classList.toggle('active', currentThemePreference === 'dark');
+    }
+
+    function setThemeMode(mode) {
+      currentThemePreference = mode;
+      localStorage.setItem('det-theme-mode', mode);
+      applyTheme();
+      const labels = { system: 'Auto / System', light: 'Light', dark: 'Dark' };
+      showToast(`Theme set to ${labels[mode] || mode}`);
+    }
+
+    // Listen for OS scheme updates
+    try {
+      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+        if (currentThemePreference === 'system') applyTheme();
+      });
+    } catch (e) {}
+
+    // Apply theme immediately on script evaluation
+    applyTheme();
 
     // --- Toast Helper ---
     function showToast(msg, isError = false) {
