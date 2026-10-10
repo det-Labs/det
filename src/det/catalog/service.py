@@ -6,7 +6,13 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from det.catalog.config import get_default_catalog_path, set_default_catalog_path
+from det.catalog.config import (
+    add_known_catalog,
+    get_default_catalog_path,
+    get_known_catalogs,
+    remove_known_catalog,
+    set_default_catalog_path,
+)
 from det.catalog.models import CatalogFile, DatasetMetadata, ScanResult
 from det.catalog.scanner import scan_location
 from det.catalog.store import get_catalog_yaml_str, load_catalog, save_catalog
@@ -17,6 +23,8 @@ class CatalogService:
 
     def __init__(self, catalog_path: str | Path | None = None) -> None:
         self._path = Path(catalog_path).resolve() if catalog_path else get_default_catalog_path()
+        if self._path.is_file():
+            add_known_catalog(self._path)
 
     @property
     def active_path(self) -> Path:
@@ -28,9 +36,67 @@ class CatalogService:
         self._path = Path(new_path).resolve()
         # Verify or initialize the file
         load_catalog(self._path)
+        add_known_catalog(self._path)
         if set_as_default:
             set_default_catalog_path(self._path)
         return self._path
+
+    def remove_catalog(self, catalog_path: str | Path) -> bool:
+        """Remove a catalog from the known catalogs list."""
+        path = Path(catalog_path).resolve()
+        removed = remove_known_catalog(path)
+        if path == self._path:
+            # Switch back to default
+            self._path = get_default_catalog_path()
+        return removed
+
+    def get_full_tree(self) -> list[dict[str, Any]]:
+        """Return the complete 3-level tree: Catalog > Namespace > Table."""
+        known_paths = get_known_catalogs()
+        default_path = get_default_catalog_path()
+        tree: list[dict[str, Any]] = []
+
+        for path in known_paths:
+            try:
+                cat = load_catalog(path)
+            except (OSError, ValueError, TypeError):
+                continue
+
+            is_active = (path == self._path)
+            is_default = (path == default_path)
+
+            ns_order = list(dict.fromkeys(cat.namespaces + [d.namespace for d in cat.datasets]))
+            if "default" not in ns_order:
+                ns_order.insert(0, "default")
+
+            ns_nodes = []
+            for ns in ns_order:
+                datasets_in_ns = [
+                    {
+                        **d.model_dump(mode="json"),
+                        "columns_count": len(d.columns) if d.columns else 0,
+                    }
+                    for d in cat.datasets
+                    if d.namespace == ns
+                ]
+                ns_nodes.append({
+                    "name": ns,
+                    "count": len(datasets_in_ns),
+                    "datasets": datasets_in_ns,
+                })
+
+            tree.append({
+                "path": str(path),
+                "name": cat.catalog_name or path.stem,
+                "filename": path.name,
+                "is_active": is_active,
+                "is_default": is_default,
+                "total_datasets": len(cat.datasets),
+                "total_namespaces": len(ns_nodes),
+                "namespaces": ns_nodes,
+            })
+
+        return tree
 
     def create_catalog(
         self,
@@ -65,15 +131,20 @@ class CatalogService:
         )
         save_catalog(path, new_catalog)
         self._path = path
+        add_known_catalog(path)
         if set_as_default:
             set_default_catalog_path(path)
         return path
 
     def list_datasets(
-        self, search: str | None = None, namespace: str | None = None
+        self,
+        search: str | None = None,
+        namespace: str | None = None,
+        catalog_path: str | Path | None = None,
     ) -> list[DatasetMetadata]:
-        """List all datasets in the active catalog, with optional search or namespace filter."""
-        catalog = load_catalog(self._path)
+        """List all datasets in the active or specified catalog, with optional search or namespace filter."""
+        target_path = Path(catalog_path).resolve() if catalog_path else self._path
+        catalog = load_catalog(target_path)
         results = catalog.datasets
 
         if namespace:
@@ -93,31 +164,41 @@ class CatalogService:
 
         return results
 
-    def iter_datasets(self, namespace: str | None = None):
-        """Yield registered datasets one by one from the active catalog.
+    def iter_datasets(
+        self, namespace: str | None = None, catalog_path: str | Path | None = None
+    ):
+        """Yield registered datasets one by one from the active or specified catalog.
 
         Args:
             namespace: Optional namespace filter.
+            catalog_path: Optional catalog path.
 
         Yields:
             DatasetMetadata: Each matching dataset descriptor.
         """
-        catalog = load_catalog(self._path)
+        target_path = Path(catalog_path).resolve() if catalog_path else self._path
+        catalog = load_catalog(target_path)
         for d in catalog.datasets:
             if not namespace or d.namespace.lower() == namespace.lower():
                 yield d
 
-    def get_dataset(self, dataset_id: str) -> DatasetMetadata | None:
+    def get_dataset(
+        self, dataset_id: str, catalog_path: str | Path | None = None
+    ) -> DatasetMetadata | None:
         """Retrieve a dataset by its unique ID."""
-        catalog = load_catalog(self._path)
+        target_path = Path(catalog_path).resolve() if catalog_path else self._path
+        catalog = load_catalog(target_path)
         for d in catalog.datasets:
             if d.id == dataset_id:
                 return d
         return None
 
-    def register_dataset(self, dataset: DatasetMetadata) -> DatasetMetadata:
-        """Register a new dataset into the active catalog."""
-        catalog = load_catalog(self._path)
+    def register_dataset(
+        self, dataset: DatasetMetadata, catalog_path: str | Path | None = None
+    ) -> DatasetMetadata:
+        """Register a new dataset into the active or specified catalog."""
+        target_path = Path(catalog_path).resolve() if catalog_path else self._path
+        catalog = load_catalog(target_path)
 
         # Check for duplicate ID
         for existing in catalog.datasets:
@@ -129,12 +210,18 @@ class CatalogService:
             dataset.last_scanned = now_iso
 
         catalog.datasets.append(dataset)
-        save_catalog(self._path, catalog)
+        save_catalog(target_path, catalog)
         return dataset
 
-    def update_dataset(self, dataset_id: str, updates: DatasetMetadata) -> DatasetMetadata:
+    def update_dataset(
+        self,
+        dataset_id: str,
+        updates: DatasetMetadata,
+        catalog_path: str | Path | None = None,
+    ) -> DatasetMetadata:
         """Update an existing dataset's metadata and schema."""
-        catalog = load_catalog(self._path)
+        target_path = Path(catalog_path).resolve() if catalog_path else self._path
+        catalog = load_catalog(target_path)
         found_idx: int | None = None
 
         for idx, existing in enumerate(catalog.datasets):
@@ -152,17 +239,20 @@ class CatalogService:
                     raise ValueError(f"Dataset with new ID '{updates.id}' already exists.")
 
         catalog.datasets[found_idx] = updates
-        save_catalog(self._path, catalog)
+        save_catalog(target_path, catalog)
         return updates
 
-    def delete_dataset(self, dataset_id: str) -> bool:
+    def delete_dataset(
+        self, dataset_id: str, catalog_path: str | Path | None = None
+    ) -> bool:
         """Remove a dataset registration from the catalog (does not delete underlying data)."""
-        catalog = load_catalog(self._path)
+        target_path = Path(catalog_path).resolve() if catalog_path else self._path
+        catalog = load_catalog(target_path)
         initial_count = len(catalog.datasets)
         catalog.datasets = [d for d in catalog.datasets if d.id != dataset_id]
 
         if len(catalog.datasets) < initial_count:
-            save_catalog(self._path, catalog)
+            save_catalog(target_path, catalog)
             return True
         return False
 
@@ -170,9 +260,12 @@ class CatalogService:
         """Scan a file or folder path without saving to catalog yet."""
         return scan_location(location, format_hint)
 
-    def rescan_dataset(self, dataset_id: str) -> DatasetMetadata:
+    def rescan_dataset(
+        self, dataset_id: str, catalog_path: str | Path | None = None
+    ) -> DatasetMetadata:
         """Re-scan the underlying location for an existing dataset to refresh its schema."""
-        dataset = self.get_dataset(dataset_id)
+        target_path = Path(catalog_path).resolve() if catalog_path else self._path
+        dataset = self.get_dataset(dataset_id, catalog_path=target_path)
         if not dataset:
             raise KeyError(f"Dataset '{dataset_id}' not found in catalog.")
 
@@ -182,11 +275,14 @@ class CatalogService:
             dataset.row_count = scan.row_count
         dataset.last_scanned = datetime.now(UTC).isoformat()
 
-        return self.update_dataset(dataset_id, dataset)
+        return self.update_dataset(dataset_id, dataset, catalog_path=target_path)
 
-    def list_namespaces(self) -> list[dict[str, Any]]:
+    def list_namespaces(
+        self, catalog_path: str | Path | None = None
+    ) -> list[dict[str, Any]]:
         """List all namespaces / categories with their dataset counts."""
-        catalog = load_catalog(self._path)
+        target_path = Path(catalog_path).resolve() if catalog_path else self._path
+        catalog = load_catalog(target_path)
         # Collect unique namespaces preserving order
         ns_set = list(dict.fromkeys(catalog.namespaces + [d.namespace for d in catalog.datasets]))
         if "default" not in ns_set:
@@ -198,19 +294,22 @@ class CatalogService:
 
         return [{"name": ns, "count": counts.get(ns, 0)} for ns in ns_set]
 
-    def create_namespace(self, name: str) -> str:
+    def create_namespace(self, name: str, catalog_path: str | Path | None = None) -> str:
         """Create a new namespace / category in the catalog."""
         clean_name = name.strip()
         if not clean_name:
             raise ValueError("Namespace name cannot be empty.")
 
-        catalog = load_catalog(self._path)
+        target_path = Path(catalog_path).resolve() if catalog_path else self._path
+        catalog = load_catalog(target_path)
         if clean_name not in catalog.namespaces:
             catalog.namespaces.append(clean_name)
-            save_catalog(self._path, catalog)
+            save_catalog(target_path, catalog)
         return clean_name
 
-    def rename_namespace(self, old_name: str, new_name: str) -> int:
+    def rename_namespace(
+        self, old_name: str, new_name: str, catalog_path: str | Path | None = None
+    ) -> int:
         """Rename an existing namespace and update all its associated datasets."""
         clean_old = old_name.strip()
         clean_new = new_name.strip()
@@ -219,7 +318,8 @@ class CatalogService:
         if clean_old == clean_new:
             return 0
 
-        catalog = load_catalog(self._path)
+        target_path = Path(catalog_path).resolve() if catalog_path else self._path
+        catalog = load_catalog(target_path)
 
         # Update in namespaces list
         if clean_old in catalog.namespaces:
@@ -238,13 +338,16 @@ class CatalogService:
                     dataset.id = f"{clean_new}.{dataset.name}"
                 updated_count += 1
 
-        save_catalog(self._path, catalog)
+        save_catalog(target_path, catalog)
         return updated_count
 
-    def delete_namespace(self, name: str, reassign_to: str | None = "default") -> int:
+    def delete_namespace(
+        self, name: str, reassign_to: str | None = "default", catalog_path: str | Path | None = None
+    ) -> int:
         """Delete a namespace, either reassigning its datasets or removing them."""
         clean_name = name.strip()
-        catalog = load_catalog(self._path)
+        target_path = Path(catalog_path).resolve() if catalog_path else self._path
+        catalog = load_catalog(target_path)
 
         if clean_name in catalog.namespaces:
             catalog.namespaces.remove(clean_name)
@@ -266,9 +369,10 @@ class CatalogService:
             catalog.datasets = [d for d in catalog.datasets if d.namespace != clean_name]
             affected_count = initial_len - len(catalog.datasets)
 
-        save_catalog(self._path, catalog)
+        save_catalog(target_path, catalog)
         return affected_count
 
-    def export_yaml(self) -> str:
+    def export_yaml(self, catalog_path: str | Path | None = None) -> str:
         """Return raw YAML content of the catalog."""
-        return get_catalog_yaml_str(self._path)
+        p = Path(catalog_path).resolve() if catalog_path else self._path
+        return get_catalog_yaml_str(p)

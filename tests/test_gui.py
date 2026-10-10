@@ -139,3 +139,32 @@ def test_gui_namespace_endpoints(gui_client):
     # 4. Delete namespace
     del_res = client.delete("/api/namespaces/shop?reassign_to=default")
     assert del_res.status_code == 200
+
+
+def test_gui_tree_and_multi_catalog(gui_client):
+    client = gui_client["client"]
+    tmp_path = gui_client["tmp_path"]
+
+    # 1. Test get tree
+    tree_res = client.get("/api/tree")
+    assert tree_res.status_code == 200
+    catalogs = tree_res.json()["catalogs"]
+    assert len(catalogs) >= 1
+    assert "namespaces" in catalogs[0]
+
+    # 2. Open another catalog
+    cat2_path = tmp_path / "extra_cat.yaml"
+    open_res = client.post("/api/catalog/open", json={"path": str(cat2_path), "set_as_default": False})
+    assert open_res.status_code == 200
+    open_catalogs = open_res.json()["catalogs"]
+    paths = [c["path"] for c in open_catalogs]
+    assert str(cat2_path.resolve()) in paths
+
+    # 3. Set default catalog
+    def_res = client.post("/api/catalog/set-default", json={"path": str(cat2_path)})
+    assert def_res.status_code == 200
+
+    # 4. Remove extra catalog from explorer
+    rem_res = client.post("/api/catalog/remove", json={"path": str(cat2_path)})
+    assert rem_res.status_code == 200
+

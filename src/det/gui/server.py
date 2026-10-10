@@ -145,11 +145,69 @@ def create_catalog(req: CreateCatalogRequest) -> CatalogStatusResponse:
     )
 
 
-@app.get("/api/catalog/yaml", response_class=PlainTextResponse)
-def get_catalog_yaml() -> str:
-    """Return the raw YAML representation of the active catalog."""
+@app.get("/api/tree")
+def get_explorer_tree():
+    """Return the complete 3-level tree: Catalog > Namespace > Tables."""
     service = get_service()
-    return service.export_yaml()
+    return {"catalogs": service.get_full_tree()}
+
+
+class OpenCatalogRequest(BaseModel):
+    path: str = Field(..., description="Path to existing catalog YAML file")
+    set_as_default: bool = Field(False, description="Whether to set as default")
+
+
+@app.post("/api/catalog/open")
+def open_catalog(req: OpenCatalogRequest):
+    """Register an existing catalog into known catalogs and switch to it."""
+    service = get_service()
+    try:
+        service.switch_catalog(req.path, set_as_default=req.set_as_default)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Failed to open catalog file: {exc}",
+        ) from exc
+    return {"catalogs": service.get_full_tree()}
+
+
+class RemoveCatalogRequest(BaseModel):
+    path: str = Field(..., description="Path to catalog YAML file to remove from explorer")
+
+
+@app.post("/api/catalog/remove")
+def remove_catalog(req: RemoveCatalogRequest):
+    """Remove a catalog from the known catalogs list in explorer."""
+    service = get_service()
+    service.remove_catalog(req.path)
+    return {"catalogs": service.get_full_tree()}
+
+
+class SetDefaultCatalogRequest(BaseModel):
+    path: str = Field(..., description="Path to catalog YAML file to set as default")
+
+
+@app.post("/api/catalog/set-default")
+def set_default_catalog(req: SetDefaultCatalogRequest):
+    """Persist a catalog as the default catalog."""
+    from det.catalog.config import set_default_catalog_path
+
+    try:
+        set_default_catalog_path(req.path)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Failed to set default catalog: {exc}",
+        ) from exc
+    service = get_service()
+    return {"catalogs": service.get_full_tree()}
+
+
+@app.get("/api/catalog/yaml", response_class=PlainTextResponse)
+def get_catalog_yaml(path: str | None = Query(None, description="Optional catalog path")) -> str:
+    """Return the raw YAML representation of the active or specified catalog."""
+    service = get_service()
+    return service.export_yaml(path)
 
 
 # --- Namespace / Category Management ---
@@ -157,16 +215,20 @@ def get_catalog_yaml() -> str:
 
 class CreateNamespaceRequest(BaseModel):
     name: str = Field(..., description="Name of the new namespace")
+    catalog_path: str | None = Field(None, description="Optional catalog path to create inside")
 
 
 class RenameNamespaceRequest(BaseModel):
     new_name: str = Field(..., description="New name for the namespace")
+    catalog_path: str | None = Field(None, description="Optional catalog path to rename inside")
 
 
 @app.get("/api/namespaces")
-def list_namespaces():
+def list_namespaces(catalog_path: str | None = Query(None)):
     """List all namespaces / categories with their dataset counts."""
     service = get_service()
+    if catalog_path:
+        service.switch_catalog(catalog_path)
     return service.list_namespaces()
 
 
@@ -175,7 +237,7 @@ def create_namespace(req: CreateNamespaceRequest):
     """Create a new namespace in the catalog."""
     service = get_service()
     try:
-        created = service.create_namespace(req.name)
+        created = service.create_namespace(req.name, catalog_path=req.catalog_path)
         return {"name": created}
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
@@ -186,17 +248,21 @@ def rename_namespace(name: str, req: RenameNamespaceRequest):
     """Rename a namespace and cascade updates to all its datasets."""
     service = get_service()
     try:
-        updated = service.rename_namespace(name, req.new_name)
+        updated = service.rename_namespace(name, req.new_name, catalog_path=req.catalog_path)
         return {"old_name": name, "new_name": req.new_name, "updated_datasets": updated}
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
 
 @app.delete("/api/namespaces/{name}")
-def delete_namespace(name: str, reassign_to: str | None = Query("default")):
+def delete_namespace(
+    name: str,
+    reassign_to: str | None = Query("default"),
+    catalog_path: str | None = Query(None),
+):
     """Delete a namespace, reassigning or removing its datasets."""
     service = get_service()
-    affected = service.delete_namespace(name, reassign_to=reassign_to)
+    affected = service.delete_namespace(name, reassign_to=reassign_to, catalog_path=catalog_path)
     return {"name": name, "affected_datasets": affected}
 
 
@@ -204,17 +270,21 @@ def delete_namespace(name: str, reassign_to: str | None = Query("default")):
 def list_datasets(
     search: str | None = Query(None, description="Search term for names, columns, or tags"),
     namespace: str | None = Query(None, description="Filter by namespace"),
+    catalog_path: str | None = Query(None, description="Optional catalog path"),
 ) -> list[DatasetMetadata]:
-    """List all registered datasets in the active catalog."""
+    """List all registered datasets in the active or specified catalog."""
     service = get_service()
-    return service.list_datasets(search=search, namespace=namespace)
+    return service.list_datasets(search=search, namespace=namespace, catalog_path=catalog_path)
 
 
 @app.get("/api/datasets/{dataset_id:path}", response_model=DatasetMetadata)
-def get_dataset(dataset_id: str) -> DatasetMetadata:
+def get_dataset(
+    dataset_id: str,
+    catalog_path: str | None = Query(None, description="Optional catalog path"),
+) -> DatasetMetadata:
     """Retrieve metadata for a specific dataset by ID."""
     service = get_service()
-    dataset = service.get_dataset(dataset_id)
+    dataset = service.get_dataset(dataset_id, catalog_path=catalog_path)
     if not dataset:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -224,11 +294,14 @@ def get_dataset(dataset_id: str) -> DatasetMetadata:
 
 
 @app.post("/api/datasets", response_model=DatasetMetadata, status_code=status.HTTP_201_CREATED)
-def register_dataset(dataset: DatasetMetadata) -> DatasetMetadata:
+def register_dataset(
+    dataset: DatasetMetadata,
+    catalog_path: str | None = Query(None, description="Optional catalog path"),
+) -> DatasetMetadata:
     """Register a new dataset in the catalog."""
     service = get_service()
     try:
-        return service.register_dataset(dataset)
+        return service.register_dataset(dataset, catalog_path=catalog_path)
     except ValueError as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -237,11 +310,15 @@ def register_dataset(dataset: DatasetMetadata) -> DatasetMetadata:
 
 
 @app.put("/api/datasets/{dataset_id:path}", response_model=DatasetMetadata)
-def update_dataset(dataset_id: str, updates: DatasetMetadata) -> DatasetMetadata:
+def update_dataset(
+    dataset_id: str,
+    updates: DatasetMetadata,
+    catalog_path: str | None = Query(None, description="Optional catalog path"),
+) -> DatasetMetadata:
     """Update an existing dataset's schema and metadata."""
     service = get_service()
     try:
-        return service.update_dataset(dataset_id, updates)
+        return service.update_dataset(dataset_id, updates, catalog_path=catalog_path)
     except KeyError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -255,10 +332,13 @@ def update_dataset(dataset_id: str, updates: DatasetMetadata) -> DatasetMetadata
 
 
 @app.delete("/api/datasets/{dataset_id:path}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_dataset(dataset_id: str) -> None:
+def delete_dataset(
+    dataset_id: str,
+    catalog_path: str | None = Query(None, description="Optional catalog path"),
+) -> None:
     """Delete a dataset from the catalog."""
     service = get_service()
-    if not service.delete_dataset(dataset_id):
+    if not service.delete_dataset(dataset_id, catalog_path=catalog_path):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Dataset '{dataset_id}' not found.",
@@ -266,11 +346,14 @@ def delete_dataset(dataset_id: str) -> None:
 
 
 @app.post("/api/datasets/{dataset_id:path}/rescan", response_model=DatasetMetadata)
-def rescan_dataset(dataset_id: str) -> DatasetMetadata:
+def rescan_dataset(
+    dataset_id: str,
+    catalog_path: str | None = Query(None, description="Optional catalog path"),
+) -> DatasetMetadata:
     """Re-scan the underlying location for an existing dataset to update its schema."""
     service = get_service()
     try:
-        return service.rescan_dataset(dataset_id)
+        return service.rescan_dataset(dataset_id, catalog_path=catalog_path)
     except KeyError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

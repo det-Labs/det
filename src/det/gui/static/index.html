@@ -28,11 +28,12 @@
       --accent-rose: #f43f5e;
       --meta-bg: rgba(0, 0, 0, 0.2);
       --th-bg: rgba(0, 0, 0, 0.25);
-      --item-hover: rgba(255, 255, 255, 0.04);
-      --item-active: rgba(244, 91, 0, 0.15);
+      --item-hover: rgba(255, 255, 255, 0.06);
+      --item-active: rgba(244, 91, 0, 0.18);
       --modal-overlay: rgba(0, 0, 0, 0.7);
-      --type-badge-bg: rgba(244, 91, 0, 0.12);
+      --type-badge-bg: rgba(244, 91, 0, 0.14);
       --type-badge-color: #ff8c42;
+      --guide-line: rgba(255, 255, 255, 0.08);
       --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
       --font-mono: 'JetBrains Mono', monospace;
     }
@@ -56,11 +57,12 @@
       --accent-rose: #e11d48;
       --meta-bg: #f8fafc;
       --th-bg: #f1f5f9;
-      --item-hover: rgba(0, 0, 0, 0.04);
+      --item-hover: rgba(0, 0, 0, 0.05);
       --item-active: rgba(244, 91, 0, 0.12);
       --modal-overlay: rgba(15, 23, 42, 0.5);
       --type-badge-bg: rgba(244, 91, 0, 0.1);
       --type-badge-color: #c94a00;
+      --guide-line: rgba(0, 0, 0, 0.08);
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -72,19 +74,20 @@
       display: flex;
       flex-direction: column;
       overflow: hidden;
-      font-size: 14px;
+      font-size: 13px;
     }
 
     /* Header */
     header {
       background: var(--bg-card);
       border-bottom: 1px solid var(--border-color);
-      padding: 0.75rem 1.5rem;
+      padding: 0.6rem 1.25rem;
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 1rem;
       flex-shrink: 0;
+      height: 52px;
     }
 
     .brand {
@@ -95,7 +98,7 @@
       text-decoration: none;
     }
     .brand-logo-svg {
-      height: 26px;
+      height: 24px;
       width: auto;
       display: block;
     }
@@ -112,51 +115,26 @@
       font-weight: 300;
     }
     .brand-tag {
-      font-size: 0.88rem;
+      font-size: 0.86rem;
       font-weight: 600;
       color: var(--text-muted);
       letter-spacing: -0.01em;
-    }
-
-    .catalog-bar {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      background: var(--bg-main);
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      padding: 0.35rem 0.75rem;
-      font-family: var(--font-mono);
-      font-size: 0.8rem;
-      color: var(--text-muted);
-      max-width: 500px;
-      overflow: hidden;
-    }
-    .catalog-path {
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      color: var(--text-main);
-      font-weight: 500;
-    }
-    .default-star {
-      color: var(--accent-amber);
-      font-size: 0.85rem;
     }
 
     .btn {
       background: var(--bg-card);
       color: var(--text-main);
       border: 1px solid var(--border-color);
-      padding: 0.45rem 0.9rem;
+      padding: 0.45rem 0.85rem;
       border-radius: 6px;
-      font-size: 0.85rem;
+      font-size: 0.82rem;
       font-weight: 500;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
       gap: 0.4rem;
       transition: all 0.15s ease;
+      font-family: var(--font-sans);
     }
     .btn:hover { background: var(--bg-card-hover); border-color: var(--text-muted); }
     .btn-primary {
@@ -168,8 +146,6 @@
     .btn-danger { color: var(--accent-rose); border-color: rgba(244, 63, 94, 0.3); }
     .btn-danger:hover { background: rgba(244, 63, 94, 0.1); border-color: var(--accent-rose); }
     .btn-sm { padding: 0.25rem 0.55rem; font-size: 0.75rem; }
-    .btn-icon { padding: 0.2rem 0.4rem; border-radius: 4px; font-size: 0.75rem; border: none; background: transparent; color: var(--text-muted); }
-    .btn-icon:hover { color: var(--text-main); background: var(--item-hover); }
 
     /* Theme Switcher Segmented Control */
     .theme-switch-group {
@@ -177,7 +153,7 @@
       align-items: center;
       background: var(--bg-main);
       border: 1px solid var(--border-color);
-      border-radius: 8px;
+      border-radius: 6px;
       padding: 2px;
       gap: 2px;
     }
@@ -185,8 +161,8 @@
       display: inline-flex;
       align-items: center;
       gap: 4px;
-      padding: 0.28rem 0.6rem;
-      border-radius: 6px;
+      padding: 0.25rem 0.55rem;
+      border-radius: 5px;
       border: none;
       background: transparent;
       color: var(--text-muted);
@@ -197,13 +173,11 @@
       line-height: 1;
       font-family: var(--font-sans);
     }
-    .theme-toggle-btn:hover {
-      color: var(--text-main);
-    }
+    .theme-toggle-btn:hover { color: var(--text-main); }
     .theme-toggle-btn.active {
       background: var(--bg-card);
       color: var(--text-main);
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
       font-weight: 600;
     }
 
@@ -211,13 +185,13 @@
     .app-body {
       display: flex;
       flex: 1;
-      height: calc(100vh - 61px);
+      height: calc(100vh - 52px);
       overflow: hidden;
     }
 
-    /* Left Sidebar Explorer */
+    /* Left Sidebar Explorer (VS Code Style) */
     aside.sidebar {
-      width: 340px;
+      width: 320px;
       min-width: 220px;
       max-width: 700px;
       background: var(--bg-card);
@@ -242,12 +216,15 @@
     .sidebar-resizer:hover, .sidebar-resizer.resizing {
       background: var(--primary);
     }
+
+    /* Explorer Header Toolbar */
     .sidebar-header {
-      padding: 1rem;
+      padding: 0.65rem 0.85rem 0.5rem 0.85rem;
       border-bottom: 1px solid var(--border-color);
       display: flex;
       flex-direction: column;
-      gap: 0.75rem;
+      gap: 0.5rem;
+      background: var(--bg-card);
     }
     .sidebar-title-row {
       display: flex;
@@ -255,256 +232,314 @@
       align-items: center;
     }
     .sidebar-title {
-      font-size: 0.85rem;
-      font-weight: 600;
+      font-size: 0.72rem;
+      font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 0.05em;
+      letter-spacing: 0.08em;
       color: var(--text-muted);
       display: flex;
       align-items: center;
-      gap: 0.5rem;
+      gap: 0.4rem;
     }
     .count-badge {
       background: var(--bg-main);
-      color: var(--text-main);
-      padding: 0.1rem 0.4rem;
-      border-radius: 12px;
-      font-size: 0.75rem;
+      color: var(--text-muted);
+      padding: 0.05rem 0.35rem;
+      border-radius: 10px;
+      font-size: 0.7rem;
       font-family: var(--font-mono);
+      font-weight: 600;
+    }
+    .explorer-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .action-icon-btn {
+      width: 24px;
+      height: 24px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: none;
+      background: transparent;
+      border-radius: 4px;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 0;
+      transition: all 0.12s ease;
+      outline: none;
+      flex-shrink: 0;
+    }
+    .action-icon-btn:hover {
+      background: var(--item-hover);
+      color: var(--text-main);
+    }
+    .action-icon-btn.btn-delete-hover:hover {
+      color: var(--accent-rose);
+      background: rgba(244, 63, 94, 0.15);
+    }
+
+    /* Quick Filter Box */
+    .search-box {
+      position: relative;
+      display: flex;
+      align-items: center;
+      width: 100%;
+    }
+    .search-icon {
+      position: absolute;
+      left: 8px;
+      color: var(--text-dim);
+      pointer-events: none;
     }
     .search-input {
       background: var(--bg-main);
       border: 1px solid var(--border-color);
-      border-radius: 6px;
+      border-radius: 5px;
       color: var(--text-main);
-      padding: 0.45rem 0.75rem;
-      font-size: 0.85rem;
+      padding: 0.35rem 0.5rem 0.35rem 1.7rem;
+      font-size: 0.78rem;
       outline: none;
       width: 100%;
+      font-family: var(--font-sans);
+      transition: border-color 0.15s;
     }
-    .search-input::placeholder {
-      color: var(--text-dim);
-    }
+    .search-input::placeholder { color: var(--text-dim); }
     .search-input:focus { border-color: var(--border-focus); }
 
-    /* Tree View / Categories in Sidebar */
-    .category-tree {
+    /* Explorer Tree Container */
+    .explorer-tree {
       flex: 1;
       overflow-y: auto;
-      padding: 0.5rem;
+      overflow-x: hidden;
+      padding: 0.3rem 0;
     }
 
-    .category-group {
-      margin-bottom: 0.6rem;
-    }
-    .category-header {
+    /* VS Code Style Tree Nodes */
+    .tree-node {
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      padding: 0.45rem 0.6rem;
-      border-radius: 6px;
-      background: transparent;
+      height: 26px;
+      line-height: 26px;
+      padding: 0 0.55rem 0 0.4rem;
       cursor: pointer;
       user-select: none;
-      transition: background 0.15s;
+      position: relative;
+      font-size: 12.5px;
+      color: var(--text-main);
+      transition: background 0.1s ease;
+      width: 100%;
     }
-    .category-header:hover {
+    .tree-node:hover {
       background: var(--item-hover);
     }
-    .category-title-wrap {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      font-weight: 600;
-      font-size: 0.85rem;
+    .tree-node.selected {
+      background: var(--item-active);
       color: var(--text-main);
+      font-weight: 500;
     }
-    .category-chevron {
-      font-size: 0.7rem;
-      color: var(--text-dim);
-      transition: transform 0.15s ease;
-    }
-    .category-chevron.collapsed {
-      transform: rotate(-90deg);
-    }
-    .category-actions {
-      display: flex;
-      align-items: center;
-      gap: 0.35rem;
-      opacity: 0;
-      transition: opacity 0.15s;
-    }
-    .category-header:hover .category-actions {
-      opacity: 1;
+    .tree-node.selected::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: var(--primary);
     }
 
-    /* Circular Action Badges / Buttons (Add, Edit, Delete, Rescan) */
-    .circle-btn {
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-      border: none;
+    .tree-chevron {
+      width: 16px;
+      height: 16px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      cursor: pointer;
-      padding: 0;
-      transition: transform 0.15s ease, opacity 0.15s ease, box-shadow 0.15s ease;
+      font-size: 9px;
+      color: var(--text-dim);
+      transition: transform 0.15s ease;
       flex-shrink: 0;
-      color: #ffffff;
-      outline: none;
+      margin-right: 2px;
     }
-    .circle-btn:hover {
-      transform: scale(1.18);
-      box-shadow: 0 0 6px rgba(0, 0, 0, 0.25);
+    .tree-chevron.collapsed {
+      transform: rotate(-90deg);
     }
-    .circle-btn:active {
-      transform: scale(0.92);
-    }
-    .circle-btn-add {
-      background: #16a34a; /* Vibrant Green (matching Add in user image) */
-    }
-    .circle-btn-add:hover {
-      background: #22c55e;
-    }
-    .circle-btn-delete {
-      background: #dc2626; /* Vibrant Red (matching Delete in user image) */
-    }
-    .circle-btn-delete:hover {
-      background: #ef4444;
-    }
-    .circle-btn-edit {
-      background: #2563eb; /* Vibrant Blue for Edit */
-    }
-    .circle-btn-edit:hover {
-      background: #3b82f6;
-    }
-    .circle-btn-rescan {
-      background: #0891b2; /* Vibrant Cyan/Teal for Rescan */
-    }
-    .circle-btn-rescan:hover {
-      background: #06b6d4;
+    .tree-chevron.hidden {
+      visibility: hidden;
     }
 
-    .category-items {
-      padding-left: 0.5rem;
-      margin-top: 0.25rem;
-      display: flex;
-      flex-direction: column;
-      gap: 0.25rem;
-    }
-    .category-items.collapsed {
-      display: none;
+    .tree-icon {
+      margin-right: 5px;
+      display: inline-flex;
+      align-items: center;
+      flex-shrink: 0;
+      color: var(--text-muted);
     }
 
-    .dataset-item {
-      padding: 0.55rem 0.75rem;
-      border-radius: 6px;
-      cursor: pointer;
-      display: flex;
-      flex-direction: column;
-      gap: 0.35rem;
-      border: 1px solid transparent;
-      transition: background 0.15s;
-    }
-    .dataset-item:hover {
-      background: var(--item-hover);
-    }
-    .dataset-item.active {
-      background: var(--item-active);
-      border-color: rgba(244, 91, 0, 0.45);
-    }
-    .dataset-item-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 0.4rem;
-    }
-    .dataset-name {
-      font-weight: 600;
-      color: var(--text-main);
-      display: flex;
-      align-items: center;
-      gap: 0.4rem;
+    .tree-label {
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
       flex: 1;
+      font-size: 12.5px;
     }
-    .dataset-actions {
+
+    /* Catalog Specific Nodes */
+    .catalog-node {
+      font-weight: 600;
+      background: rgba(0, 0, 0, 0.05);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    }
+    [data-theme="light"] .catalog-node {
+      background: rgba(0, 0, 0, 0.02);
+      border-bottom: 1px solid rgba(0, 0, 0, 0.03);
+    }
+    .cat-star {
+      color: var(--accent-amber);
+      font-size: 0.8rem;
+      margin-right: 4px;
+      flex-shrink: 0;
+    }
+    .catalog-counts {
       display: inline-flex;
       align-items: center;
-      gap: 0.3rem;
+      gap: 5px;
+      margin-left: 6px;
       flex-shrink: 0;
-      opacity: 0.85;
-      transition: opacity 0.15s;
     }
-    .dataset-item:hover .dataset-actions,
-    .dataset-item.active .dataset-actions {
+    .count-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      background: var(--bg-main);
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      padding: 0.05rem 0.3rem;
+      font-size: 0.68rem;
+      color: var(--text-dim);
+      font-family: var(--font-mono);
+      font-weight: 500;
+    }
+
+    /* Actions on hover */
+    .tree-actions {
+      display: inline-flex;
+      align-items: center;
+      gap: 1px;
+      opacity: 0;
+      transition: opacity 0.12s ease;
+      margin-left: 6px;
+      flex-shrink: 0;
+    }
+    .tree-node:hover .tree-actions,
+    .tree-node.selected .tree-actions {
       opacity: 1;
     }
-    .pill {
-      font-size: 0.7rem;
-      padding: 0.12rem 0.4rem;
-      border-radius: 4px;
-      font-family: var(--font-mono);
-      font-weight: 600;
-      text-transform: uppercase;
-      flex-shrink: 0;
-    }
-    .pill-parquet { background: rgba(59, 130, 246, 0.2); color: #93c5fd; }
-    .pill-csv { background: rgba(16, 185, 129, 0.2); color: #6ee7b7; }
-    .pill-json { background: rgba(245, 158, 11, 0.2); color: #fde68a; }
-    .pill-excel { background: rgba(139, 92, 246, 0.2); color: #c4b5fd; }
-    .pill-default { background: rgba(148, 163, 184, 0.2); color: #cbd5e1; }
 
-    [data-theme="light"] .pill-parquet { background: rgba(37, 99, 235, 0.12); color: #1d4ed8; }
-    [data-theme="light"] .pill-csv { background: rgba(5, 150, 105, 0.12); color: #047857; }
-    [data-theme="light"] .pill-json { background: rgba(217, 119, 6, 0.12); color: #b45309; }
-    [data-theme="light"] .pill-excel { background: rgba(124, 58, 237, 0.12); color: #6d28d9; }
-    [data-theme="light"] .pill-default { background: rgba(100, 116, 139, 0.12); color: #334155; }
-    .dataset-sub {
-      display: flex;
-      align-items: center;
-      gap: 0.45rem;
-      font-size: 0.75rem;
-      color: var(--text-dim);
+    /* Namespace Specific Nodes */
+    .ns-node {
+      padding-left: 1.15rem;
+      color: var(--text-main);
     }
-    .sub-sep {
+    .ns-count {
+      font-size: 0.68rem;
       color: var(--text-dim);
-      opacity: 0.5;
-      font-size: 0.7rem;
+      background: var(--bg-main);
+      border-radius: 8px;
+      padding: 0.05rem 0.35rem;
+      margin-left: 6px;
+      font-family: var(--font-mono);
+    }
+
+    /* Table Specific Nodes: STRICT SINGLE LINE (Requirement 1 & 4) */
+    .table-node {
+      padding-left: 2.1rem;
+      position: relative;
+    }
+    .table-indent-guide {
+      position: absolute;
+      left: 1.6rem;
+      top: 0;
+      bottom: 0;
+      width: 1px;
+      background: var(--guide-line);
+    }
+    .table-name {
+      font-weight: 500;
+      color: var(--text-main);
+    }
+
+    /* Format Pill (Requirement 4) */
+    .format-pill {
+      font-size: 0.65rem;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      padding: 0.08rem 0.35rem;
+      border-radius: 3px;
+      margin-left: 6px;
+      flex-shrink: 0;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .format-parquet { background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); }
+    .format-csv { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .format-json { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+    .format-excel { background: rgba(139, 92, 246, 0.15); color: #a78bfa; border: 1px solid rgba(139, 92, 246, 0.3); }
+    .format-directory { background: rgba(244, 91, 0, 0.15); color: #ff8c42; border: 1px solid rgba(244, 91, 0, 0.3); }
+    .format-default { background: var(--bg-main); color: var(--text-dim); border: 1px solid var(--border-color); }
+
+    [data-theme="light"] .format-parquet { color: #1d4ed8; background: #eff6ff; }
+    [data-theme="light"] .format-csv { color: #047857; background: #ecfdf5; }
+    [data-theme="light"] .format-json { color: #b45309; background: #fffbeb; }
+    [data-theme="light"] .format-excel { color: #6d28d9; background: #f5f3ff; }
+    [data-theme="light"] .format-directory { color: #c2410c; background: #fff7ed; }
+
+    /* Collapsible containers */
+    .children-container {
+      display: flex;
+      flex-direction: column;
+    }
+    .children-container.collapsed {
+      display: none;
+    }
+    .empty-child {
+      padding: 0.25rem 0.5rem 0.25rem 2.2rem;
+      color: var(--text-dim);
+      font-size: 0.72rem;
+      font-style: italic;
     }
 
     /* Main Content Area */
     main.content {
       flex: 1;
+      overflow-y: auto;
+      padding: 1.5rem;
       display: flex;
       flex-direction: column;
-      overflow-y: auto;
-      background: var(--bg-main);
-      padding: 1.5rem 2rem;
-      gap: 1.5rem;
+      gap: 1.25rem;
     }
 
     .empty-state {
-      margin: auto;
-      text-align: center;
-      max-width: 450px;
-      color: var(--text-muted);
+      flex: 1;
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 1rem;
+      justify-content: center;
+      color: var(--text-muted);
+      text-align: center;
+      gap: 0.75rem;
     }
-    .empty-icon { font-size: 3rem; opacity: 0.5; }
+    .empty-state h3 { font-size: 1.15rem; color: var(--text-main); }
+    .empty-state p { max-width: 440px; font-size: 0.85rem; line-height: 1.5; color: var(--text-dim); }
+    .empty-icon { font-size: 2.8rem; opacity: 0.5; }
 
     /* Detail Card */
     .detail-card {
       background: var(--bg-card);
       border: 1px solid var(--border-color);
       border-radius: 8px;
-      padding: 1.5rem;
+      padding: 1.25rem 1.5rem;
       display: flex;
       flex-direction: column;
       gap: 1.25rem;
@@ -517,17 +552,17 @@
       flex-wrap: wrap;
     }
     .detail-title-group h2 {
-      font-size: 1.4rem;
+      font-size: 1.35rem;
       font-weight: 700;
       color: var(--text-main);
       display: flex;
       align-items: center;
-      gap: 0.75rem;
+      gap: 0.65rem;
     }
     .detail-desc {
       color: var(--text-muted);
-      margin-top: 0.4rem;
-      font-size: 0.9rem;
+      margin-top: 0.35rem;
+      font-size: 0.88rem;
       line-height: 1.4;
     }
     .detail-actions {
@@ -538,22 +573,22 @@
 
     .meta-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 1rem;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 0.85rem;
       background: var(--meta-bg);
       border: 1px solid var(--border-color);
       border-radius: 6px;
-      padding: 0.9rem 1.2rem;
+      padding: 0.85rem 1.1rem;
     }
     .meta-item { display: flex; flex-direction: column; gap: 0.2rem; }
-    .meta-label { font-size: 0.75rem; text-transform: uppercase; color: var(--text-dim); letter-spacing: 0.05em; }
-    .meta-val { font-size: 0.85rem; font-family: var(--font-mono); color: var(--text-main); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .meta-label { font-size: 0.72rem; text-transform: uppercase; color: var(--text-dim); letter-spacing: 0.05em; font-weight: 600; }
+    .meta-val { font-size: 0.83rem; font-family: var(--font-mono); color: var(--text-main); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
     /* Schema Table */
     .schema-section h3 {
-      font-size: 1rem;
+      font-size: 0.95rem;
       font-weight: 600;
-      margin-bottom: 0.75rem;
+      margin-bottom: 0.65rem;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -568,20 +603,20 @@
       width: 100%;
       border-collapse: collapse;
       text-align: left;
-      font-size: 0.85rem;
+      font-size: 0.82rem;
     }
     th {
       background: var(--th-bg);
       color: var(--text-muted);
-      padding: 0.65rem 1rem;
+      padding: 0.55rem 0.85rem;
       font-weight: 600;
       border-bottom: 1px solid var(--border-color);
       text-transform: uppercase;
-      font-size: 0.75rem;
+      font-size: 0.72rem;
       letter-spacing: 0.05em;
     }
     td {
-      padding: 0.65rem 1rem;
+      padding: 0.55rem 0.85rem;
       border-bottom: 1px solid var(--border-color);
       color: var(--text-main);
     }
@@ -589,10 +624,10 @@
     tr:hover td { background: var(--item-hover); }
     .type-badge {
       font-family: var(--font-mono);
-      font-size: 0.75rem;
+      font-size: 0.73rem;
       background: var(--type-badge-bg);
       color: var(--type-badge-color);
-      padding: 0.15rem 0.4rem;
+      padding: 0.12rem 0.38rem;
       border-radius: 4px;
     }
     .null-yes { color: var(--text-dim); }
@@ -628,92 +663,84 @@
     .modal {
       background: var(--bg-card);
       border: 1px solid var(--border-color);
-      border-radius: 10px;
+      border-radius: 8px;
       width: 90%;
-      max-width: 780px;
+      max-width: 760px;
       max-height: 88vh;
       display: flex;
       flex-direction: column;
       box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
     }
     .modal-header {
-      padding: 1.25rem 1.5rem;
+      padding: 1.1rem 1.35rem;
       border-bottom: 1px solid var(--border-color);
       display: flex;
       justify-content: space-between;
       align-items: center;
     }
-    .modal-header h3 { font-size: 1.15rem; font-weight: 700; color: var(--text-main); }
+    .modal-header h3 { font-size: 1.1rem; font-weight: 700; color: var(--text-main); }
     .modal-body {
-      padding: 1.5rem;
+      padding: 1.35rem;
       overflow-y: auto;
       display: flex;
       flex-direction: column;
-      gap: 1.25rem;
+      gap: 1.15rem;
     }
     .modal-footer {
-      padding: 1rem 1.5rem;
+      padding: 0.85rem 1.35rem;
       border-top: 1px solid var(--border-color);
       display: flex;
       justify-content: flex-end;
-      gap: 0.75rem;
+      gap: 0.65rem;
       background: var(--meta-bg);
     }
 
-    .form-group { display: flex; flex-direction: column; gap: 0.4rem; }
-    .form-label { font-size: 0.8rem; font-weight: 600; color: var(--text-muted); }
+    .form-group { display: flex; flex-direction: column; gap: 0.35rem; }
+    .form-label { font-size: 0.78rem; font-weight: 600; color: var(--text-muted); }
     .form-input, .form-select, .form-textarea {
       background: var(--bg-main);
       border: 1px solid var(--border-color);
       border-radius: 6px;
       color: var(--text-main);
-      padding: 0.5rem 0.75rem;
-      font-size: 0.85rem;
+      padding: 0.45rem 0.7rem;
+      font-size: 0.82rem;
       outline: none;
+      font-family: var(--font-sans);
     }
-    .form-input::placeholder, .form-textarea::placeholder {
-      color: var(--text-dim);
-    }
-    select option {
-      background: var(--bg-card);
-      color: var(--text-main);
-    }
+    .form-input::placeholder, .form-textarea::placeholder { color: var(--text-dim); }
+    select option { background: var(--bg-card); color: var(--text-main); }
     .form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--border-focus); }
-    .input-row { display: flex; gap: 0.75rem; align-items: flex-end; }
+    .input-row { display: flex; gap: 0.65rem; align-items: flex-end; }
     .input-row .form-group { flex: 1; }
 
     /* Editable Column Table in Modal */
-    .col-table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 0.5rem;
-    }
-    .col-table th { padding: 0.45rem 0.6rem; font-size: 0.7rem; }
-    .col-table td { padding: 0.4rem 0.5rem; }
+    .col-table { width: 100%; border-collapse: collapse; margin-top: 0.4rem; }
+    .col-table th { padding: 0.4rem 0.55rem; font-size: 0.68rem; }
+    .col-table td { padding: 0.35rem 0.45rem; }
     .col-table input, .col-table select {
       background: var(--bg-main);
       border: 1px solid var(--border-color);
       color: var(--text-main);
-      padding: 0.35rem 0.5rem;
+      padding: 0.3rem 0.45rem;
       border-radius: 4px;
-      font-size: 0.8rem;
+      font-size: 0.78rem;
       width: 100%;
     }
 
     /* Notification Toast */
     .toast {
       position: fixed;
-      bottom: 1.5rem;
-      right: 1.5rem;
+      bottom: 1.25rem;
+      right: 1.25rem;
       background: var(--bg-card);
       border: 1px solid var(--border-color);
-      padding: 0.75rem 1.25rem;
-      border-radius: 8px;
-      font-size: 0.85rem;
+      padding: 0.65rem 1.15rem;
+      border-radius: 6px;
+      font-size: 0.82rem;
       box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
       display: flex;
       align-items: center;
-      gap: 0.6rem;
+      gap: 0.5rem;
       z-index: 2000;
       opacity: 0;
       transform: translateY(10px);
@@ -729,7 +756,7 @@
 </head>
 <body>
 
-  <!-- Top Header Navigation -->
+  <!-- Top Clean Header (Brand & Theme Switcher on Right) -->
   <header>
     <div class="brand" title="det Labs">
       <svg class="brand-logo-svg" viewBox="0 0 1080 240" role="img" aria-label="det Labs">
@@ -746,85 +773,73 @@
       <span class="brand-tag">Catalog Explorer</span>
     </div>
 
-    <!-- Active Catalog Bar -->
-    <div class="catalog-bar" title="Active Catalog File">
-      <span id="defaultStar" class="default-star" style="display:none;">★</span>
-      <span>YAML:</span>
-      <span id="activeCatalogPath" class="catalog-path">Loading...</span>
-    </div>
-
-    <div style="display:flex; gap:0.6rem; align-items:center;">
-      <!-- Theme Switch (System / Light / Dark) -->
-      <div class="theme-switch-group" title="Theme mode: System, Light, Dark">
-        <button class="theme-toggle-btn active" id="btnThemeSystem" onclick="setThemeMode('system')" title="Follow System Theme">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
-            <line x1="8" y1="21" x2="16" y2="21"></line>
-            <line x1="12" y1="17" x2="12" y2="21"></line>
-          </svg>
-          <span>Auto</span>
-        </button>
-        <button class="theme-toggle-btn" id="btnThemeLight" onclick="setThemeMode('light')" title="Light Theme">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="5"></circle>
-            <line x1="12" y1="1" x2="12" y2="3"></line>
-            <line x1="12" y1="21" x2="12" y2="23"></line>
-            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
-            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
-            <line x1="1" y1="12" x2="3" y2="12"></line>
-            <line x1="21" y1="12" x2="23" y2="12"></line>
-            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
-            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
-          </svg>
-          <span>Light</span>
-        </button>
-        <button class="theme-toggle-btn" id="btnThemeDark" onclick="setThemeMode('dark')" title="Dark Theme">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
-          </svg>
-          <span>Dark</span>
-        </button>
-      </div>
-
-      <div style="width: 1px; height: 22px; background: var(--border-color); margin: 0 0.1rem;"></div>
-
-      <button class="btn" id="btnCreateCatalog" title="Create a new catalog YAML file">
-        <span class="circle-btn circle-btn-add" style="width:16px; height:16px; pointer-events:none;">
-          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-        </span>
-        New Catalog
+    <!-- Theme Switch (System / Light / Dark) on Far Right -->
+    <div class="theme-switch-group" title="Theme mode: System, Light, Dark">
+      <button class="theme-toggle-btn active" id="btnThemeSystem" onclick="setThemeMode('system')" title="Follow System Theme">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+          <line x1="8" y1="21" x2="16" y2="21"></line>
+          <line x1="12" y1="17" x2="12" y2="21"></line>
+        </svg>
+        <span>Auto</span>
       </button>
-      <button class="btn" id="btnSwitchCatalog" title="Switch to an existing catalog YAML file">Switch Catalog</button>
-      <button class="btn" id="btnViewYaml" title="View raw catalog YAML">Raw YAML</button>
-      <button class="btn" id="btnAddDataset" title="Register new table or file">
-        <span class="circle-btn circle-btn-add" style="width:16px; height:16px; pointer-events:none;">
-          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-        </span>
-        Add Table / File
+      <button class="theme-toggle-btn" id="btnThemeLight" onclick="setThemeMode('light')" title="Light Theme">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="5"></circle>
+          <line x1="12" y1="1" x2="12" y2="3"></line>
+          <line x1="12" y1="21" x2="12" y2="23"></line>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+          <line x1="1" y1="12" x2="3" y2="12"></line>
+          <line x1="21" y1="12" x2="23" y2="12"></line>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+        </svg>
+        <span>Light</span>
+      </button>
+      <button class="theme-toggle-btn" id="btnThemeDark" onclick="setThemeMode('dark')" title="Dark Theme">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+        </svg>
+        <span>Dark</span>
       </button>
     </div>
   </header>
 
   <!-- Application Body -->
   <div class="app-body">
-    <!-- Left Navigation Bar (Vertical Explorer with Categories) -->
+    <!-- Left Navigation Bar: VS Code Explorer -->
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-header">
         <div class="sidebar-title-row">
-          <span class="sidebar-title">Categories & Tables <span id="datasetCount" class="count-badge">0</span></span>
-          <button class="btn btn-sm" id="btnCreateNamespace" title="Create new category">
-            <span class="circle-btn circle-btn-add" style="width:15px; height:15px; pointer-events:none;">
-              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-            </span>
-            Category
-          </button>
+          <span class="sidebar-title">
+            <span>EXPLORER</span>
+            <span id="catalogCountBadge" class="count-badge">0</span>
+          </span>
+          <div class="explorer-toolbar">
+            <button class="action-icon-btn" id="btnToolbarNewCatalog" title="Create New Catalog YAML">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+            </button>
+            <button class="action-icon-btn" id="btnToolbarOpenCatalog" title="Open Existing Catalog YAML">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></svg>
+            </button>
+            <button class="action-icon-btn" id="btnToolbarRefresh" title="Refresh Explorer">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+            </button>
+            <button class="action-icon-btn" id="btnToolbarCollapseAll" title="Collapse All">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="14" x2="10" y2="14"/><line x1="10" y1="14" x2="10" y2="20"/><line x1="20" y1="10" x2="14" y2="10"/><line x1="14" y1="10" x2="14" y2="4"/><line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+            </button>
+          </div>
         </div>
-        <input type="text" id="filterInput" class="search-input" placeholder="Filter tables or columns...">
+        <div class="search-box">
+          <svg class="search-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="filterInput" class="search-input" placeholder="Filter catalogs, categories, tables...">
+        </div>
       </div>
 
-      <!-- Hierarchical Categories Tree -->
-      <div id="categoryTree" class="category-tree">
-        <!-- Categories and Tables rendered dynamically -->
+      <!-- VS Code Style 3-Level Hierarchy Tree: Catalog > Namespace > Tables -->
+      <div id="explorerTree" class="explorer-tree">
+        <!-- Dynamically rendered -->
       </div>
     </aside>
 
@@ -836,7 +851,7 @@
       <div id="emptyView" class="empty-state">
         <div class="empty-icon">📂</div>
         <h3>No Table Selected</h3>
-        <p>Select a table from the explorer on the left, or click <strong>+ Add Table / File</strong> to scan and register a new dataset into your catalog.</p>
+        <p>Select a table from the explorer tree on the left, or use the <strong>+</strong> icon on any category to register a new dataset.</p>
         <span style="font-size:0.75rem; color:var(--text-dim); margin-top:0.5rem; letter-spacing:0.02em;"><strong style="color:#f45b00;">det</strong> • Data Engineering Toolkit by <strong style="color:#f45b00;">det</strong> Labs</span>
       </div>
 
@@ -845,7 +860,7 @@
           <div class="detail-title-group">
             <h2>
               <span id="dtName">orders</span>
-              <span id="dtFormat" class="pill pill-parquet">PARQUET</span>
+              <span id="dtFormat" class="format-pill format-parquet">PARQUET</span>
             </h2>
             <p id="dtDesc" class="detail-desc">Raw customer orders</p>
           </div>
@@ -857,6 +872,10 @@
         </div>
 
         <div class="meta-grid">
+          <div class="meta-item">
+            <span class="meta-label">Catalog File</span>
+            <span class="meta-val" id="dtCatalogName" title="" style="cursor: pointer;">catalog.yaml</span>
+          </div>
           <div class="meta-item">
             <span class="meta-label">Category / Namespace</span>
             <span class="meta-val" id="dtNamespace">default</span>
@@ -906,23 +925,32 @@
     <div class="modal">
       <div class="modal-header">
         <h3 id="modalTitle">Register New Table / File</h3>
-        <button class="btn btn-sm" onclick="closeModal('datasetModal')">✕</button>
+        <button class="action-icon-btn" onclick="closeModal('datasetModal')">✕</button>
       </div>
       <div class="modal-body">
         <div class="form-group">
           <label class="form-label">Location (File or Directory Path) *</label>
           <div class="input-row">
             <input type="text" id="formLocation" class="form-input" placeholder="e.g. sample_data/orders.parquet">
-            <button class="btn btn-primary" id="btnTriggerScan">⚡ Discover Schema</button>
+            <button class="btn btn-primary" id="btnTriggerScan" type="button">⚡ Discover Schema</button>
           </div>
-          <span style="font-size: 0.75rem; color: var(--text-dim);">Point to a Parquet, CSV, JSON, Excel file, or directory. Clicking Discover Schema will auto-infer columns and types below.</span>
+          <span style="font-size: 0.73rem; color: var(--text-dim);">Point to a Parquet, CSV, JSON, Excel file, or directory. Clicking Discover Schema will auto-infer columns and types below.</span>
         </div>
 
         <div class="input-row">
           <div class="form-group">
+            <label class="form-label">Target Catalog *</label>
+            <select id="formCatalogSelect" class="form-select">
+              <!-- Populated dynamically with loaded catalogs -->
+            </select>
+          </div>
+          <div class="form-group">
             <label class="form-label">Table / Dataset Name *</label>
             <input type="text" id="formName" class="form-input" placeholder="e.g. orders">
           </div>
+        </div>
+
+        <div class="input-row">
           <div class="form-group">
             <label class="form-label">Category / Namespace</label>
             <div style="display:flex; gap:0.4rem;">
@@ -950,18 +978,13 @@
           <input type="text" id="formDesc" class="form-input" placeholder="Summary of dataset contents...">
         </div>
 
-        <!-- Inferred / Editable Schema Table with Column Description input -->
+        <!-- Inferred / Editable Schema Table -->
         <div class="form-group">
           <div style="display:flex; justify-content:space-between; align-items:center;">
             <label class="form-label">Schema Columns & Descriptions</label>
-            <button class="btn btn-sm" id="btnAddColumnRow" type="button">
-              <span class="circle-btn circle-btn-add" style="width:15px; height:15px; pointer-events:none;">
-                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-              </span>
-              Add Column
-            </button>
+            <button class="btn btn-sm" id="btnAddColumnRow" type="button">+ Add Column</button>
           </div>
-          <div class="table-container" style="max-height: 250px; overflow-y: auto;">
+          <div class="table-container" style="max-height: 230px; overflow-y: auto;">
             <table class="col-table">
               <thead>
                 <tr>
@@ -973,7 +996,7 @@
                 </tr>
               </thead>
               <tbody id="modalColTableBody">
-                <!-- Dynamically populated rows with Column Descriptions -->
+                <!-- Dynamically populated rows -->
               </tbody>
             </table>
           </div>
@@ -991,7 +1014,7 @@
     <div class="modal" style="max-width: 440px;">
       <div class="modal-header">
         <h3 id="nsModalTitle">Create Category</h3>
-        <button class="btn btn-sm" onclick="closeModal('namespaceModal')">✕</button>
+        <button class="action-icon-btn" onclick="closeModal('namespaceModal')">✕</button>
       </div>
       <div class="modal-body">
         <div class="form-group">
@@ -1008,25 +1031,25 @@
 
   <!-- Modal 3: Create New Catalog Modal -->
   <div class="modal-overlay" id="createCatalogModal">
-    <div class="modal" style="max-width: 520px;">
+    <div class="modal" style="max-width: 500px;">
       <div class="modal-header">
         <h3>Create New Catalog</h3>
-        <button class="btn btn-sm" onclick="closeModal('createCatalogModal')">✕</button>
+        <button class="action-icon-btn" onclick="closeModal('createCatalogModal')">✕</button>
       </div>
       <div class="modal-body">
         <div class="form-group">
-          <label class="form-label">New Catalog File Path *</label>
+          <label class="form-label">New Catalog YAML File Path *</label>
           <input type="text" id="createCatalogPathInput" class="form-input" placeholder="e.g. catalogs/marketing.yaml">
-          <span style="font-size: 0.75rem; color: var(--text-dim);">Specify where to save the new YAML catalog file.</span>
+          <span style="font-size: 0.73rem; color: var(--text-dim);">Specify the path where to save the new catalog YAML file.</span>
         </div>
         <div class="form-group">
           <label class="form-label">Catalog Display Name</label>
           <input type="text" id="createCatalogNameInput" class="form-input" placeholder="e.g. Marketing Catalog">
         </div>
-        <div style="display:flex; align-items:center; gap:0.5rem; margin-top:0.5rem;">
+        <div style="display:flex; align-items:center; gap:0.5rem; margin-top:0.35rem;">
           <input type="checkbox" id="chkCreateSetDefault">
-          <label for="chkCreateSetDefault" style="font-size:0.85rem; color: var(--text-main); cursor: pointer;">
-            ★ Set as default catalog (opens automatically on future sessions)
+          <label for="chkCreateSetDefault" style="font-size:0.82rem; color: var(--text-main); cursor: pointer;">
+            ★ Set as default catalog (loads automatically on launch)
           </label>
         </div>
       </div>
@@ -1037,42 +1060,42 @@
     </div>
   </div>
 
-  <!-- Modal 4: Switch Catalog Modal -->
-  <div class="modal-overlay" id="switchCatalogModal">
-    <div class="modal" style="max-width: 520px;">
+  <!-- Modal 4: Open Existing Catalog Modal -->
+  <div class="modal-overlay" id="openCatalogModal">
+    <div class="modal" style="max-width: 500px;">
       <div class="modal-header">
-        <h3>Switch to Existing Catalog</h3>
-        <button class="btn btn-sm" onclick="closeModal('switchCatalogModal')">✕</button>
+        <h3>Open Existing Catalog</h3>
+        <button class="action-icon-btn" onclick="closeModal('openCatalogModal')">✕</button>
       </div>
       <div class="modal-body">
         <div class="form-group">
-          <label class="form-label">Catalog YAML File Path</label>
-          <input type="text" id="switchPathInput" class="form-input" placeholder="e.g. D:/projects/catalog.yaml">
-          <span style="font-size: 0.75rem; color: var(--text-dim);">Enter path to an existing catalog.yaml file.</span>
+          <label class="form-label">Catalog YAML File Path *</label>
+          <input type="text" id="openCatalogPathInput" class="form-input" placeholder="e.g. D:/projects/catalog.yaml">
+          <span style="font-size: 0.73rem; color: var(--text-dim);">Enter full path to an existing catalog.yaml file.</span>
         </div>
-        <div style="display:flex; align-items:center; gap:0.5rem; margin-top:0.5rem;">
-          <input type="checkbox" id="chkSetDefault">
-          <label for="chkSetDefault" style="font-size:0.85rem; color: var(--text-main); cursor: pointer;">
-            ★ Set as default catalog (opens automatically on future sessions)
+        <div style="display:flex; align-items:center; gap:0.5rem; margin-top:0.35rem;">
+          <input type="checkbox" id="chkOpenSetDefault">
+          <label for="chkOpenSetDefault" style="font-size:0.82rem; color: var(--text-main); cursor: pointer;">
+            ★ Set as default catalog (loads automatically on launch)
           </label>
         </div>
       </div>
       <div class="modal-footer">
-        <button class="btn" onclick="closeModal('switchCatalogModal')">Cancel</button>
-        <button class="btn btn-primary" id="btnConfirmSwitch">Open Catalog</button>
+        <button class="btn" onclick="closeModal('openCatalogModal')">Cancel</button>
+        <button class="btn btn-primary" id="btnConfirmOpenCatalog">Open Catalog</button>
       </div>
     </div>
   </div>
 
-  <!-- Modal 4: Raw YAML Viewer Modal -->
+  <!-- Modal 5: Raw YAML Viewer Modal -->
   <div class="modal-overlay" id="yamlModal">
-    <div class="modal" style="max-width: 650px;">
+    <div class="modal" style="max-width: 680px;">
       <div class="modal-header">
-        <h3>Raw Catalog YAML</h3>
-        <button class="btn btn-sm" onclick="closeModal('yamlModal')">✕</button>
+        <h3 id="yamlModalTitle">Raw Catalog YAML</h3>
+        <button class="action-icon-btn" onclick="closeModal('yamlModal')">✕</button>
       </div>
       <div class="modal-body">
-        <textarea id="rawYamlText" class="form-textarea" style="height: 380px; font-family: var(--font-mono); font-size: 0.8rem;" readonly></textarea>
+        <textarea id="rawYamlText" class="form-textarea" style="height: 380px; font-family: var(--font-mono); font-size: 0.78rem;" readonly></textarea>
       </div>
       <div class="modal-footer">
         <button class="btn btn-primary" id="btnCopyYaml">Copy to Clipboard</button>
@@ -1086,13 +1109,17 @@
 
   <!-- Client JavaScript Application -->
   <script>
-    let activeDatasets = [];
-    let activeNamespaces = [];
-    let selectedDatasetId = null;
-    let editingDatasetId = null;
+    // --- Application State ---
+    let catalogTreeData = [];
+    let selectedDataset = null;
+    let selectedCatalogPath = null;
+    let editingDataset = null;
     let modalColumns = [];
-    let collapsedCategories = new Set();
+    let collapsedCatalogs = new Set();
+    let collapsedNamespaces = new Set();
+    let currentModalCatalogPath = null;
     let renamingNamespace = null;
+    let renamingNamespaceCatalog = null;
 
     // --- Theme Management (Light / Dark / System Default) ---
     let currentThemePreference = localStorage.getItem('det-theme-mode') || 'system';
@@ -1121,14 +1148,12 @@
       showToast(`Theme set to ${labels[mode] || mode}`);
     }
 
-    // Listen for OS scheme updates
     try {
       window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
         if (currentThemePreference === 'system') applyTheme();
       });
     } catch (e) {}
 
-    // Apply theme immediately on script evaluation
     applyTheme();
 
     // --- Draggable Explorer Sidebar Resizer ---
@@ -1136,7 +1161,6 @@
     const resizerEl = document.getElementById('sidebarResizer');
     let isResizingSidebar = false;
 
-    // Load persisted sidebar width or default
     const savedSidebarWidth = localStorage.getItem('det-sidebar-width');
     if (savedSidebarWidth && sidebarEl) {
       const parsedW = parseInt(savedSidebarWidth, 10);
@@ -1169,11 +1193,10 @@
         localStorage.setItem('det-sidebar-width', parseInt(sidebarEl.style.width, 10));
       });
 
-      // Double click to reset to default 340px
       resizerEl.addEventListener('dblclick', () => {
-        sidebarEl.style.width = '340px';
-        localStorage.setItem('det-sidebar-width', 340);
-        showToast('Explorer width reset to default (340px)');
+        sidebarEl.style.width = '320px';
+        localStorage.setItem('det-sidebar-width', 320);
+        showToast('Explorer width reset to default (320px)');
       });
     }
 
@@ -1189,247 +1212,240 @@
     function openModal(id) { document.getElementById(id).classList.add('open'); }
     function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 
-    // --- Fetch Data ---
-    async function loadCatalogStatus() {
+    // --- Fetch Full Explorer Tree ---
+    async function loadTree() {
       try {
-        const res = await fetch('/api/catalog/status');
+        const res = await fetch('/api/tree');
+        if (!res.ok) throw new Error('Failed to load catalog tree');
         const data = await res.json();
-        document.getElementById('activeCatalogPath').textContent = data.active_path;
-        document.getElementById('defaultStar').style.display = data.is_default ? 'inline' : 'none';
-        document.getElementById('switchPathInput').value = data.active_path;
+        catalogTreeData = data.catalogs || [];
+        document.getElementById('catalogCountBadge').textContent = catalogTreeData.length;
+        renderExplorerTree();
+
+        // Refresh selected table details if currently viewing one
+        if (selectedDataset && selectedCatalogPath) {
+          const cat = catalogTreeData.find(c => c.path === selectedCatalogPath);
+          if (cat) {
+            let found = null;
+            for (const ns of cat.namespaces) {
+              const d = ns.datasets.find(item => item.id === selectedDataset.id);
+              if (d) { found = d; break; }
+            }
+            if (found) {
+              selectedDataset = found;
+              displayDatasetDetails(selectedCatalogPath, found);
+            }
+          }
+        }
       } catch (err) {
-        showToast('Error loading catalog status', true);
+        showToast(err.message, true);
       }
     }
 
-    async function loadNamespaces() {
-      try {
-        const res = await fetch('/api/namespaces');
-        activeNamespaces = await res.json();
-      } catch (err) {
-        console.error('Error fetching namespaces:', err);
-      }
-    }
-
-    async function loadDatasets() {
-      try {
-        const query = document.getElementById('filterInput').value;
-        const url = query ? `/api/datasets?search=${encodeURIComponent(query)}` : '/api/datasets';
-        const res = await fetch(url);
-        activeDatasets = await res.json();
-        await loadNamespaces();
-        renderCategoryTree();
-      } catch (err) {
-        showToast('Error fetching datasets', true);
-      }
-    }
-
-    // --- Render Left Explorer (Grouped by Category/Namespace) ---
-    function renderCategoryTree() {
-      const treeEl = document.getElementById('categoryTree');
-      document.getElementById('datasetCount').textContent = activeDatasets.length;
+    // --- Render VS Code Explorer Tree ---
+    function renderExplorerTree() {
+      const treeEl = document.getElementById('explorerTree');
       treeEl.innerHTML = '';
 
-      // Merge namespaces from API and any distinct namespaces from datasets
-      const allNsNames = new Set(activeNamespaces.map(n => n.name));
-      activeDatasets.forEach(d => allNsNames.add(d.namespace || 'default'));
-      if (allNsNames.size === 0) allNsNames.add('default');
+      const filterVal = (document.getElementById('filterInput').value || '').trim().toLowerCase();
 
-      allNsNames.forEach(nsName => {
-        const datasetsInNs = activeDatasets.filter(d => (d.namespace || 'default').toLowerCase() === nsName.toLowerCase());
-        const isCollapsed = collapsedCategories.has(nsName);
+      if (catalogTreeData.length === 0) {
+        treeEl.innerHTML = `
+          <div style="padding: 1.5rem 1rem; text-align: center; color: var(--text-dim); font-size: 0.78rem;">
+            No catalogs open.<br>Click <strong>+</strong> above to create or open a catalog.
+          </div>
+        `;
+        return;
+      }
 
-        const groupDiv = document.createElement('div');
-        groupDiv.className = 'category-group';
+      catalogTreeData.forEach(cat => {
+        const isCatCollapsed = collapsedCatalogs.has(cat.path);
 
-        const headerDiv = document.createElement('div');
-        headerDiv.className = 'category-header';
-        headerDiv.onclick = (e) => {
-          // If clicked on action buttons, ignore collapse toggle
-          if (e.target.closest('.category-actions')) return;
-          if (isCollapsed) collapsedCategories.delete(nsName);
-          else collapsedCategories.add(nsName);
-          renderCategoryTree();
+        // Filter matching logic: does catalog, any namespace, or any dataset match?
+        let catMatches = !filterVal || cat.name.toLowerCase().includes(filterVal) || cat.filename.toLowerCase().includes(filterVal);
+        let matchingNamespaces = [];
+
+        cat.namespaces.forEach(ns => {
+          let nsMatches = !filterVal || ns.name.toLowerCase().includes(filterVal);
+          let matchingDatasets = ns.datasets.filter(d => {
+            if (!filterVal) return true;
+            return d.name.toLowerCase().includes(filterVal) ||
+                   (d.format || '').toLowerCase().includes(filterVal) ||
+                   (d.description || '').toLowerCase().includes(filterVal) ||
+                   (d.columns || []).some(c => c.name.toLowerCase().includes(filterVal));
+          });
+
+          if (nsMatches || matchingDatasets.length > 0 || catMatches) {
+            matchingNamespaces.push({
+              ns: ns,
+              datasets: filterVal ? matchingDatasets : ns.datasets,
+            });
+          }
+        });
+
+        if (filterVal && !catMatches && matchingNamespaces.length === 0) {
+          return; // Skip this catalog if nothing matched
+        }
+
+        // --- LEVEL 1: CATALOG ENTRY ---
+        const catNode = document.createElement('div');
+        catNode.className = `tree-node catalog-node`;
+        catNode.title = `${cat.name} • ${cat.path}`; // Tooltip showing full path (Requirement 6 & 7)
+
+        catNode.onclick = (e) => {
+          if (e.target.closest('.tree-actions')) return;
+          if (isCatCollapsed) collapsedCatalogs.delete(cat.path);
+          else collapsedCatalogs.add(cat.path);
+          renderExplorerTree();
         };
 
-        headerDiv.innerHTML = `
-          <div class="category-title-wrap">
-            <span class="category-chevron ${isCollapsed ? 'collapsed' : ''}">▼</span>
-            <span>📁 ${nsName}</span>
-            <span class="count-badge">${datasetsInNs.length}</span>
-          </div>
-          <div class="category-actions">
-            <button class="circle-btn circle-btn-add" title="Add Table to '${nsName}'" onclick="openAddTableForNamespace(event, '${nsName.replace(/'/g, "\\'")}')">
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        catNode.innerHTML = `
+          <span class="tree-chevron ${isCatCollapsed ? 'collapsed' : ''}">▼</span>
+          ${cat.is_default ? '<span class="cat-star" title="Default Catalog">★</span>' : ''}
+          <span class="tree-icon" style="color: ${cat.is_default ? 'var(--accent-amber)' : 'var(--primary)'};">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+          </span>
+          <span class="tree-label" style="font-weight:600;">${cat.name}</span>
+          <span class="catalog-counts">
+            <span class="count-pill" title="${cat.total_namespaces} categories">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+              <span>${cat.total_namespaces}</span>
+            </span>
+            <span class="count-pill" title="${cat.total_datasets} tables">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg>
+              <span>${cat.total_datasets}</span>
+            </span>
+          </span>
+          <div class="tree-actions">
+            <button class="action-icon-btn" title="Create Category / Namespace in '${cat.name}'" onclick="handleCatalogAddNamespace(event, '${cat.path.replace(/'/g, "\\'")}')">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></svg>
             </button>
-            <button class="circle-btn circle-btn-edit" title="Rename Category '${nsName}'" onclick="handleRenameCategory(event, '${nsName.replace(/'/g, "\\'")}')">
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
+            <button class="action-icon-btn" title="View Catalog YAML Code" onclick="handleCatalogViewYaml(event, '${cat.path.replace(/'/g, "\\'")}', '${cat.name.replace(/'/g, "\\'")}')">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
             </button>
-            <button class="circle-btn circle-btn-delete" title="Delete Category '${nsName}'" onclick="handleDeleteCategory(event, '${nsName.replace(/'/g, "\\'")}')">
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            ${!cat.is_default ? `
+            <button class="action-icon-btn" title="Set as Default Catalog" onclick="handleCatalogSetDefault(event, '${cat.path.replace(/'/g, "\\'")}')">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            </button>` : ''}
+            <button class="action-icon-btn btn-delete-hover" title="Remove '${cat.name}' from Explorer" onclick="handleCatalogRemove(event, '${cat.path.replace(/'/g, "\\'")}')">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
             </button>
           </div>
         `;
-        groupDiv.appendChild(headerDiv);
+        treeEl.appendChild(catNode);
 
-        const itemsDiv = document.createElement('div');
-        itemsDiv.className = `category-items ${isCollapsed ? 'collapsed' : ''}`;
+        // Container for Namespaces under Catalog
+        const catChildrenContainer = document.createElement('div');
+        catChildrenContainer.className = `children-container ${isCatCollapsed ? 'collapsed' : ''}`;
 
-        if (datasetsInNs.length === 0) {
-          itemsDiv.innerHTML = '<div style="padding:0.4rem 0.6rem; color:var(--text-dim); font-size:0.75rem;">(No tables in this category)</div>';
-        } else {
-          datasetsInNs.forEach(d => {
-            const itemDiv = document.createElement('div');
-            itemDiv.className = `dataset-item ${d.id === selectedDatasetId ? 'active' : ''}`;
-            itemDiv.onclick = (e) => {
-              e.stopPropagation();
-              selectDataset(d.id);
-            };
+        const namespacesToRender = filterVal ? matchingNamespaces : cat.namespaces.map(n => ({ ns: n, datasets: n.datasets }));
 
-            let fmtClass = 'pill-default';
-            if (d.format.includes('parquet')) fmtClass = 'pill-parquet';
-            else if (d.format.includes('csv')) fmtClass = 'pill-csv';
-            else if (d.format.includes('json')) fmtClass = 'pill-json';
-            else if (d.format.includes('excel')) fmtClass = 'pill-excel';
+        namespacesToRender.forEach(({ ns, datasets }) => {
+          const nsKey = `${cat.path}::${ns.name}`;
+          const isNsCollapsed = collapsedNamespaces.has(nsKey);
 
-            const rowsMeta = d.row_count != null 
-              ? `<span class="sub-sep">•</span><span>${d.row_count.toLocaleString()} rows</span>` 
-              : '';
+          // --- LEVEL 2: NAMESPACE ENTRY ---
+          const nsNode = document.createElement('div');
+          nsNode.className = `tree-node ns-node`;
 
-            itemDiv.innerHTML = `
-              <div class="dataset-item-header">
-                <span class="dataset-name" title="${d.name}">${d.name}</span>
-                <div class="dataset-actions">
-                  <button class="circle-btn circle-btn-rescan" title="Re-scan Table '${d.name}'" onclick="handleRescanDataset(event, '${d.id.replace(/'/g, "\\'")}')">
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
-                    </svg>
+          nsNode.onclick = (e) => {
+            if (e.target.closest('.tree-actions')) return;
+            if (isNsCollapsed) collapsedNamespaces.delete(nsKey);
+            else collapsedNamespaces.add(nsKey);
+            renderExplorerTree();
+          };
+
+          nsNode.innerHTML = `
+            <span class="tree-chevron ${isNsCollapsed ? 'collapsed' : ''}">▼</span>
+            <span class="tree-icon" style="color: #eab308;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+            </span>
+            <span class="tree-label">${ns.name}</span>
+            <span class="ns-count">${datasets.length}</span>
+            <div class="tree-actions">
+              <button class="action-icon-btn" title="Add Table to '${ns.name}'" onclick="handleNamespaceAddTable(event, '${cat.path.replace(/'/g, "\\'")}', '${ns.name.replace(/'/g, "\\'")}')">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+              </button>
+              <button class="action-icon-btn" title="Rename Category '${ns.name}'" onclick="handleNamespaceRename(event, '${cat.path.replace(/'/g, "\\'")}', '${ns.name.replace(/'/g, "\\'")}')">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
+              </button>
+              <button class="action-icon-btn btn-delete-hover" title="Delete Category '${ns.name}'" onclick="handleNamespaceDelete(event, '${cat.path.replace(/'/g, "\\'")}', '${ns.name.replace(/'/g, "\\'")}')">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+              </button>
+            </div>
+          `;
+          catChildrenContainer.appendChild(nsNode);
+
+          // Container for Tables under Namespace
+          const nsChildrenContainer = document.createElement('div');
+          nsChildrenContainer.className = `children-container ${isNsCollapsed ? 'collapsed' : ''}`;
+
+          if (datasets.length === 0) {
+            const emptyEl = document.createElement('div');
+            emptyEl.className = 'empty-child';
+            emptyEl.textContent = '(No tables in this category)';
+            nsChildrenContainer.appendChild(emptyEl);
+          } else {
+            datasets.forEach(d => {
+              // --- LEVEL 3: TABLE ENTRY (STRICT SINGLE LINE) ---
+              const isSelected = selectedDataset && selectedDataset.id === d.id && selectedCatalogPath === cat.path;
+
+              const tableNode = document.createElement('div');
+              tableNode.className = `tree-node table-node ${isSelected ? 'selected' : ''}`;
+              tableNode.title = `${d.name} (${d.format}) • ${d.location}`;
+
+              tableNode.onclick = (e) => {
+                if (e.target.closest('.tree-actions')) return;
+                selectDataset(cat.path, d);
+              };
+
+              let fmtClass = 'format-default';
+              const fmtLower = (d.format || '').toLowerCase();
+              if (fmtLower.includes('parquet')) fmtClass = 'format-parquet';
+              else if (fmtLower.includes('csv')) fmtClass = 'format-csv';
+              else if (fmtLower.includes('json')) fmtClass = 'format-json';
+              else if (fmtLower.includes('excel')) fmtClass = 'format-excel';
+              else if (fmtLower.includes('directory')) fmtClass = 'format-directory';
+
+              tableNode.innerHTML = `
+                <span class="table-indent-guide"></span>
+                <span class="tree-icon" style="color: var(--text-dim);">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                </span>
+                <span class="tree-label table-name">${d.name}</span>
+                <span class="format-pill ${fmtClass}">${d.format || 'FILE'}</span>
+                <div class="tree-actions">
+                  <button class="action-icon-btn" title="Re-scan Table '${d.name}'" onclick="handleTableRescan(event, '${cat.path.replace(/'/g, "\\'")}', '${d.id.replace(/'/g, "\\'")}')">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
                   </button>
-                  <button class="circle-btn circle-btn-edit" title="Edit Table '${d.name}'" onclick="handleEditDataset(event, '${d.id.replace(/'/g, "\\'")}')">
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
-                    </svg>
+                  <button class="action-icon-btn" title="Edit Table '${d.name}'" onclick="handleTableEdit(event, '${cat.path.replace(/'/g, "\\'")}', '${d.id.replace(/'/g, "\\'")}')">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
                   </button>
-                  <button class="circle-btn circle-btn-delete" title="Delete Table '${d.name}'" onclick="handleDeleteDataset(event, '${d.id.replace(/'/g, "\\'")}')">
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round">
-                      <line x1="18" y1="6" x2="6" y2="18"></line>
-                      <line x1="6" y1="6" x2="18" y2="18"></line>
-                    </svg>
+                  <button class="action-icon-btn btn-delete-hover" title="Delete Table '${d.name}'" onclick="handleTableDelete(event, '${cat.path.replace(/'/g, "\\'")}', '${d.id.replace(/'/g, "\\'")}')">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                   </button>
                 </div>
-              </div>
-              <div class="dataset-sub">
-                <span class="pill ${fmtClass}">${d.format}</span>
-                <span>${d.columns ? d.columns.length : 0} cols</span>
-                ${rowsMeta}
-              </div>
-            `;
-            itemsDiv.appendChild(itemDiv);
-          });
-        }
+              `;
+              nsChildrenContainer.appendChild(tableNode);
+            });
+          }
 
-        groupDiv.appendChild(itemsDiv);
-        treeEl.appendChild(groupDiv);
+          catChildrenContainer.appendChild(nsChildrenContainer);
+        });
+
+        treeEl.appendChild(catChildrenContainer);
       });
     }
 
-    // --- Explorer Action Handlers ---
-    async function handleRescanDataset(e, datasetId) {
-      if (e) e.stopPropagation();
-      const btn = e ? e.currentTarget : null;
-      if (btn) btn.style.transform = 'rotate(180deg)';
-      try {
-        showToast(`Re-scanning ${datasetId}...`);
-        const res = await fetch(`/api/datasets/${encodeURIComponent(datasetId)}/rescan`, { method: 'POST' });
-        if (!res.ok) {
-          const err = await res.json();
-          throw new Error(err.detail || 'Rescan failed');
-        }
-        showToast(`Table '${datasetId}' rescanned!`);
-        await loadDatasets();
-        if (selectedDatasetId === datasetId) {
-          selectDataset(datasetId);
-        }
-      } catch (err) {
-        showToast(err.message, true);
-      } finally {
-        if (btn) btn.style.transform = '';
-      }
+    // --- Select and View Dataset Details ---
+    function selectDataset(catalogPath, dataset) {
+      selectedCatalogPath = catalogPath;
+      selectedDataset = dataset;
+      renderExplorerTree();
+      displayDatasetDetails(catalogPath, dataset);
     }
 
-    function handleEditDataset(e, datasetId) {
-      if (e) e.stopPropagation();
-      const dataset = activeDatasets.find(d => d.id === datasetId);
-      if (!dataset) return;
-      selectDataset(datasetId);
-      editingDatasetId = dataset.id;
-      document.getElementById('modalTitle').textContent = `Edit Table: ${dataset.name}`;
-      document.getElementById('formLocation').value = dataset.location;
-      document.getElementById('formName').value = dataset.name;
-      document.getElementById('formDesc').value = dataset.description || '';
-      document.getElementById('formFormat').value = dataset.format;
-      document.getElementById('formNamespaceCustom').style.display = 'none';
-      document.getElementById('formNamespaceSelect').style.display = 'block';
-      document.getElementById('btnToggleCustomNs').textContent = '+ New';
-      populateNamespaceDropdown(dataset.namespace);
-      modalColumns = JSON.parse(JSON.stringify(dataset.columns || []));
-      renderModalColumns();
-      openModal('datasetModal');
-    }
-
-    async function handleDeleteDataset(e, datasetId) {
-      if (e) e.stopPropagation();
-      if (!confirm(`Are you sure you want to delete '${datasetId}' from the catalog? (Underlying data files are NOT deleted)`)) return;
-
-      try {
-        const res = await fetch(`/api/datasets/${encodeURIComponent(datasetId)}`, { method: 'DELETE' });
-        if (!res.ok) throw new Error('Failed to delete dataset');
-        showToast('Table deleted');
-        if (selectedDatasetId === datasetId) {
-          selectedDatasetId = null;
-          document.getElementById('detailView').style.display = 'none';
-          document.getElementById('emptyView').style.display = 'flex';
-        }
-        await loadDatasets();
-      } catch (err) {
-        showToast(err.message, true);
-      }
-    }
-
-    function openAddTableForNamespace(e, nsName) {
-      if (e) e.stopPropagation();
-      editingDatasetId = null;
-      document.getElementById('modalTitle').textContent = `Register New Table in '${nsName}'`;
-      document.getElementById('formLocation').value = '';
-      document.getElementById('formName').value = '';
-      document.getElementById('formDesc').value = '';
-      document.getElementById('formFormat').value = 'parquet';
-      document.getElementById('formNamespaceCustom').style.display = 'none';
-      document.getElementById('formNamespaceSelect').style.display = 'block';
-      document.getElementById('btnToggleCustomNs').textContent = '+ New';
-      populateNamespaceDropdown(nsName);
-      modalColumns = [];
-      renderModalColumns();
-      openModal('datasetModal');
-    }
-
-    function handleRenameCategory(e, nsName) {
-      if (e) e.stopPropagation();
-      promptRenameNamespace(nsName);
-    }
-
-    function handleDeleteCategory(e, nsName) {
-      if (e) e.stopPropagation();
-      promptDeleteNamespace(nsName);
-    }
-
-    // --- Select Dataset ---
-    function selectDataset(id) {
-      selectedDatasetId = id;
-      renderCategoryTree();
-      const dataset = activeDatasets.find(d => d.id === id);
-      if (!dataset) return;
-
+    function displayDatasetDetails(catalogPath, dataset) {
       document.getElementById('emptyView').style.display = 'none';
       document.getElementById('detailView').style.display = 'flex';
 
@@ -1440,30 +1456,38 @@
       document.getElementById('dtRows').textContent = dataset.row_count != null ? dataset.row_count.toLocaleString() : 'N/A';
       document.getElementById('dtScanned').textContent = dataset.last_scanned ? new Date(dataset.last_scanned).toLocaleString() : 'N/A';
 
-      const fmtEl = document.getElementById('dtFormat');
-      fmtEl.textContent = dataset.format.toUpperCase();
-      let fmtClass = 'pill-default';
-      const fmtLower = (dataset.format || '').toLowerCase();
-      if (fmtLower.includes('parquet')) fmtClass = 'pill-parquet';
-      else if (fmtLower.includes('csv')) fmtClass = 'pill-csv';
-      else if (fmtLower.includes('json')) fmtClass = 'pill-json';
-      else if (fmtLower.includes('excel')) fmtClass = 'pill-excel';
-      fmtEl.className = `pill ${fmtClass}`;
+      const catObj = catalogTreeData.find(c => c.path === catalogPath);
+      const catLabel = catObj ? `${catObj.name} (${catObj.filename})` : catalogPath;
+      const dtCatEl = document.getElementById('dtCatalogName');
+      dtCatEl.textContent = catLabel;
+      dtCatEl.title = catalogPath;
 
-      // Render columns
+      const fmtEl = document.getElementById('dtFormat');
+      fmtEl.textContent = (dataset.format || '').toUpperCase();
+      let fmtClass = 'format-default';
+      const fmtLower = (dataset.format || '').toLowerCase();
+      if (fmtLower.includes('parquet')) fmtClass = 'format-parquet';
+      else if (fmtLower.includes('csv')) fmtClass = 'format-csv';
+      else if (fmtLower.includes('json')) fmtClass = 'format-json';
+      else if (fmtLower.includes('excel')) fmtClass = 'format-excel';
+      else if (fmtLower.includes('directory')) fmtClass = 'format-directory';
+      fmtEl.className = `format-pill ${fmtClass}`;
+
+      // Populate column schema table
       const tbody = document.getElementById('schemaTableBody');
       tbody.innerHTML = '';
-      document.getElementById('columnCount').textContent = dataset.columns.length;
+      const cols = dataset.columns || [];
+      document.getElementById('columnCount').textContent = cols.length;
 
-      dataset.columns.forEach((col, idx) => {
+      cols.forEach((col, idx) => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td style="font-weight:600; font-family:var(--font-mono);">${col.name}</td>
           <td><span class="type-badge">${col.type}</span></td>
           <td><span class="${col.nullable ? 'null-yes' : 'null-no'}">${col.nullable ? 'Yes' : 'No'}</span></td>
           <td>
-            <span class="editable-desc" title="Click to edit column description" onclick="editColumnDescInline('${dataset.id}', ${idx})">
-              ${col.description ? col.description : '<span style="color:var(--text-dim); italic;">+ Add description</span>'}
+            <span class="editable-desc" title="Click to edit column description" onclick="editColumnDescInline('${catalogPath.replace(/'/g, "\\'")}', '${dataset.id.replace(/'/g, "\\'")}', ${idx})">
+              ${col.description ? col.description : '<span style="color:var(--text-dim); font-style:italic;">+ Add description</span>'}
             </span>
           </td>
         `;
@@ -1472,26 +1496,24 @@
     }
 
     // --- Inline Column Description Editing ---
-    async function editColumnDescInline(datasetId, colIdx) {
-      const dataset = activeDatasets.find(d => d.id === datasetId);
-      if (!dataset) return;
+    async function editColumnDescInline(catalogPath, datasetId, colIdx) {
+      if (!selectedDataset || selectedDataset.id !== datasetId) return;
 
-      const currentDesc = dataset.columns[colIdx].description || '';
-      const newDesc = prompt(`Edit description for column '${dataset.columns[colIdx].name}':`, currentDesc);
-      if (newDesc === null) return; // User cancelled
+      const currentDesc = selectedDataset.columns[colIdx].description || '';
+      const newDesc = prompt(`Edit description for column '${selectedDataset.columns[colIdx].name}':`, currentDesc);
+      if (newDesc === null) return;
 
-      dataset.columns[colIdx].description = newDesc.trim();
+      selectedDataset.columns[colIdx].description = newDesc.trim();
 
       try {
-        const res = await fetch(`/api/datasets/${encodeURIComponent(datasetId)}`, {
+        const res = await fetch(`/api/datasets/${encodeURIComponent(datasetId)}?catalog_path=${encodeURIComponent(catalogPath)}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(dataset)
+          body: JSON.stringify(selectedDataset)
         });
         if (!res.ok) throw new Error('Failed to update column description');
         showToast('Column description updated!');
-        await loadDatasets();
-        selectDataset(datasetId);
+        await loadTree();
       } catch (err) {
         showToast(err.message, true);
       }
@@ -1504,75 +1526,271 @@
       showToast('Path copied to clipboard!');
     };
 
-    // --- Namespace Category Actions (Create, Rename, Delete) ---
-    document.getElementById('btnCreateNamespace').onclick = () => {
+    // --- Explorer Toolbar Buttons ---
+    document.getElementById('btnToolbarNewCatalog').onclick = () => {
+      document.getElementById('createCatalogPathInput').value = '';
+      document.getElementById('createCatalogNameInput').value = '';
+      document.getElementById('chkCreateSetDefault').checked = false;
+      openModal('createCatalogModal');
+    };
+
+    document.getElementById('btnToolbarOpenCatalog').onclick = () => {
+      document.getElementById('openCatalogPathInput').value = '';
+      document.getElementById('chkOpenSetDefault').checked = false;
+      openModal('openCatalogModal');
+    };
+
+    document.getElementById('btnToolbarRefresh').onclick = async () => {
+      await loadTree();
+      showToast('Explorer refreshed');
+    };
+
+    document.getElementById('btnToolbarCollapseAll').onclick = () => {
+      catalogTreeData.forEach(c => {
+        collapsedCatalogs.add(c.path);
+        c.namespaces.forEach(ns => collapsedNamespaces.add(`${c.path}::${ns.name}`));
+      });
+      renderExplorerTree();
+      showToast('All collapsed');
+    };
+
+    // --- Search / Filter Instant Input ---
+    document.getElementById('filterInput').oninput = () => {
+      renderExplorerTree();
+    };
+
+    // --- Catalog Actions (Hover Icons) ---
+    function handleCatalogAddNamespace(e, catalogPath) {
+      if (e) e.stopPropagation();
       renamingNamespace = null;
+      renamingNamespaceCatalog = catalogPath;
       document.getElementById('nsModalTitle').textContent = 'Create New Category';
       document.getElementById('nsModalLabel').textContent = 'Category / Namespace Name';
       document.getElementById('nsModalInput').value = '';
       openModal('namespaceModal');
-    };
+    }
 
-    function promptRenameNamespace(oldName) {
-      renamingNamespace = oldName;
-      document.getElementById('nsModalTitle').textContent = `Rename Category: ${oldName}`;
+    async function handleCatalogViewYaml(e, catalogPath, catalogName) {
+      if (e) e.stopPropagation();
+      try {
+        const res = await fetch(`/api/catalog/yaml?path=${encodeURIComponent(catalogPath)}`);
+        if (!res.ok) throw new Error('Failed to fetch catalog YAML');
+        const yaml = await res.text();
+        document.getElementById('yamlModalTitle').textContent = `YAML: ${catalogName || 'Catalog'}`;
+        document.getElementById('rawYamlText').value = yaml;
+        openModal('yamlModal');
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    }
+
+    async function handleCatalogSetDefault(e, catalogPath) {
+      if (e) e.stopPropagation();
+      try {
+        const res = await fetch('/api/catalog/set-default', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ path: catalogPath })
+        });
+        if (!res.ok) throw new Error('Failed to set default catalog');
+        showToast('Default catalog updated ★');
+        await loadTree();
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    }
+
+    async function handleCatalogRemove(e, catalogPath) {
+      if (e) e.stopPropagation();
+      const cat = catalogTreeData.find(c => c.path === catalogPath);
+      const name = cat ? cat.name : 'catalog';
+      if (!confirm(`Remove '${name}' from explorer?\n(The file on disk is not deleted)`)) return;
+
+      try {
+        const res = await fetch('/api/catalog/remove', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ path: catalogPath })
+        });
+        if (!res.ok) throw new Error('Failed to remove catalog');
+        showToast(`Catalog '${name}' removed from explorer`);
+        if (selectedCatalogPath === catalogPath) {
+          selectedDataset = null;
+          selectedCatalogPath = null;
+          document.getElementById('detailView').style.display = 'none';
+          document.getElementById('emptyView').style.display = 'flex';
+        }
+        await loadTree();
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    }
+
+    // --- Namespace Actions (Hover Icons) ---
+    function handleNamespaceAddTable(e, catalogPath, nsName) {
+      if (e) e.stopPropagation();
+      editingDataset = null;
+      currentModalCatalogPath = catalogPath;
+      document.getElementById('modalTitle').textContent = `Register New Table in '${nsName}'`;
+      document.getElementById('formLocation').value = '';
+      document.getElementById('formName').value = '';
+      document.getElementById('formDesc').value = '';
+      document.getElementById('formFormat').value = 'parquet';
+      document.getElementById('formNamespaceCustom').style.display = 'none';
+      document.getElementById('formNamespaceSelect').style.display = 'block';
+      document.getElementById('btnToggleCustomNs').textContent = '+ New';
+
+      populateCatalogDropdown(catalogPath);
+      populateNamespaceDropdown(catalogPath, nsName);
+
+      modalColumns = [];
+      renderModalColumns();
+      openModal('datasetModal');
+    }
+
+    function handleNamespaceRename(e, catalogPath, nsName) {
+      if (e) e.stopPropagation();
+      renamingNamespace = nsName;
+      renamingNamespaceCatalog = catalogPath;
+      document.getElementById('nsModalTitle').textContent = `Rename Category: ${nsName}`;
       document.getElementById('nsModalLabel').textContent = 'New Category Name';
-      document.getElementById('nsModalInput').value = oldName;
+      document.getElementById('nsModalInput').value = nsName;
       openModal('namespaceModal');
     }
 
-    async function promptDeleteNamespace(nsName) {
+    async function handleNamespaceDelete(e, catalogPath, nsName) {
+      if (e) e.stopPropagation();
       if (!confirm(`Are you sure you want to delete category '${nsName}'?\nAny tables in this category will be moved to 'default'.`)) return;
 
       try {
-        const res = await fetch(`/api/namespaces/${encodeURIComponent(nsName)}?reassign_to=default`, { method: 'DELETE' });
+        const res = await fetch(`/api/namespaces/${encodeURIComponent(nsName)}?catalog_path=${encodeURIComponent(catalogPath)}&reassign_to=default`, { method: 'DELETE' });
         if (!res.ok) throw new Error('Failed to delete category');
         showToast(`Category '${nsName}' removed`);
-        await loadDatasets();
+        await loadTree();
       } catch (err) {
         showToast(err.message, true);
       }
     }
 
-    document.getElementById('btnSaveNamespace').onclick = async () => {
-      const val = document.getElementById('nsModalInput').value.trim();
-      if (!val) {
-        showToast('Category name cannot be empty', true);
-        return;
-      }
-
+    // --- Table Actions (Hover Icons) ---
+    async function handleTableRescan(e, catalogPath, datasetId) {
+      if (e) e.stopPropagation();
       try {
-        if (renamingNamespace) {
-          const res = await fetch(`/api/namespaces/${encodeURIComponent(renamingNamespace)}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ new_name: val })
-          });
-          if (!res.ok) {
-            const err = await res.json();
-            throw new Error(err.detail || 'Rename failed');
-          }
-          showToast(`Category renamed to '${val}'`);
-        } else {
-          const res = await fetch('/api/namespaces', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name: val })
-          });
-          if (!res.ok) {
-            const err = await res.json();
-            throw new Error(err.detail || 'Creation failed');
-          }
-          showToast(`Category '${val}' created!`);
+        showToast(`Re-scanning ${datasetId}...`);
+        const res = await fetch(`/api/datasets/${encodeURIComponent(datasetId)}/rescan?catalog_path=${encodeURIComponent(catalogPath)}`, { method: 'POST' });
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.detail || 'Rescan failed');
         }
-        closeModal('namespaceModal');
-        await loadDatasets();
+        showToast(`Table '${datasetId}' rescanned!`);
+        await loadTree();
       } catch (err) {
         showToast(err.message, true);
       }
+    }
+
+    function handleTableEdit(e, catalogPath, datasetId) {
+      if (e) e.stopPropagation();
+      const cat = catalogTreeData.find(c => c.path === catalogPath);
+      if (!cat) return;
+      let d = null;
+      for (const ns of cat.namespaces) {
+        const found = ns.datasets.find(item => item.id === datasetId);
+        if (found) { d = found; break; }
+      }
+      if (!d) return;
+
+      selectDataset(catalogPath, d);
+      editingDataset = { catalogPath, dataset: d };
+      currentModalCatalogPath = catalogPath;
+
+      document.getElementById('modalTitle').textContent = `Edit Table: ${d.name}`;
+      document.getElementById('formLocation').value = d.location;
+      document.getElementById('formName').value = d.name;
+      document.getElementById('formDesc').value = d.description || '';
+      document.getElementById('formFormat').value = d.format;
+      document.getElementById('formNamespaceCustom').style.display = 'none';
+      document.getElementById('formNamespaceSelect').style.display = 'block';
+      document.getElementById('btnToggleCustomNs').textContent = '+ New';
+
+      populateCatalogDropdown(catalogPath);
+      populateNamespaceDropdown(catalogPath, d.namespace);
+
+      modalColumns = JSON.parse(JSON.stringify(d.columns || []));
+      renderModalColumns();
+      openModal('datasetModal');
+    }
+
+    async function handleTableDelete(e, catalogPath, datasetId) {
+      if (e) e.stopPropagation();
+      if (!confirm(`Are you sure you want to delete '${datasetId}' from the catalog?\n(Underlying data files are NOT deleted)`)) return;
+
+      try {
+        const res = await fetch(`/api/datasets/${encodeURIComponent(datasetId)}?catalog_path=${encodeURIComponent(catalogPath)}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error('Failed to delete table');
+        showToast('Table deleted');
+        if (selectedDataset && selectedDataset.id === datasetId && selectedCatalogPath === catalogPath) {
+          selectedDataset = null;
+          selectedCatalogPath = null;
+          document.getElementById('detailView').style.display = 'none';
+          document.getElementById('emptyView').style.display = 'flex';
+        }
+        await loadTree();
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    }
+
+    // --- Detail Card Button Handlers ---
+    document.getElementById('btnRescan').onclick = () => {
+      if (selectedDataset && selectedCatalogPath) {
+        handleTableRescan(null, selectedCatalogPath, selectedDataset.id);
+      }
+    };
+    document.getElementById('btnEdit').onclick = () => {
+      if (selectedDataset && selectedCatalogPath) {
+        handleTableEdit(null, selectedCatalogPath, selectedDataset.id);
+      }
+    };
+    document.getElementById('btnDelete').onclick = () => {
+      if (selectedDataset && selectedCatalogPath) {
+        handleTableDelete(null, selectedCatalogPath, selectedDataset.id);
+      }
     };
 
-    // --- Namespace Toggle in Modal ---
+    // --- Modal Dropdowns Population ---
+    function populateCatalogDropdown(selectedPath) {
+      const selectEl = document.getElementById('formCatalogSelect');
+      selectEl.innerHTML = '';
+      catalogTreeData.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c.path;
+        opt.textContent = `${c.name} (${c.filename})`;
+        if (c.path === selectedPath) opt.selected = true;
+        selectEl.appendChild(opt);
+      });
+      selectEl.onchange = () => {
+        populateNamespaceDropdown(selectEl.value);
+      };
+    }
+
+    function populateNamespaceDropdown(catalogPath, selectedNs = 'default') {
+      const selectEl = document.getElementById('formNamespaceSelect');
+      selectEl.innerHTML = '';
+      const cat = catalogTreeData.find(c => c.path === catalogPath) || catalogTreeData[0];
+      const nsSet = new Set(cat ? cat.namespaces.map(n => n.name) : []);
+      nsSet.add('default');
+
+      nsSet.forEach(ns => {
+        const opt = document.createElement('option');
+        opt.value = ns;
+        opt.textContent = ns;
+        if (ns === selectedNs) opt.selected = true;
+        selectEl.appendChild(opt);
+      });
+    }
+
+    // --- Toggle Custom Namespace Input in Modal ---
     document.getElementById('btnToggleCustomNs').onclick = () => {
       const selectEl = document.getElementById('formNamespaceSelect');
       const customEl = document.getElementById('formNamespaceCustom');
@@ -1590,24 +1808,7 @@
       }
     };
 
-    function populateNamespaceDropdown(selectedVal = 'default') {
-      const selectEl = document.getElementById('formNamespaceSelect');
-      selectEl.innerHTML = '';
-
-      const nsSet = new Set(activeNamespaces.map(n => n.name));
-      nsSet.add('default');
-      activeDatasets.forEach(d => nsSet.add(d.namespace));
-
-      nsSet.forEach(ns => {
-        const opt = document.createElement('option');
-        opt.value = ns;
-        opt.textContent = ns;
-        if (ns === selectedVal) opt.selected = true;
-        selectEl.appendChild(opt);
-      });
-    }
-
-    // --- Auto Scan Location ---
+    // --- Auto Scan Location in Dataset Modal ---
     document.getElementById('btnTriggerScan').onclick = async () => {
       const loc = document.getElementById('formLocation').value.trim();
       if (!loc) {
@@ -1631,7 +1832,7 @@
         }
         const data = await res.json();
 
-        // Auto-fill suggested table name from file/folder name if blank
+        // Auto-fill table name if empty
         if (!document.getElementById('formName').value) {
           const parts = loc.replace(/\\/g, '/').split('/').filter(Boolean);
           const lastPart = parts[parts.length - 1] || 'dataset';
@@ -1639,7 +1840,13 @@
           document.getElementById('formName').value = baseName;
         }
 
-        document.getElementById('formFormat').value = data.format.includes('parquet') ? 'parquet' : (data.format.includes('csv') ? 'csv' : (data.format.includes('json') ? 'json' : 'parquet'));
+        const fmt = (data.format || '').toLowerCase();
+        if (fmt.includes('parquet')) document.getElementById('formFormat').value = 'parquet';
+        else if (fmt.includes('csv')) document.getElementById('formFormat').value = 'csv';
+        else if (fmt.includes('json')) document.getElementById('formFormat').value = 'json';
+        else if (fmt.includes('excel')) document.getElementById('formFormat').value = 'excel';
+        else if (fmt.includes('directory')) document.getElementById('formFormat').value = 'directory';
+
         modalColumns = data.columns || [];
         renderModalColumns();
         showToast(`Schema discovered! Found ${modalColumns.length} columns.`);
@@ -1651,7 +1858,7 @@
       }
     };
 
-    // --- Render Columns in Modal (With Column Description Field!) ---
+    // --- Render Columns in Dataset Modal ---
     function renderModalColumns() {
       const tbody = document.getElementById('modalColTableBody');
       tbody.innerHTML = '';
@@ -1679,7 +1886,7 @@
             <input type="text" value="${col.description || ''}" onchange="modalColumns[${idx}].description = this.value" placeholder="Description...">
           </td>
           <td style="text-align:center;">
-            <button class="btn btn-sm btn-danger" type="button" onclick="modalColumns.splice(${idx}, 1); renderModalColumns();">✕</button>
+            <button class="action-icon-btn btn-delete-hover" type="button" onclick="modalColumns.splice(${idx}, 1); renderModalColumns();">✕</button>
           </td>
         `;
         tbody.appendChild(tr);
@@ -1691,46 +1898,12 @@
       renderModalColumns();
     };
 
-    // --- Add & Edit Table Modal Openers ---
-    document.getElementById('btnAddDataset').onclick = () => {
-      editingDatasetId = null;
-      document.getElementById('modalTitle').textContent = 'Register New Table / File';
-      document.getElementById('formLocation').value = '';
-      document.getElementById('formName').value = '';
-      document.getElementById('formDesc').value = '';
-      document.getElementById('formNamespaceCustom').style.display = 'none';
-      document.getElementById('formNamespaceSelect').style.display = 'block';
-      document.getElementById('btnToggleCustomNs').textContent = '+ New';
-      populateNamespaceDropdown('default');
-      modalColumns = [];
-      renderModalColumns();
-      openModal('datasetModal');
-    };
-
-    document.getElementById('btnEdit').onclick = () => {
-      const dataset = activeDatasets.find(d => d.id === selectedDatasetId);
-      if (!dataset) return;
-      editingDatasetId = dataset.id;
-      document.getElementById('modalTitle').textContent = `Edit Table: ${dataset.name}`;
-      document.getElementById('formLocation').value = dataset.location;
-      document.getElementById('formName').value = dataset.name;
-      document.getElementById('formDesc').value = dataset.description || '';
-      document.getElementById('formFormat').value = dataset.format;
-      document.getElementById('formNamespaceCustom').style.display = 'none';
-      document.getElementById('formNamespaceSelect').style.display = 'block';
-      document.getElementById('btnToggleCustomNs').textContent = '+ New';
-      populateNamespaceDropdown(dataset.namespace);
-      modalColumns = JSON.parse(JSON.stringify(dataset.columns || []));
-      renderModalColumns();
-      openModal('datasetModal');
-    };
-
     // --- Save Dataset Handler ---
     document.getElementById('btnSaveDataset').onclick = async () => {
       const name = document.getElementById('formName').value.trim();
       const location = document.getElementById('formLocation').value.trim();
+      const targetCatalogPath = document.getElementById('formCatalogSelect').value;
 
-      // Read selected or custom namespace
       let namespace = 'default';
       const customEl = document.getElementById('formNamespaceCustom');
       if (customEl.style.display !== 'none' && customEl.value.trim()) {
@@ -1742,8 +1915,8 @@
       const format = document.getElementById('formFormat').value;
       const description = document.getElementById('formDesc').value.trim();
 
-      if (!name || !location) {
-        showToast('Table Name and Location are required', true);
+      if (!name || !location || !targetCatalogPath) {
+        showToast('Table Name, Location, and Catalog are required', true);
         return;
       }
 
@@ -1760,14 +1933,14 @@
 
       try {
         let res;
-        if (editingDatasetId) {
-          res = await fetch(`/api/datasets/${encodeURIComponent(editingDatasetId)}`, {
+        if (editingDataset) {
+          res = await fetch(`/api/datasets/${encodeURIComponent(editingDataset.dataset.id)}?catalog_path=${encodeURIComponent(targetCatalogPath)}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
           });
         } else {
-          res = await fetch('/api/datasets', {
+          res = await fetch(`/api/datasets?catalog_path=${encodeURIComponent(targetCatalogPath)}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
@@ -1780,64 +1953,64 @@
         }
 
         closeModal('datasetModal');
-        showToast(`Table '${name}' saved to category '${namespace}'!`);
-        await loadDatasets();
-        selectDataset(id);
+        showToast(`Table '${name}' saved!`);
+        await loadTree();
+        selectDataset(targetCatalogPath, payload);
       } catch (err) {
         showToast(err.message, true);
       }
     };
 
-    // --- Delete Dataset ---
-    document.getElementById('btnDelete').onclick = async () => {
-      if (!selectedDatasetId) return;
-      if (!confirm(`Are you sure you want to delete '${selectedDatasetId}' from the catalog? (Underlying data files are NOT deleted)`)) return;
-
-      try {
-        const res = await fetch(`/api/datasets/${encodeURIComponent(selectedDatasetId)}`, { method: 'DELETE' });
-        if (!res.ok) throw new Error('Failed to delete dataset');
-        showToast('Table deleted');
-        selectedDatasetId = null;
-        document.getElementById('detailView').style.display = 'none';
-        document.getElementById('emptyView').style.display = 'flex';
-        await loadDatasets();
-      } catch (err) {
-        showToast(err.message, true);
+    // --- Save Category / Namespace Handler ---
+    document.getElementById('btnSaveNamespace').onclick = async () => {
+      const val = document.getElementById('nsModalInput').value.trim();
+      if (!val) {
+        showToast('Category name cannot be empty', true);
+        return;
       }
-    };
 
-    // --- Rescan Dataset ---
-    document.getElementById('btnRescan').onclick = async () => {
-      if (!selectedDatasetId) return;
       try {
-        const res = await fetch(`/api/datasets/${encodeURIComponent(selectedDatasetId)}/rescan`, { method: 'POST' });
-        if (!res.ok) {
-          const err = await res.json();
-          throw new Error(err.detail || 'Rescan failed');
+        if (renamingNamespace) {
+          const res = await fetch(`/api/namespaces/${encodeURIComponent(renamingNamespace)}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ new_name: val, catalog_path: renamingNamespaceCatalog })
+          });
+          if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.detail || 'Rename failed');
+          }
+          showToast(`Category renamed to '${val}'`);
+        } else {
+          const res = await fetch('/api/namespaces', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: val, catalog_path: renamingNamespaceCatalog })
+          });
+          if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.detail || 'Creation failed');
+          }
+          showToast(`Category '${val}' created!`);
         }
-        showToast('Schema rescanned and refreshed!');
-        await loadDatasets();
-        selectDataset(selectedDatasetId);
+        closeModal('namespaceModal');
+        await loadTree();
       } catch (err) {
         showToast(err.message, true);
       }
     };
 
-    // --- Create Catalog Handlers ---
-    document.getElementById('btnCreateCatalog').onclick = () => {
-      document.getElementById('createCatalogPathInput').value = '';
-      document.getElementById('createCatalogNameInput').value = '';
-      document.getElementById('chkCreateSetDefault').checked = false;
-      openModal('createCatalogModal');
-    };
+    // --- Create Catalog Handler ---
     document.getElementById('btnConfirmCreateCatalog').onclick = async () => {
       const path = document.getElementById('createCatalogPathInput').value.trim();
       const name = document.getElementById('createCatalogNameInput').value.trim() || 'det_catalog';
       const setDefault = document.getElementById('chkCreateSetDefault').checked;
+
       if (!path) {
         showToast('Catalog file path is required', true);
         return;
       }
+
       try {
         const res = await fetch('/api/catalog/create', {
           method: 'POST',
@@ -1849,69 +2022,51 @@
           throw new Error(err.detail || 'Failed to create catalog');
         }
         closeModal('createCatalogModal');
-        showToast(`New catalog created at '${path}'!`);
-        selectedDatasetId = null;
-        document.getElementById('detailView').style.display = 'none';
-        document.getElementById('emptyView').style.display = 'flex';
-        await loadCatalogStatus();
-        await loadDatasets();
+        showToast(`Catalog created at '${path}'!`);
+        await loadTree();
       } catch (err) {
         showToast(err.message, true);
       }
     };
 
-    // --- Switch Catalog Handlers ---
-    document.getElementById('btnSwitchCatalog').onclick = () => { openModal('switchCatalogModal'); };
-    document.getElementById('btnConfirmSwitch').onclick = async () => {
-      const path = document.getElementById('switchPathInput').value.trim();
-      const setDefault = document.getElementById('chkSetDefault').checked;
+    // --- Open Catalog Handler ---
+    document.getElementById('btnConfirmOpenCatalog').onclick = async () => {
+      const path = document.getElementById('openCatalogPathInput').value.trim();
+      const setDefault = document.getElementById('chkOpenSetDefault').checked;
+
       if (!path) {
         showToast('Catalog path is required', true);
         return;
       }
+
       try {
-        const res = await fetch('/api/catalog/switch', {
+        const res = await fetch('/api/catalog/open', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ path: path, set_as_default: setDefault })
         });
-        if (!res.ok) throw new Error('Failed to switch catalog file');
-        closeModal('switchCatalogModal');
-        showToast('Catalog switched successfully!');
-        selectedDatasetId = null;
-        document.getElementById('detailView').style.display = 'none';
-        document.getElementById('emptyView').style.display = 'flex';
-        await loadCatalogStatus();
-        await loadDatasets();
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.detail || 'Failed to open catalog');
+        }
+        closeModal('openCatalogModal');
+        showToast(`Catalog opened successfully!`);
+        await loadTree();
       } catch (err) {
         showToast(err.message, true);
       }
     };
 
-    // --- View Raw YAML ---
-    document.getElementById('btnViewYaml').onclick = async () => {
-      try {
-        const res = await fetch('/api/catalog/yaml');
-        const yaml = await res.text();
-        document.getElementById('rawYamlText').value = yaml;
-        openModal('yamlModal');
-      } catch (err) {
-        showToast('Failed to load raw YAML', true);
-      }
-    };
+    // --- Copy YAML Handler ---
     document.getElementById('btnCopyYaml').onclick = () => {
       const text = document.getElementById('rawYamlText').value;
       navigator.clipboard.writeText(text);
       showToast('YAML copied to clipboard!');
     };
 
-    // --- Instant Filter Input ---
-    document.getElementById('filterInput').oninput = () => { loadDatasets(); };
-
     // --- Initial Boot ---
     window.onload = async () => {
-      await loadCatalogStatus();
-      await loadDatasets();
+      await loadTree();
     };
   </script>
 </body>
