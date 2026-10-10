@@ -3,11 +3,11 @@
 
 > **A modular, Python-first data engineering framework built by <span style="color:#f45b00;">det</span> Labs for modern analytical workflows.**
 
-[![CI](https://img.shields.io/badge/CI-passing-22c55e.svg)](https://github.com/saurabhr2/det/actions)
+[![CI](https://img.shields.io/badge/CI-passing-22c55e.svg)](https://github.com/det-Labs/det/actions)
 [![Python](https://img.shields.io/badge/python->=3.15-3776ab.svg)](https://www.python.org/downloads/release/python-3150/)
 [![License](https://img.shields.io/badge/license-Apache--2.0-22c55e.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.1.0-f45b00.svg)](https://github.com/saurabhr2/det/releases)
-[![det Labs](https://img.shields.io/badge/org-det%20Labs-f45b00.svg)](https://github.com/saurabhr2/det)
+[![PyPI version](https://img.shields.io/pypi/v/det-core.svg)](https://pypi.org/project/det-core/)
+[![det Labs](https://img.shields.io/badge/org-det%20Labs-f45b00.svg)](https://github.com/det-Labs/det)
 
 ---
 
@@ -76,7 +76,7 @@ pip install det-core
 **Or from source:**
 ```bash
 # Clone the repository
-git clone https://github.com/saurabhr2/det.git
+git clone https://github.com/det-Labs/det.git
 cd det
 
 # Create virtual environment with Python 3.15
@@ -164,6 +164,21 @@ All code adheres to strict standards:
 pytest -v
 ruff check .
 ```
+
+## Publishing a Release
+
+Releases are published to PyPI only after the package passes tests and the
+`pypi` GitHub Environment deployment is approved. To release:
+
+1. Update the version in `pyproject.toml` and `src/det/__init__.py`.
+2. Push the changes to `main` and create a GitHub Release with a matching tag
+   (for example, `v0.1.0a2`).
+3. After the workflow builds and tests the release, approve its deployment to
+   the `pypi` environment in GitHub Actions. The workflow then publishes the
+   distributions using PyPI Trusted Publishing (OIDC).
+
+The `pypi` environment and the matching Trusted Publisher must be configured
+once in GitHub and PyPI, respectively.
 
 ---
 
