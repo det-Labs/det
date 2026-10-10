@@ -202,7 +202,8 @@ def _scan_directory(dir_path: Path, format_hint: str | None = None) -> ScanResul
     """Inspect and extract schema from a directory dataset."""
     parquet_files = list(dir_path.rglob("*.parquet")) + list(dir_path.rglob("*.pq"))
     if parquet_files or format_hint == "parquet":
-        dataset = ds.dataset(str(dir_path), format="parquet")
+        source = [str(f) for f in parquet_files] if parquet_files else str(dir_path)
+        dataset = ds.dataset(source, format="parquet")
         schema = dataset.schema
         columns = [
             ColumnMetadata(
@@ -212,12 +213,20 @@ def _scan_directory(dir_path: Path, format_hint: str | None = None) -> ScanResul
             )
             for field in schema
         ]
-        sample_df = pl.scan_parquet(str(dir_path)).collect().head(5)
+        sample_data: list[dict] = []
+        try:
+            parquet_glob = f"{dir_path.as_posix()}/**/*.parquet"
+            sample_df = pl.scan_parquet(parquet_glob).collect().head(5)
+            sample_data = sample_df.to_dicts()
+        except (pl.exceptions.PolarsError, OSError, RuntimeError, ValueError):
+            if parquet_files:
+                sample_data = pl.read_parquet(str(parquet_files[0]), n_rows=5).to_dicts()
+
         return ScanResult(
             location=str(dir_path),
             format="parquet (directory)",
             columns=columns,
-            sample_preview=sample_df.to_dicts(),
+            sample_preview=sample_data,
         )
 
     csv_files = list(dir_path.rglob("*.csv"))
@@ -232,6 +241,32 @@ def _scan_directory(dir_path: Path, format_hint: str | None = None) -> ScanResul
             return ScanResult(
                 location=str(dir_path),
                 format="csv (directory)",
+                columns=columns,
+                sample_preview=df.head(5).to_dicts(),
+            )
+
+    json_files = (
+        list(dir_path.rglob("*.ndjson"))
+        + list(dir_path.rglob("*.jsonl"))
+        + list(dir_path.rglob("*.json"))
+    )
+    if json_files or format_hint in ("json", "ndjson", "jsonl"):
+        sample_file = json_files[0] if json_files else None
+        if sample_file:
+            try:
+                df = pl.read_ndjson(str(sample_file), n_rows=100)
+                fmt = "ndjson (directory)"
+            except (pl.exceptions.PolarsError, OSError, ValueError):
+                df = pl.read_json(str(sample_file))
+                fmt = "json (directory)"
+
+            columns = [
+                ColumnMetadata(name=col, type=_normalize_polars_type(df.schema[col]))
+                for col in df.columns
+            ]
+            return ScanResult(
+                location=str(dir_path),
+                format=fmt,
                 columns=columns,
                 sample_preview=df.head(5).to_dicts(),
             )

@@ -173,3 +173,67 @@ def test_catalog_namespace_management(tmp_path: Path):
     default_ds = service.get_dataset("default.kpi")
     assert default_ds is not None
     assert default_ds.namespace == "default"
+
+
+def test_directory_dataset_scanning_parquet(tmp_path: Path):
+    """Test multi-file partitioned parquet directory scanning with extraneous files."""
+    parq_dir = tmp_path / "sales_lake"
+    (parq_dir / "year=2026").mkdir(parents=True)
+    (parq_dir / "year=2025").mkdir(parents=True)
+
+    df1 = pl.DataFrame({"id": [1, 2], "val": [10.5, 20.0]})
+    df2 = pl.DataFrame({"id": [3, 4], "val": [30.5, 40.0]})
+    df1.write_parquet(parq_dir / "year=2026" / "part-001.parquet")
+    df2.write_parquet(parq_dir / "year=2025" / "part-002.parquet")
+
+    # Add extraneous non-parquet file often found in data lakes
+    (parq_dir / "_SUCCESS").write_text("")
+    (parq_dir / "notes.txt").write_text("Export metadata")
+
+    service = CatalogService(tmp_path / "cat.yaml")
+    scan = service.scan_path(parq_dir)
+
+    assert scan.format == "parquet (directory)"
+    col_names = [c.name for c in scan.columns]
+    assert "id" in col_names
+    assert "val" in col_names
+    assert len(scan.sample_preview) > 0
+
+
+def test_directory_dataset_scanning_csv_and_json(tmp_path: Path):
+    """Test directory scanning for multi-file CSV and NDJSON directories."""
+    csv_dir = tmp_path / "csv_drops"
+    csv_dir.mkdir()
+    pl.DataFrame({"code": ["A", "B"], "qty": [100, 200]}).write_csv(csv_dir / "drop1.csv")
+    pl.DataFrame({"code": ["C", "D"], "qty": [300, 400]}).write_csv(csv_dir / "drop2.csv")
+
+    service = CatalogService(tmp_path / "cat.yaml")
+    csv_scan = service.scan_path(csv_dir)
+    assert csv_scan.format == "csv (directory)"
+    assert [c.name for c in csv_scan.columns] == ["code", "qty"]
+
+    # Test NDJSON directory
+    json_dir = tmp_path / "json_drops"
+    json_dir.mkdir()
+    pl.DataFrame({"event": ["click", "view"], "ts": [1, 2]}).write_ndjson(json_dir / "e1.ndjson")
+    json_scan = service.scan_path(json_dir)
+    assert json_scan.format == "ndjson (directory)"
+    assert [c.name for c in json_scan.columns] == ["event", "ts"]
+
+
+def test_directory_dataset_schema_mismatch_error(tmp_path: Path):
+    """Test that querying a directory with incompatible parquet schemas raises a SchemaError."""
+    mismatch_dir = tmp_path / "mismatch"
+    mismatch_dir.mkdir()
+
+    pl.DataFrame({"col_a": [1, 2]}).write_parquet(mismatch_dir / "f1.parquet")
+    # col_a has string type instead of int64
+    pl.DataFrame({"col_a": ["bad", "types"]}).write_parquet(mismatch_dir / "f2.parquet")
+
+    service = CatalogService(tmp_path / "cat.yaml")
+    scan = service.scan_path(mismatch_dir)
+    assert scan.format == "parquet (directory)"
+
+    # When querying the unified dataset across partitions, Polars raises SchemaError
+    with pytest.raises(pl.exceptions.SchemaError):
+        pl.scan_parquet(f"{mismatch_dir.as_posix()}/**/*.parquet").collect()
