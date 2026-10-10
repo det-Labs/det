@@ -14,12 +14,13 @@
       --bg-card: #1e293b;
       --bg-card-hover: #334155;
       --border-color: #334155;
-      --border-focus: #6366f1;
+      --border-focus: #f45b00;
       --text-main: #f8fafc;
       --text-muted: #94a3b8;
       --text-dim: #64748b;
-      --primary: #6366f1;
-      --primary-hover: #4f46e5;
+      --brand-orange: #f45b00;
+      --primary: #f45b00;
+      --primary-hover: #dc5200;
       --accent-green: #10b981;
       --accent-blue: #3b82f6;
       --accent-purple: #8b5cf6;
@@ -28,10 +29,10 @@
       --meta-bg: rgba(0, 0, 0, 0.2);
       --th-bg: rgba(0, 0, 0, 0.25);
       --item-hover: rgba(255, 255, 255, 0.04);
-      --item-active: rgba(99, 102, 241, 0.15);
+      --item-active: rgba(244, 91, 0, 0.15);
       --modal-overlay: rgba(0, 0, 0, 0.7);
-      --type-badge-bg: rgba(99, 102, 241, 0.15);
-      --type-badge-color: #a5b4fc;
+      --type-badge-bg: rgba(244, 91, 0, 0.12);
+      --type-badge-color: #ff8c42;
       --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
       --font-mono: 'JetBrains Mono', monospace;
     }
@@ -41,12 +42,13 @@
       --bg-card: #ffffff;
       --bg-card-hover: #f8fafc;
       --border-color: #cbd5e1;
-      --border-focus: #4f46e5;
+      --border-focus: #f45b00;
       --text-main: #0f172a;
       --text-muted: #334155;
       --text-dim: #64748b;
-      --primary: #4f46e5;
-      --primary-hover: #4338ca;
+      --brand-orange: #f45b00;
+      --primary: #f45b00;
+      --primary-hover: #dc5200;
       --accent-green: #059669;
       --accent-blue: #2563eb;
       --accent-purple: #7c3aed;
@@ -55,10 +57,10 @@
       --meta-bg: #f8fafc;
       --th-bg: #f1f5f9;
       --item-hover: rgba(0, 0, 0, 0.04);
-      --item-active: rgba(79, 70, 229, 0.12);
+      --item-active: rgba(244, 91, 0, 0.12);
       --modal-overlay: rgba(15, 23, 42, 0.5);
-      --type-badge-bg: rgba(79, 70, 229, 0.12);
-      --type-badge-color: #4338ca;
+      --type-badge-bg: rgba(244, 91, 0, 0.1);
+      --type-badge-color: #c94a00;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -410,7 +412,7 @@
     }
     .dataset-item.active {
       background: var(--item-active);
-      border-color: rgba(99, 102, 241, 0.4);
+      border-color: rgba(244, 91, 0, 0.45);
     }
     .dataset-item-header {
       display: flex;
@@ -835,7 +837,7 @@
         <div class="empty-icon">📂</div>
         <h3>No Table Selected</h3>
         <p>Select a table from the explorer on the left, or click <strong>+ Add Table / File</strong> to scan and register a new dataset into your catalog.</p>
-        <span style="font-size:0.75rem; color:var(--text-dim); margin-top:0.5rem; letter-spacing:0.02em;">det • Data Engineering Toolkit by det Labs</span>
+        <span style="font-size:0.75rem; color:var(--text-dim); margin-top:0.5rem; letter-spacing:0.02em;"><strong style="color:#f45b00;">det</strong> • Data Engineering Toolkit by <strong style="color:#f45b00;">det</strong> Labs</span>
       </div>
 
       <div id="detailView" class="detail-card" style="display: none;">

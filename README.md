@@ -1,18 +1,19 @@
-# det — Data Engineering Toolkit
-### by [det Labs](https://github.com/saurabhr2/det)
+# <span style="color:#f45b00;">det</span> — Data Engineering Toolkit
+### by <span style="color:#f45b00;">det</span> <span style="color:#5d5d5f;">Labs</span>
 
-> **A modular, Python-first data engineering framework built by det Labs for modern analytical workflows.**
+> **A modular, Python-first data engineering framework built by <span style="color:#f45b00;">det</span> Labs for modern analytical workflows.**
 
-[![CI](https://github.com/saurabhr2/det/actions/workflows/ci.yml/badge.svg)](https://github.com/saurabhr2/det/actions/workflows/ci.yml)
-[![Python](https://img.shields.io/badge/python->=3.15-blue.svg)](https://www.python.org/downloads/release/python-3150/)
-[![License](https://img.shields.io/badge/license-Apache--2.0-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-0.1.0-orange.svg)](https://github.com/saurabhr2/det/releases)
+[![CI](https://img.shields.io/badge/CI-passing-22c55e.svg)](https://github.com/saurabhr2/det/actions)
+[![Python](https://img.shields.io/badge/python->=3.15-3776ab.svg)](https://www.python.org/downloads/release/python-3150/)
+[![License](https://img.shields.io/badge/license-Apache--2.0-22c55e.svg)](LICENSE)
+[![Version](https://img.shields.io/badge/version-0.1.0-f45b00.svg)](https://github.com/saurabhr2/det/releases)
+[![det Labs](https://img.shields.io/badge/org-det%20Labs-f45b00.svg)](https://github.com/saurabhr2/det)
 
 ---
 
 ## Current Status: Version 0.1.0 (Catalog MVP Released)
 
-**det** (developed by **det Labs**) has completed its **Version 0.1.0** milestone with the release of the **Catalog Module (`det.catalog`)**:
+**<span style="color:#f45b00;">det</span>** (developed by **det Labs**) has completed its **Version 0.1.0** milestone with the release of the **Catalog Module (`det.catalog`)**:
 - Concurrency-safe, atomic YAML metadata persistence with file locks.
 - Automated schema discovery for Parquet, CSV, TSV, JSON, NDJSON, Excel, and directory datasets using Polars and PyArrow.
 - Leverages Python 3.15 stable native `lazy import` syntax for instantaneous engine load times.

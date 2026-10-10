@@ -1,7 +1,7 @@
-# det.catalog
-### by det Labs
+# <span style="color:#f45b00;">det</span>.catalog
+### by <span style="color:#f45b00;">det</span> <span style="color:#5d5d5f;">Labs</span>
 
-> **The Catalog & Metadata Engine for the `det` Data Engineering Framework**
+> **The Catalog & Metadata Engine for the <span style="color:#f45b00;">det</span> Data Engineering Framework**
 
 The `det.catalog` module provides a lightweight, local-first, concurrency-safe data catalog. It discovers dataset schemas automatically, organizes tables into categories (namespaces), persists metadata into human-readable YAML files, and exposes both a Python programmatic Command API, a CLI, and an interactive local browser GUI.
 
