@@ -3,15 +3,26 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "det"
+name = "det-core"
 version = "0.1.0"
 description = "A modular, Python-first data engineering framework by det Labs."
 readme = "README.md"
 requires-python = ">=3.15"
-license = { text = "Apache-2.0" }
+license = "Apache-2.0"
+license-files = ["LICENSE"]
 authors = [
     { name = "det Labs", email = "saurabhr2@gmail.com" }
 ]
+keywords = ["data-engineering", "catalog", "parquet", "polars", "pyarrow", "schema", "cli", "gui"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.15",
+    "Topic :: Database",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
 dependencies = [
     "polars>=1.0.0",
     "pyarrow>=15.0.0",
@@ -23,6 +34,11 @@ dependencies = [
     "fastapi>=0.110.0",
     "uvicorn>=0.29.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/saurabhr2/det"
+Repository = "https://github.com/saurabhr2/det"
+Issues = "https://github.com/saurabhr2/det/issues"
 
 [project.optional-dependencies]
 dev = [
@@ -37,6 +53,9 @@ det-gui = "det.gui:cli_main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+"det.gui" = ["static/*", "static/**/*"]
 
 [tool.ruff]
 line-length = 100

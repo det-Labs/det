@@ -68,6 +68,12 @@
 
 ### Installation
 
+**From PyPI:**
+```bash
+pip install det-core
+```
+
+**Or from source:**
 ```bash
 # Clone the repository
 git clone https://github.com/saurabhr2/det.git
