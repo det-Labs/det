@@ -7,7 +7,13 @@ from pathlib import Path
 from typing import Any
 
 from det.pipeline.config import get_default_pipeline_path
-from det.pipeline.models import PipelineCategory, PipelineStoreFile, Project, _utcnow_iso
+from det.pipeline.models import (
+    DataPipeline,
+    PipelineCategory,
+    PipelineStoreFile,
+    Project,
+    _utcnow_iso,
+)
 from det.pipeline.store import get_pipeline_yaml_str, load_pipeline_store, save_pipeline_store
 
 _NAME_PATTERN = re.compile(r"^[a-zA-Z0-9_\-]+$")
@@ -135,6 +141,191 @@ class PipelineService:
         if len(store.projects) == original_count:
             raise ValueError(f"Project '{clean_name}' not found.")
 
+        self._save(store)
+        return True
+
+    # --- Pipeline CRUD ---
+
+    def list_pipelines(self, project_name: str, category_name: str) -> list[DataPipeline]:
+        """List all pipelines in a category."""
+        cat = self.get_category(project_name, category_name)
+        if cat is None:
+            raise ValueError(f"Category '{category_name}' not found in project '{project_name}'.")
+        return cat.pipelines
+
+    def get_pipeline(self, project_name: str, category_name: str, pipeline_id: str) -> DataPipeline | None:
+        """Retrieve a specific pipeline."""
+        cat = self.get_category(project_name, category_name)
+        if cat is None:
+            return None
+        for pipe in cat.pipelines:
+            if pipe.id == pipeline_id:
+                return pipe
+        return None
+
+    def create_pipeline(
+        self,
+        project_name: str,
+        category_name: str,
+        pipeline_id: str,
+        name: str,
+        description: str | None = None,
+        tags: list[str] | None = None,
+    ) -> DataPipeline:
+        """Create a new pipeline in a category."""
+        clean_proj = project_name.strip()
+        clean_cat = category_name.strip()
+        clean_id = _validate_identifier(pipeline_id, "Pipeline ID")
+        store = self._load()
+
+        target_proj: Project | None = None
+        for p in store.projects:
+            if p.name == clean_proj:
+                target_proj = p
+                break
+
+        if target_proj is None:
+            raise ValueError(f"Project '{clean_proj}' not found.")
+
+        target_cat: PipelineCategory | None = None
+        for c in target_proj.categories:
+            if c.name == clean_cat:
+                target_cat = c
+                break
+
+        if target_cat is None:
+            raise ValueError(f"Category '{clean_cat}' not found in project '{clean_proj}'.")
+
+        for pipe in target_cat.pipelines:
+            if pipe.id == clean_id:
+                raise ValueError(f"Pipeline ID '{clean_id}' already exists in category '{clean_cat}'.")
+
+        now = _utcnow_iso()
+        new_pipeline = DataPipeline(
+            id=clean_id,
+            name=name.strip(),
+            description=description.strip() if description else None,
+            tags=tags or [],
+            created_at=now,
+            updated_at=now,
+            nodes=[],
+            edges=[]
+        )
+        target_cat.pipelines.append(new_pipeline)
+        target_proj.updated_at = _utcnow_iso()
+        self._save(store)
+        return new_pipeline
+
+    def update_pipeline(
+        self,
+        project_name: str,
+        category_name: str,
+        pipeline_id: str,
+        new_name: str | None = None,
+        description: str | None = None,
+        tags: list[str] | None = None,
+        nodes: list[dict] | None = None,
+        edges: list[dict] | None = None,
+    ) -> DataPipeline:
+        """Update an existing pipeline's properties, nodes, and edges."""
+        clean_proj = project_name.strip()
+        clean_cat = category_name.strip()
+        clean_id = pipeline_id.strip()
+        store = self._load()
+
+        target_proj: Project | None = None
+        for p in store.projects:
+            if p.name == clean_proj:
+                target_proj = p
+                break
+
+        if target_proj is None:
+            raise ValueError(f"Project '{clean_proj}' not found.")
+
+        target_cat: PipelineCategory | None = None
+        for c in target_proj.categories:
+            if c.name == clean_cat:
+                target_cat = c
+                break
+
+        if target_cat is None:
+            raise ValueError(f"Category '{clean_cat}' not found in project '{clean_proj}'.")
+
+        target_pipe: DataPipeline | None = None
+        for pipe in target_cat.pipelines:
+            if pipe.id == clean_id:
+                target_pipe = pipe
+                break
+
+        if target_pipe is None:
+            raise ValueError(f"Pipeline '{clean_id}' not found in category '{clean_cat}'.")
+
+        if new_name is not None:
+            target_pipe.name = new_name.strip()
+        if description is not None:
+            target_pipe.description = description.strip()
+        if tags is not None:
+            target_pipe.tags = tags
+
+        if nodes is not None:
+            from det.pipeline.models import ModelNode, SinkNode, SourceNode
+            parsed_nodes = []
+            for n in nodes:
+                ntype = n.get("type")
+                if ntype == "source":
+                    parsed_nodes.append(SourceNode(**n))
+                elif ntype == "model":
+                    parsed_nodes.append(ModelNode(**n))
+                elif ntype == "sink":
+                    parsed_nodes.append(SinkNode(**n))
+                else:
+                    raise ValueError(f"Unknown node type '{ntype}'")
+            target_pipe.nodes = parsed_nodes
+
+        if edges is not None:
+            from det.pipeline.models import PipelineEdge
+            parsed_edges = []
+            for e in edges:
+                parsed_edges.append(PipelineEdge(**e))
+            target_pipe.edges = parsed_edges
+
+        target_pipe.updated_at = _utcnow_iso()
+        target_proj.updated_at = _utcnow_iso()
+        self._save(store)
+        return target_pipe
+
+    def delete_pipeline(self, project_name: str, category_name: str, pipeline_id: str) -> bool:
+        """Delete a pipeline from a category."""
+        clean_proj = project_name.strip()
+        clean_cat = category_name.strip()
+        clean_id = pipeline_id.strip()
+        store = self._load()
+
+        target_proj: Project | None = None
+        for p in store.projects:
+            if p.name == clean_proj:
+                target_proj = p
+                break
+
+        if target_proj is None:
+            raise ValueError(f"Project '{clean_proj}' not found.")
+
+        target_cat: PipelineCategory | None = None
+        for c in target_proj.categories:
+            if c.name == clean_cat:
+                target_cat = c
+                break
+
+        if target_cat is None:
+            raise ValueError(f"Category '{clean_cat}' not found in project '{clean_proj}'.")
+
+        orig_len = len(target_cat.pipelines)
+        target_cat.pipelines = [pipe for pipe in target_cat.pipelines if pipe.id != clean_id]
+
+        if len(target_cat.pipelines) == orig_len:
+            raise ValueError(f"Pipeline '{clean_id}' not found in category '{clean_cat}'.")
+
+        target_proj.updated_at = _utcnow_iso()
         self._save(store)
         return True
 

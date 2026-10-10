@@ -7,7 +7,7 @@ name = "det-core"
 version = "0.1.0a1"
 description = "A modular, Python-first data engineering framework by det Labs."
 readme = "README.md"
-requires-python = ">=3.15"
+requires-python = ">=3.12"
 license = "Apache-2.0"
 license-files = ["LICENSE"]
 authors = [

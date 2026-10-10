@@ -5,9 +5,9 @@ from __future__ import annotations
 from pathlib import Path
 
 # Python 3.15 lazy imports: modules are deferred until attribute access
-lazy import polars as pl
-lazy import pyarrow.dataset as ds
-lazy import pyarrow.parquet as pq
+import polars as pl
+import pyarrow.dataset as ds
+import pyarrow.parquet as pq
 
 from det.catalog.models import ColumnMetadata, ScanResult
 

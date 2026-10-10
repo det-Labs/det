@@ -9,7 +9,7 @@ import webbrowser
 from pathlib import Path
 
 # Python 3.15 lazy imports: defer uvicorn until launch_gui is invoked
-lazy import uvicorn
+import uvicorn
 
 from det.catalog.config import get_default_catalog_path
 from det.catalog.service import CatalogService
