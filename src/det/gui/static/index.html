@@ -1,0 +1,1075 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>det Catalog Explorer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-main: #0f172a;
+      --bg-card: #1e293b;
+      --bg-card-hover: #334155;
+      --border-color: #334155;
+      --border-focus: #6366f1;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --primary: #6366f1;
+      --primary-hover: #4f46e5;
+      --accent-green: #10b981;
+      --accent-blue: #3b82f6;
+      --accent-purple: #8b5cf6;
+      --accent-amber: #f59e0b;
+      --accent-rose: #f43f5e;
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font-sans);
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      font-size: 14px;
+    }
+
+    /* Header */
+    header {
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border-color);
+      padding: 0.75rem 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-shrink: 0;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-weight: 700;
+      font-size: 1.15rem;
+      color: #fff;
+    }
+    .brand-badge {
+      background: linear-gradient(135deg, #6366f1, #a855f7);
+      color: #fff;
+      padding: 0.2rem 0.5rem;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+    }
+
+    .catalog-bar {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: var(--bg-main);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 0.35rem 0.75rem;
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      max-width: 500px;
+      overflow: hidden;
+    }
+    .catalog-path {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: #e2e8f0;
+    }
+    .default-star {
+      color: var(--accent-amber);
+      font-size: 0.85rem;
+      title: "Default Catalog";
+    }
+
+    .btn {
+      background: var(--bg-card);
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+      padding: 0.45rem 0.9rem;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: all 0.15s ease;
+    }
+    .btn:hover { background: var(--bg-card-hover); border-color: var(--text-muted); }
+    .btn-primary {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #fff;
+    }
+    .btn-primary:hover { background: var(--primary-hover); border-color: var(--primary-hover); }
+    .btn-danger { color: var(--accent-rose); border-color: rgba(244, 63, 94, 0.3); }
+    .btn-danger:hover { background: rgba(244, 63, 94, 0.1); border-color: var(--accent-rose); }
+    .btn-sm { padding: 0.25rem 0.55rem; font-size: 0.75rem; }
+
+    /* App Layout */
+    .app-body {
+      display: flex;
+      flex: 1;
+      height: calc(100vh - 61px);
+      overflow: hidden;
+    }
+
+    /* Left Sidebar Explorer */
+    aside.sidebar {
+      width: 320px;
+      background: var(--bg-card);
+      border-right: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+    }
+    .sidebar-header {
+      padding: 1rem;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    .sidebar-title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .sidebar-title {
+      font-size: 0.9rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .count-badge {
+      background: var(--bg-main);
+      color: var(--text-main);
+      padding: 0.1rem 0.4rem;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-family: var(--font-mono);
+    }
+    .search-input {
+      background: var(--bg-main);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      color: #fff;
+      padding: 0.45rem 0.75rem;
+      font-size: 0.85rem;
+      outline: none;
+      width: 100%;
+    }
+    .search-input:focus { border-color: var(--border-focus); }
+
+    .dataset-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0.5rem;
+      list-style: none;
+    }
+    .dataset-item {
+      padding: 0.65rem 0.85rem;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+      margin-bottom: 0.25rem;
+      border: 1px solid transparent;
+      transition: background 0.15s;
+    }
+    .dataset-item:hover {
+      background: rgba(255, 255, 255, 0.04);
+    }
+    .dataset-item.active {
+      background: rgba(99, 102, 241, 0.15);
+      border-color: rgba(99, 102, 241, 0.4);
+    }
+    .dataset-item-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .dataset-name {
+      font-weight: 600;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .pill {
+      font-size: 0.7rem;
+      padding: 0.15rem 0.45rem;
+      border-radius: 4px;
+      font-family: var(--font-mono);
+      font-weight: 500;
+      text-transform: uppercase;
+    }
+    .pill-parquet { background: rgba(59, 130, 246, 0.2); color: #93c5fd; }
+    .pill-csv { background: rgba(16, 185, 129, 0.2); color: #6ee7b7; }
+    .pill-json { background: rgba(245, 158, 11, 0.2); color: #fde68a; }
+    .pill-excel { background: rgba(139, 92, 246, 0.2); color: #c4b5fd; }
+    .pill-default { background: rgba(148, 163, 184, 0.2); color: #cbd5e1; }
+    .dataset-sub {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.75rem;
+      color: var(--text-dim);
+    }
+
+    /* Main Content Area */
+    main.content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      background: var(--bg-main);
+      padding: 1.5rem 2rem;
+      gap: 1.5rem;
+    }
+
+    .empty-state {
+      margin: auto;
+      text-align: center;
+      max-width: 450px;
+      color: var(--text-muted);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+    }
+    .empty-icon { font-size: 3rem; opacity: 0.5; }
+
+    /* Detail Card */
+    .detail-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+    .detail-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .detail-title-group h2 {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .detail-desc {
+      color: var(--text-muted);
+      margin-top: 0.4rem;
+      font-size: 0.9rem;
+      line-height: 1.4;
+    }
+    .detail-actions {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+    }
+
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1rem;
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 6px;
+      padding: 0.9rem 1.2rem;
+    }
+    .meta-item { display: flex; flex-direction: column; gap: 0.2rem; }
+    .meta-label { font-size: 0.75rem; text-transform: uppercase; color: var(--text-dim); letter-spacing: 0.05em; }
+    .meta-val { font-size: 0.85rem; font-family: var(--font-mono); color: #f1f5f9; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    /* Schema Table */
+    .schema-section h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .table-container {
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      overflow: hidden;
+      background: var(--bg-card);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.85rem;
+    }
+    th {
+      background: rgba(0, 0, 0, 0.25);
+      color: var(--text-muted);
+      padding: 0.65rem 1rem;
+      font-weight: 600;
+      border-bottom: 1px solid var(--border-color);
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.05em;
+    }
+    td {
+      padding: 0.65rem 1rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      color: var(--text-main);
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(255, 255, 255, 0.02); }
+    .type-badge {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      background: rgba(99, 102, 241, 0.15);
+      color: #a5b4fc;
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+    }
+    .null-yes { color: var(--text-dim); }
+    .null-no { color: var(--accent-amber); font-weight: 500; }
+
+    /* Sample Preview Table */
+    .preview-container {
+      overflow-x: auto;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      margin-top: 0.5rem;
+    }
+
+    /* Modals */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+    .modal-overlay.open { opacity: 1; pointer-events: auto; }
+    .modal {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      width: 90%;
+      max-width: 720px;
+      max-height: 88vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+    }
+    .modal-header {
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .modal-header h3 { font-size: 1.15rem; font-weight: 700; color: #fff; }
+    .modal-body {
+      padding: 1.5rem;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+    .modal-footer {
+      padding: 1rem 1.5rem;
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.75rem;
+      background: rgba(0, 0, 0, 0.15);
+    }
+
+    .form-group { display: flex; flex-direction: column; gap: 0.4rem; }
+    .form-label { font-size: 0.8rem; font-weight: 600; color: var(--text-muted); }
+    .form-input, .form-select, .form-textarea {
+      background: var(--bg-main);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      color: #fff;
+      padding: 0.5rem 0.75rem;
+      font-size: 0.85rem;
+      outline: none;
+    }
+    .form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--border-focus); }
+    .input-row { display: flex; gap: 0.75rem; align-items: flex-end; }
+    .input-row .form-group { flex: 1; }
+
+    /* Editable Column Table in Modal */
+    .col-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 0.5rem;
+    }
+    .col-table th { padding: 0.45rem 0.6rem; font-size: 0.7rem; }
+    .col-table td { padding: 0.4rem 0.5rem; }
+    .col-table input, .col-table select {
+      background: var(--bg-main);
+      border: 1px solid var(--border-color);
+      color: #fff;
+      padding: 0.35rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      width: 100%;
+    }
+
+    /* Notification Toast */
+    .toast {
+      position: fixed;
+      bottom: 1.5rem;
+      right: 1.5rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      padding: 0.75rem 1.25rem;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      z-index: 2000;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: all 0.25s ease;
+      pointer-events: none;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .toast-success { border-color: var(--accent-green); color: #a7f3d0; }
+    .toast-error { border-color: var(--accent-rose); color: #fecdd3; }
+  </style>
+</head>
+<body>
+
+  <!-- Top Header Navigation -->
+  <header>
+    <div class="brand">
+      <span class="brand-badge">DET</span>
+      <span>Catalog Explorer</span>
+    </div>
+
+    <!-- Active Catalog Bar -->
+    <div class="catalog-bar" title="Active Catalog File">
+      <span id="defaultStar" class="default-star" style="display:none;">★</span>
+      <span>YAML:</span>
+      <span id="activeCatalogPath" class="catalog-path">Loading...</span>
+    </div>
+
+    <div style="display:flex; gap:0.5rem;">
+      <button class="btn" id="btnSwitchCatalog">Switch Catalog</button>
+      <button class="btn" id="btnViewYaml">Raw YAML</button>
+      <button class="btn btn-primary" id="btnAddDataset">+ Add Table / File</button>
+    </div>
+  </header>
+
+  <!-- Application Body -->
+  <div class="app-body">
+    <!-- Left Navigation Bar (Vertical Explorer) -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-title-row">
+          <span class="sidebar-title">Tables & Files <span id="datasetCount" class="count-badge">0</span></span>
+        </div>
+        <input type="text" id="filterInput" class="search-input" placeholder="Filter tables or columns...">
+      </div>
+      <ul id="datasetList" class="dataset-list">
+        <!-- Dataset Items dynamically populated -->
+      </ul>
+    </aside>
+
+    <!-- Main Detail View -->
+    <main class="content" id="mainContent">
+      <div id="emptyView" class="empty-state">
+        <div class="empty-icon">📂</div>
+        <h3>No Table Selected</h3>
+        <p>Select a table from the explorer on the left, or click <strong>+ Add Table / File</strong> to scan and register a new dataset into your catalog.</p>
+      </div>
+
+      <div id="detailView" class="detail-card" style="display: none;">
+        <div class="detail-header">
+          <div class="detail-title-group">
+            <h2>
+              <span id="dtName">orders</span>
+              <span id="dtFormat" class="pill pill-parquet">PARQUET</span>
+            </h2>
+            <p id="dtDesc" class="detail-desc">Raw customer orders</p>
+          </div>
+          <div class="detail-actions">
+            <button class="btn btn-sm" id="btnRescan">↻ Re-Scan</button>
+            <button class="btn btn-sm" id="btnEdit">Edit</button>
+            <button class="btn btn-sm btn-danger" id="btnDelete">Delete</button>
+          </div>
+        </div>
+
+        <div class="meta-grid">
+          <div class="meta-item">
+            <span class="meta-label">Namespace</span>
+            <span class="meta-val" id="dtNamespace">default</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Location Path</span>
+            <span class="meta-val" id="dtLocation" style="cursor: pointer;" title="Click to copy path">/path/to/file</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Total Rows</span>
+            <span class="meta-val" id="dtRows">-</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-label">Last Scanned</span>
+            <span class="meta-val" id="dtScanned">-</span>
+          </div>
+        </div>
+
+        <!-- Schema Columns Table -->
+        <div class="schema-section">
+          <h3>Columns & Schema (<span id="columnCount">0</span>)</h3>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width: 30%;">Column Name</th>
+                  <th style="width: 25%;">Data Type</th>
+                  <th style="width: 15%;">Nullable</th>
+                  <th style="width: 30%;">Description</th>
+                </tr>
+              </thead>
+              <tbody id="schemaTableBody">
+                <!-- Columns dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Modal 1: Add / Edit Dataset Modal -->
+  <div class="modal-overlay" id="datasetModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="modalTitle">Register New Table / File</h3>
+        <button class="btn btn-sm" onclick="closeModal('datasetModal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Location (File or Directory Path) *</label>
+          <div class="input-row">
+            <input type="text" id="formLocation" class="form-input" placeholder="e.g. D:/data/orders.parquet or D:/data/csv_folder/">
+            <button class="btn btn-primary" id="btnTriggerScan">⚡ Scan Location</button>
+          </div>
+          <span style="font-size: 0.75rem; color: var(--text-dim);">Point to a Parquet, CSV, JSON, Excel file, or directory. Clicking Scan will auto-infer the schema below.</span>
+        </div>
+
+        <div class="input-row">
+          <div class="form-group">
+            <label class="form-label">Table / Dataset Name *</label>
+            <input type="text" id="formName" class="form-input" placeholder="e.g. orders">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Namespace</label>
+            <input type="text" id="formNamespace" class="form-input" value="default">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Format</label>
+            <select id="formFormat" class="form-select">
+              <option value="parquet">Parquet</option>
+              <option value="csv">CSV / TSV</option>
+              <option value="json">JSON / NDJSON</option>
+              <option value="excel">Excel</option>
+              <option value="directory">Directory Dataset</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Description</label>
+          <input type="text" id="formDesc" class="form-input" placeholder="Summary of dataset contents...">
+        </div>
+
+        <!-- Inferred / Editable Schema Table -->
+        <div class="form-group">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <label class="form-label">Schema Columns</label>
+            <button class="btn btn-sm" id="btnAddColumnRow">+ Add Column</button>
+          </div>
+          <div class="table-container" style="max-height: 240px; overflow-y: auto;">
+            <table class="col-table">
+              <thead>
+                <tr>
+                  <th style="width: 35%;">Column Name</th>
+                  <th style="width: 30%;">Data Type</th>
+                  <th style="width: 15%;">Nullable</th>
+                  <th style="width: 10%;">Remove</th>
+                </tr>
+              </thead>
+              <tbody id="modalColTableBody">
+                <!-- Dynamically populated rows -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" onclick="closeModal('datasetModal')">Cancel</button>
+        <button class="btn btn-primary" id="btnSaveDataset">Save to Catalog</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 2: Switch Catalog Modal -->
+  <div class="modal-overlay" id="switchCatalogModal">
+    <div class="modal" style="max-width: 520px;">
+      <div class="modal-header">
+        <h3>Open / Switch Catalog</h3>
+        <button class="btn btn-sm" onclick="closeModal('switchCatalogModal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Catalog YAML File Path</label>
+          <input type="text" id="switchPathInput" class="form-input" placeholder="e.g. D:/projects/catalog.yaml">
+          <span style="font-size: 0.75rem; color: var(--text-dim);">Enter the path to an existing catalog.yaml or specify a new path to create one.</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:0.5rem; margin-top:0.5rem;">
+          <input type="checkbox" id="chkSetDefault">
+          <label for="chkSetDefault" style="font-size:0.85rem; color: var(--text-main); cursor: pointer;">
+            ★ Set as default catalog (opens automatically on future sessions)
+          </label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" onclick="closeModal('switchCatalogModal')">Cancel</button>
+        <button class="btn btn-primary" id="btnConfirmSwitch">Open Catalog</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 3: Raw YAML Viewer Modal -->
+  <div class="modal-overlay" id="yamlModal">
+    <div class="modal" style="max-width: 650px;">
+      <div class="modal-header">
+        <h3>Raw Catalog YAML</h3>
+        <button class="btn btn-sm" onclick="closeModal('yamlModal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <textarea id="rawYamlText" class="form-textarea" style="height: 380px; font-family: var(--font-mono); font-size: 0.8rem;" readonly></textarea>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" id="btnCopyYaml">Copy to Clipboard</button>
+        <button class="btn" onclick="closeModal('yamlModal')">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="toast">Action completed</div>
+
+  <!-- Client JavaScript Application -->
+  <script>
+    let activeDatasets = [];
+    let selectedDatasetId = null;
+    let editingDatasetId = null;
+    let modalColumns = [];
+
+    // --- Toast Helper ---
+    function showToast(msg, isError = false) {
+      const toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.className = `toast show ${isError ? 'toast-error' : 'toast-success'}`;
+      setTimeout(() => { toast.className = 'toast'; }, 3000);
+    }
+
+    // --- Modal Helpers ---
+    function openModal(id) { document.getElementById(id).classList.add('open'); }
+    function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+    // --- Fetch Catalog Status & Datasets ---
+    async function loadCatalogStatus() {
+      try {
+        const res = await fetch('/api/catalog/status');
+        const data = await res.json();
+        document.getElementById('activeCatalogPath').textContent = data.active_path;
+        document.getElementById('defaultStar').style.display = data.is_default ? 'inline' : 'none';
+        document.getElementById('switchPathInput').value = data.active_path;
+      } catch (err) {
+        showToast('Error loading catalog status', true);
+      }
+    }
+
+    async function loadDatasets() {
+      try {
+        const query = document.getElementById('filterInput').value;
+        const url = query ? `/api/datasets?search=${encodeURIComponent(query)}` : '/api/datasets';
+        const res = await fetch(url);
+        activeDatasets = await res.json();
+        renderDatasetList();
+      } catch (err) {
+        showToast('Error fetching datasets', true);
+      }
+    }
+
+    function renderDatasetList() {
+      const listEl = document.getElementById('datasetList');
+      document.getElementById('datasetCount').textContent = activeDatasets.length;
+      listEl.innerHTML = '';
+
+      if (activeDatasets.length === 0) {
+        listEl.innerHTML = '<li style="padding:1rem; color:var(--text-dim); text-align:center;">No tables registered</li>';
+        return;
+      }
+
+      activeDatasets.forEach(d => {
+        const li = document.createElement('li');
+        li.className = `dataset-item ${d.id === selectedDatasetId ? 'active' : ''}`;
+        li.onclick = () => selectDataset(d.id);
+
+        let fmtClass = 'pill-default';
+        if (d.format.includes('parquet')) fmtClass = 'pill-parquet';
+        else if (d.format.includes('csv')) fmtClass = 'pill-csv';
+        else if (d.format.includes('json')) fmtClass = 'pill-json';
+        else if (d.format.includes('excel')) fmtClass = 'pill-excel';
+
+        li.innerHTML = `
+          <div class="dataset-item-header">
+            <span class="dataset-name">${d.name}</span>
+            <span class="pill ${fmtClass}">${d.format}</span>
+          </div>
+          <div class="dataset-sub">
+            <span>${d.namespace}</span>
+            <span>${d.columns ? d.columns.length : 0} cols ${d.row_count ? '• ' + d.row_count.toLocaleString() + ' rows' : ''}</span>
+          </div>
+        `;
+        listEl.appendChild(li);
+      });
+    }
+
+    function selectDataset(id) {
+      selectedDatasetId = id;
+      renderDatasetList();
+      const dataset = activeDatasets.find(d => d.id === id);
+      if (!dataset) return;
+
+      document.getElementById('emptyView').style.display = 'none';
+      document.getElementById('detailView').style.display = 'flex';
+
+      document.getElementById('dtName').textContent = dataset.name;
+      document.getElementById('dtDesc').textContent = dataset.description || 'No description provided';
+      document.getElementById('dtNamespace').textContent = dataset.namespace;
+      document.getElementById('dtLocation').textContent = dataset.location;
+      document.getElementById('dtRows').textContent = dataset.row_count != null ? dataset.row_count.toLocaleString() : 'N/A';
+      document.getElementById('dtScanned').textContent = dataset.last_scanned ? new Date(dataset.last_scanned).toLocaleString() : 'N/A';
+
+      const fmtEl = document.getElementById('dtFormat');
+      fmtEl.textContent = dataset.format.toUpperCase();
+
+      // Render columns
+      const tbody = document.getElementById('schemaTableBody');
+      tbody.innerHTML = '';
+      document.getElementById('columnCount').textContent = dataset.columns.length;
+
+      dataset.columns.forEach(col => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td style="font-weight:600; font-family:var(--font-mono);">${col.name}</td>
+          <td><span class="type-badge">${col.type}</span></td>
+          <td><span class="${col.nullable ? 'null-yes' : 'null-no'}">${col.nullable ? 'Yes' : 'No'}</span></td>
+          <td style="color:var(--text-muted);">${col.description || '-'}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // --- Copy Location Path ---
+    document.getElementById('dtLocation').onclick = () => {
+      const loc = document.getElementById('dtLocation').textContent;
+      navigator.clipboard.writeText(loc);
+      showToast('Path copied to clipboard!');
+    };
+
+    // --- Trigger Auto Scan ---
+    document.getElementById('btnTriggerScan').onclick = async () => {
+      const loc = document.getElementById('formLocation').value.trim();
+      if (!loc) {
+        showToast('Please specify a location path to scan', true);
+        return;
+      }
+
+      const scanBtn = document.getElementById('btnTriggerScan');
+      scanBtn.textContent = 'Scanning...';
+      scanBtn.disabled = true;
+
+      try {
+        const res = await fetch('/api/scan', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ location: loc, format_hint: document.getElementById('formFormat').value })
+        });
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.detail || 'Scan failed');
+        }
+        const data = await res.json();
+
+        // Auto-fill suggested table name from file/folder name if blank
+        if (!document.getElementById('formName').value) {
+          const parts = loc.replace(/\\/g, '/').split('/').filter(Boolean);
+          const lastPart = parts[parts.length - 1] || 'dataset';
+          const baseName = lastPart.replace(/\.[^/.]+$/, '');
+          document.getElementById('formName').value = baseName;
+        }
+
+        document.getElementById('formFormat').value = data.format.includes('parquet') ? 'parquet' : (data.format.includes('csv') ? 'csv' : (data.format.includes('json') ? 'json' : 'parquet'));
+        modalColumns = data.columns || [];
+        renderModalColumns();
+        showToast(`Schema scanned! Found ${modalColumns.length} columns.`);
+      } catch (err) {
+        showToast(err.message, true);
+      } finally {
+        scanBtn.textContent = '⚡ Scan Location';
+        scanBtn.disabled = false;
+      }
+    };
+
+    function renderModalColumns() {
+      const tbody = document.getElementById('modalColTableBody');
+      tbody.innerHTML = '';
+      modalColumns.forEach((col, idx) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><input type="text" value="${col.name}" onchange="modalColumns[${idx}].name = this.value"></td>
+          <td>
+            <select onchange="modalColumns[${idx}].type = this.value">
+              <option value="${col.type}" selected>${col.type}</option>
+              <option value="string">string</option>
+              <option value="int64">int64</option>
+              <option value="int32">int32</option>
+              <option value="float64">float64</option>
+              <option value="boolean">boolean</option>
+              <option value="date">date</option>
+              <option value="datetime">datetime</option>
+              <option value="decimal">decimal</option>
+            </select>
+          </td>
+          <td style="text-align:center;">
+            <input type="checkbox" ${col.nullable ? 'checked' : ''} onchange="modalColumns[${idx}].nullable = this.checked">
+          </td>
+          <td>
+            <button class="btn btn-sm btn-danger" onclick="modalColumns.splice(${idx}, 1); renderModalColumns();">✕</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    document.getElementById('btnAddColumnRow').onclick = () => {
+      modalColumns.push({ name: 'new_col', type: 'string', nullable: true, description: '' });
+      renderModalColumns();
+    };
+
+    // --- Add & Edit Handlers ---
+    document.getElementById('btnAddDataset').onclick = () => {
+      editingDatasetId = null;
+      document.getElementById('modalTitle').textContent = 'Register New Table / File';
+      document.getElementById('formLocation').value = '';
+      document.getElementById('formName').value = '';
+      document.getElementById('formNamespace').value = 'default';
+      document.getElementById('formDesc').value = '';
+      modalColumns = [];
+      renderModalColumns();
+      openModal('datasetModal');
+    };
+
+    document.getElementById('btnEdit').onclick = () => {
+      const dataset = activeDatasets.find(d => d.id === selectedDatasetId);
+      if (!dataset) return;
+      editingDatasetId = dataset.id;
+      document.getElementById('modalTitle').textContent = `Edit Table: ${dataset.name}`;
+      document.getElementById('formLocation').value = dataset.location;
+      document.getElementById('formName').value = dataset.name;
+      document.getElementById('formNamespace').value = dataset.namespace;
+      document.getElementById('formDesc').value = dataset.description || '';
+      document.getElementById('formFormat').value = dataset.format;
+      modalColumns = JSON.parse(JSON.stringify(dataset.columns || []));
+      renderModalColumns();
+      openModal('datasetModal');
+    };
+
+    // --- Save Dataset ---
+    document.getElementById('btnSaveDataset').onclick = async () => {
+      const name = document.getElementById('formName').value.trim();
+      const location = document.getElementById('formLocation').value.trim();
+      const namespace = document.getElementById('formNamespace').value.trim() || 'default';
+      const format = document.getElementById('formFormat').value;
+      const description = document.getElementById('formDesc').value.trim();
+
+      if (!name || !location) {
+        showToast('Name and Location are required', true);
+        return;
+      }
+
+      const id = `${namespace}.${name}`;
+      const payload = {
+        id: id,
+        name: name,
+        namespace: namespace,
+        format: format,
+        location: location,
+        description: description,
+        columns: modalColumns
+      };
+
+      try {
+        let res;
+        if (editingDatasetId) {
+          res = await fetch(`/api/datasets/${encodeURIComponent(editingDatasetId)}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+        } else {
+          res = await fetch('/api/datasets', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+        }
+
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.detail || 'Failed to save dataset');
+        }
+
+        closeModal('datasetModal');
+        showToast(`Dataset '${name}' saved successfully!`);
+        await loadDatasets();
+        selectDataset(id);
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    };
+
+    // --- Delete Dataset ---
+    document.getElementById('btnDelete').onclick = async () => {
+      if (!selectedDatasetId) return;
+      if (!confirm(`Are you sure you want to delete '${selectedDatasetId}' from the catalog? (Underlying data files are NOT deleted)`)) return;
+
+      try {
+        const res = await fetch(`/api/datasets/${encodeURIComponent(selectedDatasetId)}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error('Failed to delete dataset');
+        showToast('Dataset deleted');
+        selectedDatasetId = null;
+        document.getElementById('detailView').style.display = 'none';
+        document.getElementById('emptyView').style.display = 'flex';
+        await loadDatasets();
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    };
+
+    // --- Rescan Dataset ---
+    document.getElementById('btnRescan').onclick = async () => {
+      if (!selectedDatasetId) return;
+      try {
+        const res = await fetch(`/api/datasets/${encodeURIComponent(selectedDatasetId)}/rescan`, { method: 'POST' });
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.detail || 'Rescan failed');
+        }
+        showToast('Schema rescanned and refreshed!');
+        await loadDatasets();
+        selectDataset(selectedDatasetId);
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    };
+
+    // --- Switch Catalog Handlers ---
+    document.getElementById('btnSwitchCatalog').onclick = () => { openModal('switchCatalogModal'); };
+    document.getElementById('btnConfirmSwitch').onclick = async () => {
+      const path = document.getElementById('switchPathInput').value.trim();
+      const setDefault = document.getElementById('chkSetDefault').checked;
+      if (!path) {
+        showToast('Catalog path is required', true);
+        return;
+      }
+      try {
+        const res = await fetch('/api/catalog/switch', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ path: path, set_as_default: setDefault })
+        });
+        if (!res.ok) throw new Error('Failed to switch catalog file');
+        closeModal('switchCatalogModal');
+        showToast('Catalog switched successfully!');
+        selectedDatasetId = null;
+        document.getElementById('detailView').style.display = 'none';
+        document.getElementById('emptyView').style.display = 'flex';
+        await loadCatalogStatus();
+        await loadDatasets();
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    };
+
+    // --- View Raw YAML ---
+    document.getElementById('btnViewYaml').onclick = async () => {
+      try {
+        const res = await fetch('/api/catalog/yaml');
+        const yaml = await res.text();
+        document.getElementById('rawYamlText').value = yaml;
+        openModal('yamlModal');
+      } catch (err) {
+        showToast('Failed to load raw YAML', true);
+      }
+    };
+    document.getElementById('btnCopyYaml').onclick = () => {
+      const text = document.getElementById('rawYamlText').value;
+      navigator.clipboard.writeText(text);
+      showToast('YAML copied to clipboard!');
+    };
+
+    // --- Instant Filter Input ---
+    document.getElementById('filterInput').oninput = () => { loadDatasets(); };
+
+    // --- Initial Boot ---
+    window.onload = async () => {
+      await loadCatalogStatus();
+      await loadDatasets();
+    };
+  </script>
+</body>
+</html>

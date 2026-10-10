@@ -18,6 +18,10 @@ dependencies = [
     "pydantic>=2.7.0",
     "sqlglot>=23.0.0",
     "typer>=0.12.0",
+    "ruamel.yaml>=0.18.0",
+    "filelock>=3.13.0",
+    "fastapi>=0.110.0",
+    "uvicorn>=0.29.0",
 ]
 
 [project.optional-dependencies]
@@ -26,12 +30,16 @@ dev = [
     "ruff>=0.4.0",
 ]
 
+[project.scripts]
+det = "det.cli:main"
+det-gui = "det.gui:cli_main"
+
 [tool.setuptools.packages.find]
 where = ["src"]
 
 [tool.ruff]
 line-length = 100
-target-version = "py314"
+target-version = "py315"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
