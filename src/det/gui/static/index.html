@@ -331,6 +331,8 @@
       color: var(--text-main);
       transition: background 0.1s ease;
       width: 100%;
+      overflow: hidden;
+      box-sizing: border-box;
     }
     .tree-node:hover {
       background: var(--item-hover);
@@ -384,7 +386,9 @@
       text-overflow: ellipsis;
       font-size: 12.5px;
       flex-shrink: 0;
-      max-width: calc(100% - 130px);
+      max-width: calc(100% - 30px);
+      position: relative;
+      z-index: 1;
     }
 
     /* Catalog Specific Nodes */
@@ -409,6 +413,8 @@
       gap: 4px;
       margin-left: 5px;
       flex-shrink: 0;
+      position: relative;
+      z-index: 1;
     }
 
     /* Count Pill (used for Catalog counts AND Category/Namespace counts) */
@@ -430,21 +436,32 @@
       flex-shrink: 0;
       box-sizing: border-box;
       vertical-align: middle;
+      position: relative;
+      z-index: 1;
     }
 
-    /* Actions on hover: right-aligned with explorer bar width */
+    /* Actions on hover: right-aligned with explorer bar width, in front of names and labels (Requirement 4 & 5) */
     .tree-actions {
+      position: absolute;
+      right: 4px;
+      top: 0;
+      bottom: 0;
       display: inline-flex;
       align-items: center;
       gap: 2px;
+      z-index: 10;
       opacity: 0;
       transition: opacity 0.12s ease;
-      margin-left: auto;
-      flex-shrink: 0;
+      pointer-events: none;
+      background: var(--bg-card);
+      padding-left: 6px;
+      border-radius: 4px;
+      box-shadow: -8px 0 6px var(--bg-card);
     }
     .tree-node:hover .tree-actions,
     .tree-node.selected .tree-actions {
       opacity: 1;
+      pointer-events: auto;
     }
 
     /* Namespace Specific Nodes */
@@ -488,6 +505,8 @@
       letter-spacing: 0.03em;
       box-sizing: border-box;
       vertical-align: middle;
+      position: relative;
+      z-index: 1;
     }
     .format-parquet { background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); }
     .format-csv { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
