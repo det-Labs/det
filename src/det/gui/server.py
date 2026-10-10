@@ -207,7 +207,15 @@ def set_default_catalog(req: SetDefaultCatalogRequest):
 def get_catalog_yaml(path: str | None = Query(None, description="Optional catalog path")) -> str:
     """Return the raw YAML representation of the active or specified catalog."""
     service = get_service()
-    return service.export_yaml(path)
+    content = service.export_yaml(path)
+    if not content and path:
+        resolved = Path(path).resolve()
+        if not resolved.is_file():
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Catalog file not found: {path}",
+            )
+    return content
 
 
 # --- Namespace / Category Management ---

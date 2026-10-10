@@ -374,5 +374,17 @@ class CatalogService:
 
     def export_yaml(self, catalog_path: str | Path | None = None) -> str:
         """Return raw YAML content of the catalog."""
-        p = Path(catalog_path).resolve() if catalog_path else self._path
+        if catalog_path:
+            p = Path(catalog_path).resolve()
+            if not p.is_file():
+                for known in get_known_catalogs():
+                    if (
+                        known.name == p.name
+                        or known.stem == p.stem
+                        or str(known).endswith(str(catalog_path))
+                    ):
+                        p = known
+                        break
+        else:
+            p = self._path
         return get_catalog_yaml_str(p)

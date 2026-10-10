@@ -12,3 +12,4 @@ def isolate_test_config(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     test_file = test_dir / "config.json"
     monkeypatch.setattr(config_mod, "CONFIG_DIR", test_dir)
     monkeypatch.setattr(config_mod, "CONFIG_FILE", test_file)
+
