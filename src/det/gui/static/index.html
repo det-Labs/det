@@ -201,11 +201,29 @@
     /* Left Sidebar Explorer */
     aside.sidebar {
       width: 340px;
+      min-width: 220px;
+      max-width: 700px;
       background: var(--bg-card);
       border-right: 1px solid var(--border-color);
       display: flex;
       flex-direction: column;
       flex-shrink: 0;
+      position: relative;
+    }
+    .sidebar-resizer {
+      width: 6px;
+      cursor: col-resize;
+      background: transparent;
+      margin-left: -3px;
+      margin-right: -3px;
+      z-index: 50;
+      position: relative;
+      flex-shrink: 0;
+      transition: background 0.15s ease;
+      user-select: none;
+    }
+    .sidebar-resizer:hover, .sidebar-resizer.resizing {
+      background: var(--primary);
     }
     .sidebar-header {
       padding: 1rem;
@@ -745,7 +763,7 @@
   <!-- Application Body -->
   <div class="app-body">
     <!-- Left Navigation Bar (Vertical Explorer with Categories) -->
-    <aside class="sidebar">
+    <aside class="sidebar" id="sidebar">
       <div class="sidebar-header">
         <div class="sidebar-title-row">
           <span class="sidebar-title">Categories & Tables <span id="datasetCount" class="count-badge">0</span></span>
@@ -764,6 +782,9 @@
         <!-- Categories and Tables rendered dynamically -->
       </div>
     </aside>
+
+    <!-- Draggable Sidebar Resizer Divider -->
+    <div class="sidebar-resizer" id="sidebarResizer" title="Drag to resize explorer width (Double-click to reset)"></div>
 
     <!-- Main Detail View -->
     <main class="content" id="mainContent">
@@ -1063,6 +1084,52 @@
 
     // Apply theme immediately on script evaluation
     applyTheme();
+
+    // --- Draggable Explorer Sidebar Resizer ---
+    const sidebarEl = document.getElementById('sidebar');
+    const resizerEl = document.getElementById('sidebarResizer');
+    let isResizingSidebar = false;
+
+    // Load persisted sidebar width or default
+    const savedSidebarWidth = localStorage.getItem('det-sidebar-width');
+    if (savedSidebarWidth && sidebarEl) {
+      const parsedW = parseInt(savedSidebarWidth, 10);
+      if (parsedW >= 220 && parsedW <= 700) {
+        sidebarEl.style.width = `${parsedW}px`;
+      }
+    }
+
+    if (resizerEl && sidebarEl) {
+      resizerEl.addEventListener('mousedown', (e) => {
+        isResizingSidebar = true;
+        resizerEl.classList.add('resizing');
+        document.body.style.cursor = 'col-resize';
+        document.body.style.userSelect = 'none';
+        e.preventDefault();
+      });
+
+      window.addEventListener('mousemove', (e) => {
+        if (!isResizingSidebar) return;
+        const newW = Math.min(Math.max(e.clientX, 220), 700);
+        sidebarEl.style.width = `${newW}px`;
+      });
+
+      window.addEventListener('mouseup', () => {
+        if (!isResizingSidebar) return;
+        isResizingSidebar = false;
+        resizerEl.classList.remove('resizing');
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+        localStorage.setItem('det-sidebar-width', parseInt(sidebarEl.style.width, 10));
+      });
+
+      // Double click to reset to default 340px
+      resizerEl.addEventListener('dblclick', () => {
+        sidebarEl.style.width = '340px';
+        localStorage.setItem('det-sidebar-width', 340);
+        showToast('Explorer width reset to default (340px)');
+      });
+    }
 
     // --- Toast Helper ---
     function showToast(msg, isError = false) {
