@@ -39,6 +39,18 @@ def info() -> None:
     typer.echo("Engines: Polars, PyArrow, DuckDB (planned)")
 
 
+@app.command("gui")
+def gui_shortcut(
+    file: Annotated[Path | None, typer.Option("--file", "-f", help="Catalog YAML file to open")] = None,
+    port: Annotated[int, typer.Option("--port", "-p", help="Port to run the web server on")] = 8501,
+    no_browser: Annotated[bool, typer.Option("--no-browser", help="Do not automatically open browser")] = False,
+) -> None:
+    """Launch the interactive det Catalog Explorer in the local browser."""
+    from det.gui import launch_gui
+
+    launch_gui(catalog_path=file, port=port, open_browser=not no_browser)
+
+
 @catalog_app.command("list")
 def catalog_list(
     file: Annotated[Path | None, typer.Option("--file", "-f", help="Catalog YAML file to query")] = None,
