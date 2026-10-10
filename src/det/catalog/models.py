@@ -36,6 +36,7 @@ class CatalogFile(BaseModel):
 
     catalog_version: int = Field(1, description="Catalog specification version")
     catalog_name: str = Field("det_catalog", description="Logical name of this catalog")
+    namespaces: list[str] = Field(default_factory=lambda: ["default"], description="Configured namespaces / categories")
     datasets: list[DatasetMetadata] = Field(default_factory=list, description="List of registered datasets")
 
 

@@ -27,12 +27,15 @@ htmlcov/
 .mypy_cache/
 .ruff_cache/
 
-# Local state & databases (det operational state, checkpoints)
+# Local state & databases (det operational state, checkpoints, catalog data)
 *.db
 *.sqlite
 *.sqlite3
 .det/
 det_state.db
+catalog.yaml
+*.lock
+sample_data/
 
 # Environment variables & secrets
 .env

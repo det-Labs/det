@@ -112,3 +112,45 @@ def test_default_catalog_persistence(tmp_path: Path, monkeypatch):
     set_default_catalog_path(custom_path)
     retrieved = get_default_catalog_path()
     assert retrieved == custom_path.resolve()
+
+
+def test_catalog_namespace_management(tmp_path: Path):
+    catalog_path = tmp_path / "ns_test_catalog.yaml"
+    service = CatalogService(catalog_path)
+
+    # 1. Create namespaces
+    service.create_namespace("analytics")
+    service.create_namespace("finance")
+    ns_list = service.list_namespaces()
+    ns_names = [n["name"] for n in ns_list]
+    assert "analytics" in ns_names
+    assert "finance" in ns_names
+
+    # 2. Register dataset in analytics
+    ds = DatasetMetadata(
+        id="analytics.kpi",
+        name="kpi",
+        namespace="analytics",
+        location=str(tmp_path / "kpi.csv"),
+        columns=[],
+    )
+    service.register_dataset(ds)
+
+    # Check counts
+    ns_dict = {n["name"]: n["count"] for n in service.list_namespaces()}
+    assert ns_dict["analytics"] == 1
+    assert ns_dict["finance"] == 0
+
+    # 3. Rename namespace
+    updated_count = service.rename_namespace("analytics", "reporting")
+    assert updated_count == 1
+    reporting_ds = service.get_dataset("reporting.kpi")
+    assert reporting_ds is not None
+    assert reporting_ds.namespace == "reporting"
+
+    # 4. Delete namespace with reassign to default
+    affected = service.delete_namespace("reporting", reassign_to="default")
+    assert affected == 1
+    default_ds = service.get_dataset("default.kpi")
+    assert default_ds is not None
+    assert default_ds.namespace == "default"

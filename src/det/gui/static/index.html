@@ -93,7 +93,6 @@
     .default-star {
       color: var(--accent-amber);
       font-size: 0.85rem;
-      title: "Default Catalog";
     }
 
     .btn {
@@ -120,6 +119,8 @@
     .btn-danger { color: var(--accent-rose); border-color: rgba(244, 63, 94, 0.3); }
     .btn-danger:hover { background: rgba(244, 63, 94, 0.1); border-color: var(--accent-rose); }
     .btn-sm { padding: 0.25rem 0.55rem; font-size: 0.75rem; }
+    .btn-icon { padding: 0.2rem 0.4rem; border-radius: 4px; font-size: 0.75rem; border: none; background: transparent; color: var(--text-muted); }
+    .btn-icon:hover { color: #fff; background: rgba(255,255,255,0.1); }
 
     /* App Layout */
     .app-body {
@@ -131,7 +132,7 @@
 
     /* Left Sidebar Explorer */
     aside.sidebar {
-      width: 320px;
+      width: 340px;
       background: var(--bg-card);
       border-right: 1px solid var(--border-color);
       display: flex;
@@ -151,7 +152,7 @@
       align-items: center;
     }
     .sidebar-title {
-      font-size: 0.9rem;
+      font-size: 0.85rem;
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.05em;
@@ -180,20 +181,75 @@
     }
     .search-input:focus { border-color: var(--border-focus); }
 
-    .dataset-list {
+    /* Tree View / Categories in Sidebar */
+    .category-tree {
       flex: 1;
       overflow-y: auto;
       padding: 0.5rem;
-      list-style: none;
     }
+
+    .category-group {
+      margin-bottom: 0.6rem;
+    }
+    .category-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.45rem 0.6rem;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.02);
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.15s;
+    }
+    .category-header:hover {
+      background: rgba(255, 255, 255, 0.06);
+    }
+    .category-title-wrap {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-weight: 600;
+      font-size: 0.85rem;
+      color: #e2e8f0;
+    }
+    .category-chevron {
+      font-size: 0.7rem;
+      color: var(--text-dim);
+      transition: transform 0.15s ease;
+    }
+    .category-chevron.collapsed {
+      transform: rotate(-90deg);
+    }
+    .category-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.2rem;
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+    .category-header:hover .category-actions {
+      opacity: 1;
+    }
+
+    .category-items {
+      padding-left: 0.5rem;
+      margin-top: 0.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+    }
+    .category-items.collapsed {
+      display: none;
+    }
+
     .dataset-item {
-      padding: 0.65rem 0.85rem;
+      padding: 0.55rem 0.75rem;
       border-radius: 6px;
       cursor: pointer;
       display: flex;
       flex-direction: column;
-      gap: 0.3rem;
-      margin-bottom: 0.25rem;
+      gap: 0.25rem;
       border: 1px solid transparent;
       transition: background 0.15s;
     }
@@ -218,7 +274,7 @@
     }
     .pill {
       font-size: 0.7rem;
-      padding: 0.15rem 0.45rem;
+      padding: 0.12rem 0.4rem;
       border-radius: 4px;
       font-family: var(--font-mono);
       font-weight: 500;
@@ -316,7 +372,7 @@
       margin-bottom: 0.75rem;
       display: flex;
       align-items: center;
-      gap: 0.5rem;
+      justify-content: space-between;
     }
     .table-container {
       border: 1px solid var(--border-color);
@@ -358,12 +414,16 @@
     .null-yes { color: var(--text-dim); }
     .null-no { color: var(--accent-amber); font-weight: 500; }
 
-    /* Sample Preview Table */
-    .preview-container {
-      overflow-x: auto;
-      border: 1px solid var(--border-color);
-      border-radius: 6px;
-      margin-top: 0.5rem;
+    .editable-desc {
+      cursor: pointer;
+      padding: 0.2rem 0.4rem;
+      border-radius: 4px;
+      display: inline-block;
+      min-width: 120px;
+    }
+    .editable-desc:hover {
+      background: rgba(255, 255, 255, 0.06);
+      text-decoration: underline;
     }
 
     /* Modals */
@@ -386,7 +446,7 @@
       border: 1px solid var(--border-color);
       border-radius: 10px;
       width: 90%;
-      max-width: 720px;
+      max-width: 780px;
       max-height: 88vh;
       display: flex;
       flex-direction: column;
@@ -499,17 +559,20 @@
 
   <!-- Application Body -->
   <div class="app-body">
-    <!-- Left Navigation Bar (Vertical Explorer) -->
+    <!-- Left Navigation Bar (Vertical Explorer with Categories) -->
     <aside class="sidebar">
       <div class="sidebar-header">
         <div class="sidebar-title-row">
-          <span class="sidebar-title">Tables & Files <span id="datasetCount" class="count-badge">0</span></span>
+          <span class="sidebar-title">Categories & Tables <span id="datasetCount" class="count-badge">0</span></span>
+          <button class="btn btn-sm" id="btnCreateNamespace" title="Create new category">+ Category</button>
         </div>
         <input type="text" id="filterInput" class="search-input" placeholder="Filter tables or columns...">
       </div>
-      <ul id="datasetList" class="dataset-list">
-        <!-- Dataset Items dynamically populated -->
-      </ul>
+
+      <!-- Hierarchical Categories Tree -->
+      <div id="categoryTree" class="category-tree">
+        <!-- Categories and Tables rendered dynamically -->
+      </div>
     </aside>
 
     <!-- Main Detail View -->
@@ -531,14 +594,14 @@
           </div>
           <div class="detail-actions">
             <button class="btn btn-sm" id="btnRescan">↻ Re-Scan</button>
-            <button class="btn btn-sm" id="btnEdit">Edit</button>
+            <button class="btn btn-sm" id="btnEdit">Edit Metadata & Schema</button>
             <button class="btn btn-sm btn-danger" id="btnDelete">Delete</button>
           </div>
         </div>
 
         <div class="meta-grid">
           <div class="meta-item">
-            <span class="meta-label">Namespace</span>
+            <span class="meta-label">Category / Namespace</span>
             <span class="meta-val" id="dtNamespace">default</span>
           </div>
           <div class="meta-item">
@@ -557,15 +620,18 @@
 
         <!-- Schema Columns Table -->
         <div class="schema-section">
-          <h3>Columns & Schema (<span id="columnCount">0</span>)</h3>
+          <h3>
+            <span>Columns & Schema (<span id="columnCount">0</span>)</span>
+            <span style="font-size:0.75rem; color:var(--text-dim); font-weight:normal;">Click descriptions to edit</span>
+          </h3>
           <div class="table-container">
             <table>
               <thead>
                 <tr>
-                  <th style="width: 30%;">Column Name</th>
-                  <th style="width: 25%;">Data Type</th>
+                  <th style="width: 25%;">Column Name</th>
+                  <th style="width: 20%;">Data Type</th>
                   <th style="width: 15%;">Nullable</th>
-                  <th style="width: 30%;">Description</th>
+                  <th style="width: 40%;">Column Description</th>
                 </tr>
               </thead>
               <tbody id="schemaTableBody">
@@ -589,10 +655,10 @@
         <div class="form-group">
           <label class="form-label">Location (File or Directory Path) *</label>
           <div class="input-row">
-            <input type="text" id="formLocation" class="form-input" placeholder="e.g. D:/data/orders.parquet or D:/data/csv_folder/">
+            <input type="text" id="formLocation" class="form-input" placeholder="e.g. sample_data/orders.parquet">
             <button class="btn btn-primary" id="btnTriggerScan">⚡ Scan Location</button>
           </div>
-          <span style="font-size: 0.75rem; color: var(--text-dim);">Point to a Parquet, CSV, JSON, Excel file, or directory. Clicking Scan will auto-infer the schema below.</span>
+          <span style="font-size: 0.75rem; color: var(--text-dim);">Point to a Parquet, CSV, JSON, Excel file, or directory. Clicking Scan will auto-infer columns and types below.</span>
         </div>
 
         <div class="input-row">
@@ -601,8 +667,14 @@
             <input type="text" id="formName" class="form-input" placeholder="e.g. orders">
           </div>
           <div class="form-group">
-            <label class="form-label">Namespace</label>
-            <input type="text" id="formNamespace" class="form-input" value="default">
+            <label class="form-label">Category / Namespace</label>
+            <div style="display:flex; gap:0.4rem;">
+              <select id="formNamespaceSelect" class="form-select" style="flex:1;">
+                <!-- Populated dynamically -->
+              </select>
+              <input type="text" id="formNamespaceCustom" class="form-input" placeholder="New category name" style="display:none; flex:1;">
+              <button class="btn btn-sm" id="btnToggleCustomNs" type="button">+ New</button>
+            </div>
           </div>
           <div class="form-group">
             <label class="form-label">Format</label>
@@ -617,28 +689,29 @@
         </div>
 
         <div class="form-group">
-          <label class="form-label">Description</label>
+          <label class="form-label">Table Description</label>
           <input type="text" id="formDesc" class="form-input" placeholder="Summary of dataset contents...">
         </div>
 
-        <!-- Inferred / Editable Schema Table -->
+        <!-- Inferred / Editable Schema Table with Column Description input -->
         <div class="form-group">
           <div style="display:flex; justify-content:space-between; align-items:center;">
-            <label class="form-label">Schema Columns</label>
-            <button class="btn btn-sm" id="btnAddColumnRow">+ Add Column</button>
+            <label class="form-label">Schema Columns & Descriptions</label>
+            <button class="btn btn-sm" id="btnAddColumnRow" type="button">+ Add Column</button>
           </div>
-          <div class="table-container" style="max-height: 240px; overflow-y: auto;">
+          <div class="table-container" style="max-height: 250px; overflow-y: auto;">
             <table class="col-table">
               <thead>
                 <tr>
-                  <th style="width: 35%;">Column Name</th>
-                  <th style="width: 30%;">Data Type</th>
-                  <th style="width: 15%;">Nullable</th>
-                  <th style="width: 10%;">Remove</th>
+                  <th style="width: 25%;">Column Name</th>
+                  <th style="width: 20%;">Data Type</th>
+                  <th style="width: 10%;">Null</th>
+                  <th style="width: 38%;">Column Description</th>
+                  <th style="width: 7%;"></th>
                 </tr>
               </thead>
               <tbody id="modalColTableBody">
-                <!-- Dynamically populated rows -->
+                <!-- Dynamically populated rows with Column Descriptions -->
               </tbody>
             </table>
           </div>
@@ -651,7 +724,27 @@
     </div>
   </div>
 
-  <!-- Modal 2: Switch Catalog Modal -->
+  <!-- Modal 2: Create / Rename Category Modal -->
+  <div class="modal-overlay" id="namespaceModal">
+    <div class="modal" style="max-width: 440px;">
+      <div class="modal-header">
+        <h3 id="nsModalTitle">Create Category</h3>
+        <button class="btn btn-sm" onclick="closeModal('namespaceModal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label" id="nsModalLabel">Category / Namespace Name</label>
+          <input type="text" id="nsModalInput" class="form-input" placeholder="e.g. sales, raw, analytics">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" onclick="closeModal('namespaceModal')">Cancel</button>
+        <button class="btn btn-primary" id="btnSaveNamespace">Save Category</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 3: Switch Catalog Modal -->
   <div class="modal-overlay" id="switchCatalogModal">
     <div class="modal" style="max-width: 520px;">
       <div class="modal-header">
@@ -662,7 +755,7 @@
         <div class="form-group">
           <label class="form-label">Catalog YAML File Path</label>
           <input type="text" id="switchPathInput" class="form-input" placeholder="e.g. D:/projects/catalog.yaml">
-          <span style="font-size: 0.75rem; color: var(--text-dim);">Enter the path to an existing catalog.yaml or specify a new path to create one.</span>
+          <span style="font-size: 0.75rem; color: var(--text-dim);">Enter path to an existing catalog.yaml or specify a new path to create one.</span>
         </div>
         <div style="display:flex; align-items:center; gap:0.5rem; margin-top:0.5rem;">
           <input type="checkbox" id="chkSetDefault">
@@ -678,7 +771,7 @@
     </div>
   </div>
 
-  <!-- Modal 3: Raw YAML Viewer Modal -->
+  <!-- Modal 4: Raw YAML Viewer Modal -->
   <div class="modal-overlay" id="yamlModal">
     <div class="modal" style="max-width: 650px;">
       <div class="modal-header">
@@ -701,9 +794,12 @@
   <!-- Client JavaScript Application -->
   <script>
     let activeDatasets = [];
+    let activeNamespaces = [];
     let selectedDatasetId = null;
     let editingDatasetId = null;
     let modalColumns = [];
+    let collapsedCategories = new Set();
+    let renamingNamespace = null;
 
     // --- Toast Helper ---
     function showToast(msg, isError = false) {
@@ -717,7 +813,7 @@
     function openModal(id) { document.getElementById(id).classList.add('open'); }
     function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 
-    // --- Fetch Catalog Status & Datasets ---
+    // --- Fetch Data ---
     async function loadCatalogStatus() {
       try {
         const res = await fetch('/api/catalog/status');
@@ -730,56 +826,112 @@
       }
     }
 
+    async function loadNamespaces() {
+      try {
+        const res = await fetch('/api/namespaces');
+        activeNamespaces = await res.json();
+      } catch (err) {
+        console.error('Error fetching namespaces:', err);
+      }
+    }
+
     async function loadDatasets() {
       try {
         const query = document.getElementById('filterInput').value;
         const url = query ? `/api/datasets?search=${encodeURIComponent(query)}` : '/api/datasets';
         const res = await fetch(url);
         activeDatasets = await res.json();
-        renderDatasetList();
+        await loadNamespaces();
+        renderCategoryTree();
       } catch (err) {
         showToast('Error fetching datasets', true);
       }
     }
 
-    function renderDatasetList() {
-      const listEl = document.getElementById('datasetList');
+    // --- Render Left Explorer (Grouped by Category/Namespace) ---
+    function renderCategoryTree() {
+      const treeEl = document.getElementById('categoryTree');
       document.getElementById('datasetCount').textContent = activeDatasets.length;
-      listEl.innerHTML = '';
+      treeEl.innerHTML = '';
 
-      if (activeDatasets.length === 0) {
-        listEl.innerHTML = '<li style="padding:1rem; color:var(--text-dim); text-align:center;">No tables registered</li>';
-        return;
-      }
+      // Merge namespaces from API and any distinct namespaces from datasets
+      const allNsNames = new Set(activeNamespaces.map(n => n.name));
+      activeDatasets.forEach(d => allNsNames.add(d.namespace || 'default'));
+      if (allNsNames.size === 0) allNsNames.add('default');
 
-      activeDatasets.forEach(d => {
-        const li = document.createElement('li');
-        li.className = `dataset-item ${d.id === selectedDatasetId ? 'active' : ''}`;
-        li.onclick = () => selectDataset(d.id);
+      allNsNames.forEach(nsName => {
+        const datasetsInNs = activeDatasets.filter(d => (d.namespace || 'default').toLowerCase() === nsName.toLowerCase());
+        const isCollapsed = collapsedCategories.has(nsName);
 
-        let fmtClass = 'pill-default';
-        if (d.format.includes('parquet')) fmtClass = 'pill-parquet';
-        else if (d.format.includes('csv')) fmtClass = 'pill-csv';
-        else if (d.format.includes('json')) fmtClass = 'pill-json';
-        else if (d.format.includes('excel')) fmtClass = 'pill-excel';
+        const groupDiv = document.createElement('div');
+        groupDiv.className = 'category-group';
 
-        li.innerHTML = `
-          <div class="dataset-item-header">
-            <span class="dataset-name">${d.name}</span>
-            <span class="pill ${fmtClass}">${d.format}</span>
+        const headerDiv = document.createElement('div');
+        headerDiv.className = 'category-header';
+        headerDiv.onclick = (e) => {
+          // If clicked on action buttons, ignore collapse toggle
+          if (e.target.closest('.category-actions')) return;
+          if (isCollapsed) collapsedCategories.delete(nsName);
+          else collapsedCategories.add(nsName);
+          renderCategoryTree();
+        };
+
+        headerDiv.innerHTML = `
+          <div class="category-title-wrap">
+            <span class="category-chevron ${isCollapsed ? 'collapsed' : ''}">▼</span>
+            <span>📁 ${nsName}</span>
+            <span class="count-badge">${datasetsInNs.length}</span>
           </div>
-          <div class="dataset-sub">
-            <span>${d.namespace}</span>
-            <span>${d.columns ? d.columns.length : 0} cols ${d.row_count ? '• ' + d.row_count.toLocaleString() + ' rows' : ''}</span>
+          <div class="category-actions">
+            <button class="btn-icon" title="Rename Category" onclick="promptRenameNamespace('${nsName}')">✏️</button>
+            <button class="btn-icon" title="Delete Category" onclick="promptDeleteNamespace('${nsName}')">🗑️</button>
           </div>
         `;
-        listEl.appendChild(li);
+        groupDiv.appendChild(headerDiv);
+
+        const itemsDiv = document.createElement('div');
+        itemsDiv.className = `category-items ${isCollapsed ? 'collapsed' : ''}`;
+
+        if (datasetsInNs.length === 0) {
+          itemsDiv.innerHTML = '<div style="padding:0.4rem 0.6rem; color:var(--text-dim); font-size:0.75rem;">(No tables in this category)</div>';
+        } else {
+          datasetsInNs.forEach(d => {
+            const itemDiv = document.createElement('div');
+            itemDiv.className = `dataset-item ${d.id === selectedDatasetId ? 'active' : ''}`;
+            itemDiv.onclick = (e) => {
+              e.stopPropagation();
+              selectDataset(d.id);
+            };
+
+            let fmtClass = 'pill-default';
+            if (d.format.includes('parquet')) fmtClass = 'pill-parquet';
+            else if (d.format.includes('csv')) fmtClass = 'pill-csv';
+            else if (d.format.includes('json')) fmtClass = 'pill-json';
+            else if (d.format.includes('excel')) fmtClass = 'pill-excel';
+
+            itemDiv.innerHTML = `
+              <div class="dataset-item-header">
+                <span class="dataset-name">${d.name}</span>
+                <span class="pill ${fmtClass}">${d.format}</span>
+              </div>
+              <div class="dataset-sub">
+                <span>${d.columns ? d.columns.length : 0} cols</span>
+                <span>${d.row_count != null ? d.row_count.toLocaleString() + ' rows' : ''}</span>
+              </div>
+            `;
+            itemsDiv.appendChild(itemDiv);
+          });
+        }
+
+        groupDiv.appendChild(itemsDiv);
+        treeEl.appendChild(groupDiv);
       });
     }
 
+    // --- Select Dataset ---
     function selectDataset(id) {
       selectedDatasetId = id;
-      renderDatasetList();
+      renderCategoryTree();
       const dataset = activeDatasets.find(d => d.id === id);
       if (!dataset) return;
 
@@ -801,16 +953,46 @@
       tbody.innerHTML = '';
       document.getElementById('columnCount').textContent = dataset.columns.length;
 
-      dataset.columns.forEach(col => {
+      dataset.columns.forEach((col, idx) => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
           <td style="font-weight:600; font-family:var(--font-mono);">${col.name}</td>
           <td><span class="type-badge">${col.type}</span></td>
           <td><span class="${col.nullable ? 'null-yes' : 'null-no'}">${col.nullable ? 'Yes' : 'No'}</span></td>
-          <td style="color:var(--text-muted);">${col.description || '-'}</td>
+          <td>
+            <span class="editable-desc" title="Click to edit column description" onclick="editColumnDescInline('${dataset.id}', ${idx})">
+              ${col.description ? col.description : '<span style="color:var(--text-dim); italic;">+ Add description</span>'}
+            </span>
+          </td>
         `;
         tbody.appendChild(tr);
       });
+    }
+
+    // --- Inline Column Description Editing ---
+    async function editColumnDescInline(datasetId, colIdx) {
+      const dataset = activeDatasets.find(d => d.id === datasetId);
+      if (!dataset) return;
+
+      const currentDesc = dataset.columns[colIdx].description || '';
+      const newDesc = prompt(`Edit description for column '${dataset.columns[colIdx].name}':`, currentDesc);
+      if (newDesc === null) return; // User cancelled
+
+      dataset.columns[colIdx].description = newDesc.trim();
+
+      try {
+        const res = await fetch(`/api/datasets/${encodeURIComponent(datasetId)}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(dataset)
+        });
+        if (!res.ok) throw new Error('Failed to update column description');
+        showToast('Column description updated!');
+        await loadDatasets();
+        selectDataset(datasetId);
+      } catch (err) {
+        showToast(err.message, true);
+      }
     }
 
     // --- Copy Location Path ---
@@ -820,7 +1002,110 @@
       showToast('Path copied to clipboard!');
     };
 
-    // --- Trigger Auto Scan ---
+    // --- Namespace Category Actions (Create, Rename, Delete) ---
+    document.getElementById('btnCreateNamespace').onclick = () => {
+      renamingNamespace = null;
+      document.getElementById('nsModalTitle').textContent = 'Create New Category';
+      document.getElementById('nsModalLabel').textContent = 'Category / Namespace Name';
+      document.getElementById('nsModalInput').value = '';
+      openModal('namespaceModal');
+    };
+
+    function promptRenameNamespace(oldName) {
+      renamingNamespace = oldName;
+      document.getElementById('nsModalTitle').textContent = `Rename Category: ${oldName}`;
+      document.getElementById('nsModalLabel').textContent = 'New Category Name';
+      document.getElementById('nsModalInput').value = oldName;
+      openModal('namespaceModal');
+    }
+
+    async function promptDeleteNamespace(nsName) {
+      if (!confirm(`Are you sure you want to delete category '${nsName}'?\nAny tables in this category will be moved to 'default'.`)) return;
+
+      try {
+        const res = await fetch(`/api/namespaces/${encodeURIComponent(nsName)}?reassign_to=default`, { method: 'DELETE' });
+        if (!res.ok) throw new Error('Failed to delete category');
+        showToast(`Category '${nsName}' removed`);
+        await loadDatasets();
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    }
+
+    document.getElementById('btnSaveNamespace').onclick = async () => {
+      const val = document.getElementById('nsModalInput').value.trim();
+      if (!val) {
+        showToast('Category name cannot be empty', true);
+        return;
+      }
+
+      try {
+        if (renamingNamespace) {
+          const res = await fetch(`/api/namespaces/${encodeURIComponent(renamingNamespace)}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ new_name: val })
+          });
+          if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.detail || 'Rename failed');
+          }
+          showToast(`Category renamed to '${val}'`);
+        } else {
+          const res = await fetch('/api/namespaces', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: val })
+          });
+          if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.detail || 'Creation failed');
+          }
+          showToast(`Category '${val}' created!`);
+        }
+        closeModal('namespaceModal');
+        await loadDatasets();
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    };
+
+    // --- Namespace Toggle in Modal ---
+    document.getElementById('btnToggleCustomNs').onclick = () => {
+      const selectEl = document.getElementById('formNamespaceSelect');
+      const customEl = document.getElementById('formNamespaceCustom');
+      const btn = document.getElementById('btnToggleCustomNs');
+
+      if (customEl.style.display === 'none') {
+        customEl.style.display = 'block';
+        selectEl.style.display = 'none';
+        btn.textContent = 'Existing';
+        customEl.focus();
+      } else {
+        customEl.style.display = 'none';
+        selectEl.style.display = 'block';
+        btn.textContent = '+ New';
+      }
+    };
+
+    function populateNamespaceDropdown(selectedVal = 'default') {
+      const selectEl = document.getElementById('formNamespaceSelect');
+      selectEl.innerHTML = '';
+
+      const nsSet = new Set(activeNamespaces.map(n => n.name));
+      nsSet.add('default');
+      activeDatasets.forEach(d => nsSet.add(d.namespace));
+
+      nsSet.forEach(ns => {
+        const opt = document.createElement('option');
+        opt.value = ns;
+        opt.textContent = ns;
+        if (ns === selectedVal) opt.selected = true;
+        selectEl.appendChild(opt);
+      });
+    }
+
+    // --- Auto Scan Location ---
     document.getElementById('btnTriggerScan').onclick = async () => {
       const loc = document.getElementById('formLocation').value.trim();
       if (!loc) {
@@ -864,13 +1149,14 @@
       }
     };
 
+    // --- Render Columns in Modal (With Column Description Field!) ---
     function renderModalColumns() {
       const tbody = document.getElementById('modalColTableBody');
       tbody.innerHTML = '';
       modalColumns.forEach((col, idx) => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td><input type="text" value="${col.name}" onchange="modalColumns[${idx}].name = this.value"></td>
+          <td><input type="text" value="${col.name}" onchange="modalColumns[${idx}].name = this.value" placeholder="Column Name"></td>
           <td>
             <select onchange="modalColumns[${idx}].type = this.value">
               <option value="${col.type}" selected>${col.type}</option>
@@ -888,7 +1174,10 @@
             <input type="checkbox" ${col.nullable ? 'checked' : ''} onchange="modalColumns[${idx}].nullable = this.checked">
           </td>
           <td>
-            <button class="btn btn-sm btn-danger" onclick="modalColumns.splice(${idx}, 1); renderModalColumns();">✕</button>
+            <input type="text" value="${col.description || ''}" onchange="modalColumns[${idx}].description = this.value" placeholder="Description...">
+          </td>
+          <td style="text-align:center;">
+            <button class="btn btn-sm btn-danger" type="button" onclick="modalColumns.splice(${idx}, 1); renderModalColumns();">✕</button>
           </td>
         `;
         tbody.appendChild(tr);
@@ -896,18 +1185,21 @@
     }
 
     document.getElementById('btnAddColumnRow').onclick = () => {
-      modalColumns.push({ name: 'new_col', type: 'string', nullable: true, description: '' });
+      modalColumns.push({ name: 'new_column', type: 'string', nullable: true, description: '' });
       renderModalColumns();
     };
 
-    // --- Add & Edit Handlers ---
+    // --- Add & Edit Table Modal Openers ---
     document.getElementById('btnAddDataset').onclick = () => {
       editingDatasetId = null;
       document.getElementById('modalTitle').textContent = 'Register New Table / File';
       document.getElementById('formLocation').value = '';
       document.getElementById('formName').value = '';
-      document.getElementById('formNamespace').value = 'default';
       document.getElementById('formDesc').value = '';
+      document.getElementById('formNamespaceCustom').style.display = 'none';
+      document.getElementById('formNamespaceSelect').style.display = 'block';
+      document.getElementById('btnToggleCustomNs').textContent = '+ New';
+      populateNamespaceDropdown('default');
       modalColumns = [];
       renderModalColumns();
       openModal('datasetModal');
@@ -920,24 +1212,36 @@
       document.getElementById('modalTitle').textContent = `Edit Table: ${dataset.name}`;
       document.getElementById('formLocation').value = dataset.location;
       document.getElementById('formName').value = dataset.name;
-      document.getElementById('formNamespace').value = dataset.namespace;
       document.getElementById('formDesc').value = dataset.description || '';
       document.getElementById('formFormat').value = dataset.format;
+      document.getElementById('formNamespaceCustom').style.display = 'none';
+      document.getElementById('formNamespaceSelect').style.display = 'block';
+      document.getElementById('btnToggleCustomNs').textContent = '+ New';
+      populateNamespaceDropdown(dataset.namespace);
       modalColumns = JSON.parse(JSON.stringify(dataset.columns || []));
       renderModalColumns();
       openModal('datasetModal');
     };
 
-    // --- Save Dataset ---
+    // --- Save Dataset Handler ---
     document.getElementById('btnSaveDataset').onclick = async () => {
       const name = document.getElementById('formName').value.trim();
       const location = document.getElementById('formLocation').value.trim();
-      const namespace = document.getElementById('formNamespace').value.trim() || 'default';
+
+      // Read selected or custom namespace
+      let namespace = 'default';
+      const customEl = document.getElementById('formNamespaceCustom');
+      if (customEl.style.display !== 'none' && customEl.value.trim()) {
+        namespace = customEl.value.trim();
+      } else {
+        namespace = document.getElementById('formNamespaceSelect').value || 'default';
+      }
+
       const format = document.getElementById('formFormat').value;
       const description = document.getElementById('formDesc').value.trim();
 
       if (!name || !location) {
-        showToast('Name and Location are required', true);
+        showToast('Table Name and Location are required', true);
         return;
       }
 
@@ -974,7 +1278,7 @@
         }
 
         closeModal('datasetModal');
-        showToast(`Dataset '${name}' saved successfully!`);
+        showToast(`Table '${name}' saved to category '${namespace}'!`);
         await loadDatasets();
         selectDataset(id);
       } catch (err) {
@@ -990,7 +1294,7 @@
       try {
         const res = await fetch(`/api/datasets/${encodeURIComponent(selectedDatasetId)}`, { method: 'DELETE' });
         if (!res.ok) throw new Error('Failed to delete dataset');
-        showToast('Dataset deleted');
+        showToast('Table deleted');
         selectedDatasetId = null;
         document.getElementById('detailView').style.display = 'none';
         document.getElementById('emptyView').style.display = 'flex';

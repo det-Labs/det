@@ -110,6 +110,54 @@ def get_catalog_yaml() -> str:
     return service.export_yaml()
 
 
+# --- Namespace / Category Management ---
+
+
+class CreateNamespaceRequest(BaseModel):
+    name: str = Field(..., description="Name of the new namespace")
+
+
+class RenameNamespaceRequest(BaseModel):
+    new_name: str = Field(..., description="New name for the namespace")
+
+
+@app.get("/api/namespaces")
+def list_namespaces():
+    """List all namespaces / categories with their dataset counts."""
+    service = get_service()
+    return service.list_namespaces()
+
+
+@app.post("/api/namespaces", status_code=status.HTTP_201_CREATED)
+def create_namespace(req: CreateNamespaceRequest):
+    """Create a new namespace in the catalog."""
+    service = get_service()
+    try:
+        created = service.create_namespace(req.name)
+        return {"name": created}
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+
+@app.put("/api/namespaces/{name}")
+def rename_namespace(name: str, req: RenameNamespaceRequest):
+    """Rename a namespace and cascade updates to all its datasets."""
+    service = get_service()
+    try:
+        updated = service.rename_namespace(name, req.new_name)
+        return {"old_name": name, "new_name": req.new_name, "updated_datasets": updated}
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+
+@app.delete("/api/namespaces/{name}")
+def delete_namespace(name: str, reassign_to: str | None = Query("default")):
+    """Delete a namespace, reassigning or removing its datasets."""
+    service = get_service()
+    affected = service.delete_namespace(name, reassign_to=reassign_to)
+    return {"name": name, "affected_datasets": affected}
+
+
 @app.get("/api/datasets", response_model=list[DatasetMetadata])
 def list_datasets(
     search: str | None = Query(None, description="Search term for names, columns, or tags"),

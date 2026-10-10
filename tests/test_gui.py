@@ -95,3 +95,27 @@ def test_gui_switch_catalog(gui_client):
     )
     assert res.status_code == 200
     assert res.json()["active_path"] == str(new_path.resolve())
+
+
+def test_gui_namespace_endpoints(gui_client):
+    client = gui_client["client"]
+
+    # 1. Create namespace
+    create_res = client.post("/api/namespaces", json={"name": "ecommerce"})
+    assert create_res.status_code == 201
+    assert create_res.json()["name"] == "ecommerce"
+
+    # 2. List namespaces
+    list_res = client.get("/api/namespaces")
+    assert list_res.status_code == 200
+    names = [n["name"] for n in list_res.json()]
+    assert "ecommerce" in names
+
+    # 3. Rename namespace
+    rename_res = client.put("/api/namespaces/ecommerce", json={"new_name": "shop"})
+    assert rename_res.status_code == 200
+    assert rename_res.json()["new_name"] == "shop"
+
+    # 4. Delete namespace
+    del_res = client.delete("/api/namespaces/shop?reassign_to=default")
+    assert del_res.status_code == 200

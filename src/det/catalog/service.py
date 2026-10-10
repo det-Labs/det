@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 from det.catalog.config import get_default_catalog_path, set_default_catalog_path
 from det.catalog.models import DatasetMetadata, ScanResult
@@ -145,6 +146,91 @@ class CatalogService:
         dataset.last_scanned = datetime.now(UTC).isoformat()
 
         return self.update_dataset(dataset_id, dataset)
+
+    def list_namespaces(self) -> list[dict[str, Any]]:
+        """List all namespaces / categories with their dataset counts."""
+        catalog = load_catalog(self._path)
+        # Collect unique namespaces preserving order
+        ns_set = list(dict.fromkeys(catalog.namespaces + [d.namespace for d in catalog.datasets]))
+        if "default" not in ns_set:
+            ns_set.insert(0, "default")
+
+        counts: dict[str, int] = {}
+        for d in catalog.datasets:
+            counts[d.namespace] = counts.get(d.namespace, 0) + 1
+
+        return [{"name": ns, "count": counts.get(ns, 0)} for ns in ns_set]
+
+    def create_namespace(self, name: str) -> str:
+        """Create a new namespace / category in the catalog."""
+        clean_name = name.strip()
+        if not clean_name:
+            raise ValueError("Namespace name cannot be empty.")
+
+        catalog = load_catalog(self._path)
+        if clean_name not in catalog.namespaces:
+            catalog.namespaces.append(clean_name)
+            save_catalog(self._path, catalog)
+        return clean_name
+
+    def rename_namespace(self, old_name: str, new_name: str) -> int:
+        """Rename an existing namespace and update all its associated datasets."""
+        clean_old = old_name.strip()
+        clean_new = new_name.strip()
+        if not clean_new:
+            raise ValueError("New namespace name cannot be empty.")
+        if clean_old == clean_new:
+            return 0
+
+        catalog = load_catalog(self._path)
+
+        # Update in namespaces list
+        if clean_old in catalog.namespaces:
+            idx = catalog.namespaces.index(clean_old)
+            catalog.namespaces[idx] = clean_new
+        elif clean_new not in catalog.namespaces:
+            catalog.namespaces.append(clean_new)
+
+        # Update all datasets
+        updated_count = 0
+        for dataset in catalog.datasets:
+            if dataset.namespace == clean_old:
+                dataset.namespace = clean_new
+                # If ID was prefixed with old namespace, update prefix
+                if dataset.id.startswith(f"{clean_old}."):
+                    dataset.id = f"{clean_new}.{dataset.name}"
+                updated_count += 1
+
+        save_catalog(self._path, catalog)
+        return updated_count
+
+    def delete_namespace(self, name: str, reassign_to: str | None = "default") -> int:
+        """Delete a namespace, either reassigning its datasets or removing them."""
+        clean_name = name.strip()
+        catalog = load_catalog(self._path)
+
+        if clean_name in catalog.namespaces:
+            catalog.namespaces.remove(clean_name)
+
+        affected_count = 0
+        if reassign_to:
+            target_ns = reassign_to.strip()
+            if target_ns not in catalog.namespaces:
+                catalog.namespaces.append(target_ns)
+            for d in catalog.datasets:
+                if d.namespace == clean_name:
+                    d.namespace = target_ns
+                    if d.id.startswith(f"{clean_name}."):
+                        d.id = f"{target_ns}.{d.name}"
+                    affected_count += 1
+        else:
+            # Delete datasets in this namespace
+            initial_len = len(catalog.datasets)
+            catalog.datasets = [d for d in catalog.datasets if d.namespace != clean_name]
+            affected_count = initial_len - len(catalog.datasets)
+
+        save_catalog(self._path, catalog)
+        return affected_count
 
     def export_yaml(self) -> str:
         """Return raw YAML content of the catalog."""
