@@ -1,4 +1,5 @@
 # det.catalog
+### by det Labs
 
 > **The Catalog & Metadata Engine for the `det` Data Engineering Framework**
 

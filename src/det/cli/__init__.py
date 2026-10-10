@@ -1,4 +1,4 @@
-"""det.cli - Command-line interface for the det data engineering framework."""
+"""det.cli - Command-line interface for the det data engineering framework by det Labs."""
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ from det.catalog import CatalogService, get_default_catalog_path, set_default_ca
 
 app = typer.Typer(
     name="det",
-    help="det - Modular SQL and Python Data Engineering Framework",
+    help="det - Modular Data Engineering Framework by det Labs",
     add_completion=False,
 )
 
@@ -27,13 +27,13 @@ app.add_typer(catalog_app, name="catalog")
 @app.command()
 def version() -> None:
     """Print the installed det framework version."""
-    typer.echo(f"det version {__version__}")
+    typer.echo(f"det version {__version__} (det Labs)")
 
 
 @app.command()
 def info() -> None:
     """Display environment details, active Python runtime, and engine status."""
-    typer.echo(f"det Framework: {__version__}")
+    typer.echo(f"det Framework: {__version__} by det Labs")
     typer.echo(f"Python Version: {sys.version.split()[0]}")
     typer.echo(f"Default Catalog: {get_default_catalog_path()}")
     typer.echo("Engines: Polars, PyArrow, DuckDB (planned)")

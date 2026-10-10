@@ -2,6 +2,9 @@
 plan.txt
 *.docx
 
+# Local logo & visual identity source assets
+detlabs-logo*
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

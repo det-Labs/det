@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>det Catalog Explorer</title>
+  <title>det Catalog Explorer | det Labs</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%230f172a'/%3E%3Ctext x='50' y='68' font-family='Century Gothic, Futura, sans-serif' font-size='50' font-weight='700' text-anchor='middle' fill='%23f45b00'%3Edet%3C/text%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -87,19 +88,32 @@
     .brand {
       display: flex;
       align-items: center;
-      gap: 0.75rem;
-      font-weight: 700;
-      font-size: 1.15rem;
-      color: var(--text-main);
+      gap: 0.65rem;
+      user-select: none;
+      text-decoration: none;
     }
-    .brand-badge {
-      background: linear-gradient(135deg, #6366f1, #a855f7);
-      color: #fff;
-      padding: 0.2rem 0.5rem;
-      border-radius: 6px;
-      font-size: 0.8rem;
-      font-weight: 800;
-      letter-spacing: 0.05em;
+    .brand-logo-svg {
+      height: 26px;
+      width: auto;
+      display: block;
+    }
+    .brand-labs-fill {
+      fill: #94a3b8;
+      transition: fill 0.15s ease;
+    }
+    [data-theme="light"] .brand-labs-fill {
+      fill: #5d5d5f;
+    }
+    .brand-divider {
+      color: var(--border-color);
+      font-size: 1.1rem;
+      font-weight: 300;
+    }
+    .brand-tag {
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      letter-spacing: -0.01em;
     }
 
     .catalog-bar {
@@ -715,9 +729,19 @@
 
   <!-- Top Header Navigation -->
   <header>
-    <div class="brand">
-      <span class="brand-badge">DET</span>
-      <span>Catalog Explorer</span>
+    <div class="brand" title="det Labs">
+      <svg class="brand-logo-svg" viewBox="0 0 1080 240" role="img" aria-label="det Labs">
+        <text
+          x="20"
+          y="205"
+          font-family="'Century Gothic', Futura, 'Inter', sans-serif"
+          font-size="210"
+          font-weight="400"
+          letter-spacing="-3"
+        ><tspan fill="#f45b00">det</tspan><tspan dx="28" class="brand-labs-fill">Labs</tspan></text>
+      </svg>
+      <span class="brand-divider">/</span>
+      <span class="brand-tag">Catalog Explorer</span>
     </div>
 
     <!-- Active Catalog Bar -->
@@ -811,6 +835,7 @@
         <div class="empty-icon">📂</div>
         <h3>No Table Selected</h3>
         <p>Select a table from the explorer on the left, or click <strong>+ Add Table / File</strong> to scan and register a new dataset into your catalog.</p>
+        <span style="font-size:0.75rem; color:var(--text-dim); margin-top:0.5rem; letter-spacing:0.02em;">det • Data Engineering Toolkit by det Labs</span>
       </div>
 
       <div id="detailView" class="detail-card" style="display: none;">

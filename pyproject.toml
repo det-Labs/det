@@ -5,12 +5,12 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "det"
 version = "0.1.0"
-description = "A modular, Python-first data engineering framework."
+description = "A modular, Python-first data engineering framework by det Labs."
 readme = "README.md"
 requires-python = ">=3.15"
 license = { text = "Apache-2.0" }
 authors = [
-    { name = "Saurabh Rai", email = "saurabhr2@gmail.com" }
+    { name = "det Labs", email = "saurabhr2@gmail.com" }
 ]
 dependencies = [
     "polars>=1.0.0",

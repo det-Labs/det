@@ -1,6 +1,7 @@
-# DET — Data Engineering Toolkit
+# det — Data Engineering Toolkit
+### by [det Labs](https://github.com/saurabhr2/det)
 
-> **A modular, Python-first data engineering framework for modern analytical workflows.**
+> **A modular, Python-first data engineering framework built by det Labs for modern analytical workflows.**
 
 [![CI](https://github.com/saurabhr2/det/actions/workflows/ci.yml/badge.svg)](https://github.com/saurabhr2/det/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/python->=3.15-blue.svg)](https://www.python.org/downloads/release/python-3150/)
@@ -11,7 +12,7 @@
 
 ## Current Status: Version 0.1.0 (Catalog MVP Released)
 
-`det` has completed its **Version 0.1.0** milestone with the release of the **Catalog Module (`det.catalog`)**:
+**det** (developed by **det Labs**) has completed its **Version 0.1.0** milestone with the release of the **Catalog Module (`det.catalog`)**:
 - Concurrency-safe, atomic YAML metadata persistence with file locks.
 - Automated schema discovery for Parquet, CSV, TSV, JSON, NDJSON, Excel, and directory datasets using Polars and PyArrow.
 - Leverages Python 3.15 stable native `lazy import` syntax for instantaneous engine load times.
@@ -23,7 +24,7 @@
 
 ## Architectural Vision & Module Roadmap
 
-`det` is built from the ground up to be modular, extensible, and Python-native:
+`det` is built from the ground up by det Labs to be modular, extensible, and Python-native:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -32,7 +33,7 @@
 └──────────────┬──────────────────┬──────────────────┬────────┘
                │                  │                  │
 ┌──────────────▼──────────────────▼──────────────────▼────────┐
-│                        DET Core Modules                     │
+│                 det Core Modules (det Labs)                 │
 │                                                             │
 │  [ Released v0.1 ]                                          │
 │  ├── det.catalog     Metadata, schemas, YAML store & GUI    │
@@ -161,4 +162,4 @@ ruff check .
 
 ## License
 
-Distributed under the **Apache License 2.0**. See [`LICENSE`](LICENSE) for details.
+Distributed under the **Apache License 2.0**. Copyright (c) 2026 det Labs. See [`LICENSE`](LICENSE) for details.
