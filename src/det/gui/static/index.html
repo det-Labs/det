@@ -42,7 +42,7 @@
       --border-color: #cbd5e1;
       --border-focus: #4f46e5;
       --text-main: #0f172a;
-      --text-muted: #475569;
+      --text-muted: #334155;
       --text-dim: #64748b;
       --primary: #4f46e5;
       --primary-hover: #4338ca;
@@ -90,7 +90,7 @@
       gap: 0.75rem;
       font-weight: 700;
       font-size: 1.15rem;
-      color: #fff;
+      color: var(--text-main);
     }
     .brand-badge {
       background: linear-gradient(135deg, #6366f1, #a855f7);
@@ -120,7 +120,8 @@
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      color: #e2e8f0;
+      color: var(--text-main);
+      font-weight: 500;
     }
     .default-star {
       color: var(--accent-amber);
@@ -259,11 +260,14 @@
       background: var(--bg-main);
       border: 1px solid var(--border-color);
       border-radius: 6px;
-      color: #fff;
+      color: var(--text-main);
       padding: 0.45rem 0.75rem;
       font-size: 0.85rem;
       outline: none;
       width: 100%;
+    }
+    .search-input::placeholder {
+      color: var(--text-dim);
     }
     .search-input:focus { border-color: var(--border-focus); }
 
@@ -283,13 +287,13 @@
       justify-content: space-between;
       padding: 0.45rem 0.6rem;
       border-radius: 6px;
-      background: rgba(255, 255, 255, 0.02);
+      background: transparent;
       cursor: pointer;
       user-select: none;
       transition: background 0.15s;
     }
     .category-header:hover {
-      background: rgba(255, 255, 255, 0.06);
+      background: var(--item-hover);
     }
     .category-title-wrap {
       display: flex;
@@ -297,7 +301,7 @@
       gap: 0.5rem;
       font-weight: 600;
       font-size: 0.85rem;
-      color: #e2e8f0;
+      color: var(--text-main);
     }
     .category-chevron {
       font-size: 0.7rem;
@@ -336,7 +340,7 @@
     }
     .circle-btn:hover {
       transform: scale(1.18);
-      box-shadow: 0 0 6px rgba(255, 255, 255, 0.35);
+      box-shadow: 0 0 6px rgba(0, 0, 0, 0.25);
     }
     .circle-btn:active {
       transform: scale(0.92);
@@ -388,10 +392,10 @@
       transition: background 0.15s;
     }
     .dataset-item:hover {
-      background: rgba(255, 255, 255, 0.04);
+      background: var(--item-hover);
     }
     .dataset-item.active {
-      background: rgba(99, 102, 241, 0.15);
+      background: var(--item-active);
       border-color: rgba(99, 102, 241, 0.4);
     }
     .dataset-item-header {
@@ -402,7 +406,7 @@
     }
     .dataset-name {
       font-weight: 600;
-      color: #fff;
+      color: var(--text-main);
       display: flex;
       align-items: center;
       gap: 0.4rem;
@@ -428,7 +432,7 @@
       padding: 0.12rem 0.4rem;
       border-radius: 4px;
       font-family: var(--font-mono);
-      font-weight: 500;
+      font-weight: 600;
       text-transform: uppercase;
       flex-shrink: 0;
     }
@@ -437,6 +441,12 @@
     .pill-json { background: rgba(245, 158, 11, 0.2); color: #fde68a; }
     .pill-excel { background: rgba(139, 92, 246, 0.2); color: #c4b5fd; }
     .pill-default { background: rgba(148, 163, 184, 0.2); color: #cbd5e1; }
+
+    [data-theme="light"] .pill-parquet { background: rgba(37, 99, 235, 0.12); color: #1d4ed8; }
+    [data-theme="light"] .pill-csv { background: rgba(5, 150, 105, 0.12); color: #047857; }
+    [data-theme="light"] .pill-json { background: rgba(217, 119, 6, 0.12); color: #b45309; }
+    [data-theme="light"] .pill-excel { background: rgba(124, 58, 237, 0.12); color: #6d28d9; }
+    [data-theme="light"] .pill-default { background: rgba(100, 116, 139, 0.12); color: #334155; }
     .dataset-sub {
       display: flex;
       align-items: center;
@@ -645,6 +655,13 @@
       font-size: 0.85rem;
       outline: none;
     }
+    .form-input::placeholder, .form-textarea::placeholder {
+      color: var(--text-dim);
+    }
+    select option {
+      background: var(--bg-card);
+      color: var(--text-main);
+    }
     .form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--border-focus); }
     .input-row { display: flex; gap: 0.75rem; align-items: flex-end; }
     .input-row .form-group { flex: 1; }
@@ -690,6 +707,8 @@
     .toast.show { opacity: 1; transform: translateY(0); }
     .toast-success { border-color: var(--accent-green); color: #a7f3d0; }
     .toast-error { border-color: var(--accent-rose); color: #fecdd3; }
+    [data-theme="light"] .toast-success { color: #065f46; background: #ecfdf5; border-color: #059669; }
+    [data-theme="light"] .toast-error { color: #9f1239; background: #fff1f2; border-color: #e11d48; }
   </style>
 </head>
 <body>
@@ -1396,6 +1415,13 @@
 
       const fmtEl = document.getElementById('dtFormat');
       fmtEl.textContent = dataset.format.toUpperCase();
+      let fmtClass = 'pill-default';
+      const fmtLower = (dataset.format || '').toLowerCase();
+      if (fmtLower.includes('parquet')) fmtClass = 'pill-parquet';
+      else if (fmtLower.includes('csv')) fmtClass = 'pill-csv';
+      else if (fmtLower.includes('json')) fmtClass = 'pill-json';
+      else if (fmtLower.includes('excel')) fmtClass = 'pill-excel';
+      fmtEl.className = `pill ${fmtClass}`;
 
       // Render columns
       const tbody = document.getElementById('schemaTableBody');
