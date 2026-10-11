@@ -30,7 +30,9 @@ def load_pipeline_store(path: str | Path) -> PipelineStoreFile:
             name="default_project",
             description="Default Data Engineering project",
             categories=[
-                PipelineCategory(name="default", description="Default pipeline category", pipelines=[])
+                PipelineCategory(
+                    name="default", description="Default pipeline category", pipelines=[]
+                )
             ],
         )
         store = PipelineStoreFile(version=1, projects=[default_project])
@@ -78,4 +80,3 @@ def get_pipeline_yaml_str(path: str | Path) -> str:
     lock_path = file_path.with_name(f"{file_path.name}.lock")
     with FileLock(str(lock_path), timeout=10), open(file_path, "r", encoding="utf-8") as f:
         return f.read()
-

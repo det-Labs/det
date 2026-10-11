@@ -61,7 +61,9 @@ def test_category_crud(temp_pipeline_service: PipelineService):
     service.create_project("finance", description="Finance workflows")
 
     # Create category
-    cat = service.create_category("finance", "daily_reconciliation", description="Daily ledger checks")
+    cat = service.create_category(
+        "finance", "daily_reconciliation", description="Daily ledger checks"
+    )
     assert cat.name == "daily_reconciliation"
     assert cat.description == "Daily ledger checks"
 
@@ -111,22 +113,33 @@ def test_pipeline_api_endpoints(temp_pipeline_service: PipelineService):
     assert "total_projects" in data
 
     # 2. Create Project
-    res = client.post("/api/pipelines/projects", json={"name": "crm_sync", "description": "CRM data pipelines"})
+    res = client.post(
+        "/api/pipelines/projects", json={"name": "crm_sync", "description": "CRM data pipelines"}
+    )
     assert res.status_code == 201
     assert res.json()["name"] == "crm_sync"
 
     # 3. Update Project
-    res = client.put("/api/pipelines/projects/crm_sync", json={"new_name": "crm_hubspot", "description": "HubSpot sync"})
+    res = client.put(
+        "/api/pipelines/projects/crm_sync",
+        json={"new_name": "crm_hubspot", "description": "HubSpot sync"},
+    )
     assert res.status_code == 200
     assert res.json()["name"] == "crm_hubspot"
 
     # 4. Create Category
-    res = client.post("/api/pipelines/projects/crm_hubspot/categories", json={"name": "contacts", "description": "Contacts sync"})
+    res = client.post(
+        "/api/pipelines/projects/crm_hubspot/categories",
+        json={"name": "contacts", "description": "Contacts sync"},
+    )
     assert res.status_code == 201
     assert res.json()["name"] == "contacts"
 
     # 5. Update Category
-    res = client.put("/api/pipelines/projects/crm_hubspot/categories/contacts", json={"new_name": "deals", "description": "Deals sync"})
+    res = client.put(
+        "/api/pipelines/projects/crm_hubspot/categories/contacts",
+        json={"new_name": "deals", "description": "Deals sync"},
+    )
     assert res.status_code == 200
     assert res.json()["name"] == "deals"
 
@@ -138,3 +151,173 @@ def test_pipeline_api_endpoints(temp_pipeline_service: PipelineService):
     res = client.delete("/api/pipelines/projects/crm_hubspot")
     assert res.status_code == 204
 
+
+def test_multi_file_config(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    """Test configuration helpers for managing known pipeline files."""
+    import det.pipeline.config as pipe_cfg
+
+    cfg_file = tmp_path / "config.json"
+    monkeypatch.setattr(pipe_cfg, "CONFIG_FILE", cfg_file)
+    monkeypatch.setattr(pipe_cfg, "CONFIG_DIR", tmp_path)
+
+    p1 = tmp_path / "pipelines1.yaml"
+    p2 = tmp_path / "pipelines2.yaml"
+    p1.touch()
+    p2.touch()
+
+    pipe_cfg.set_default_pipeline_path(p1)
+    assert pipe_cfg.get_default_pipeline_path().resolve() == p1.resolve()
+
+    pipe_cfg.add_known_pipeline_file(p2)
+    known = pipe_cfg.get_known_pipeline_files()
+    assert p1.resolve() in known
+    assert p2.resolve() in known
+
+    assert pipe_cfg.remove_known_pipeline_file(p2) is True
+    assert p2.resolve() not in pipe_cfg.get_known_pipeline_files()
+
+
+def test_pipeline_service_multi_file(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    """Test PipelineService multi-file creation, switching, and scoped CRUD."""
+    import det.pipeline.config as pipe_cfg
+
+    cfg_file = tmp_path / "config.json"
+    monkeypatch.setattr(pipe_cfg, "CONFIG_FILE", cfg_file)
+    monkeypatch.setattr(pipe_cfg, "CONFIG_DIR", tmp_path)
+
+    f1 = tmp_path / "etl_alpha.yaml"
+    f2 = tmp_path / "etl_beta.yaml"
+
+    service = PipelineService(f1)
+    service.create_pipeline_file(f1, set_as_default=True)
+    service.create_pipeline_file(f2)
+    assert service.active_path == f2.resolve()
+
+    service.switch_file(f1)
+    assert service.active_path == f1.resolve()
+
+    service.create_project("alpha_proj", description="Project in alpha file")
+
+    # Create project scoped to f2
+    service.create_project("beta_proj", description="Project in beta file", file_path=f2)
+
+    # Verify project isolation
+    alpha_projs = service.list_projects(file_path=f1)
+    beta_projs = service.list_projects(file_path=f2)
+    assert any(p.name == "alpha_proj" for p in alpha_projs)
+    assert not any(p.name == "beta_proj" for p in alpha_projs)
+    assert any(p.name == "beta_proj" for p in beta_projs)
+
+    # Full tree verification
+    full_tree = service.get_full_tree()
+    assert len(full_tree) >= 2
+    f2_entry = next(item for item in full_tree if Path(item["path"]).resolve() == f2.resolve())
+    assert f2_entry["total_projects"] >= 1
+
+    # Switch file
+    service.switch_file(f2)
+    assert service.active_path == f2.resolve()
+
+    # Export yaml
+    yaml_text = service.export_yaml(f2)
+    assert "beta_proj" in yaml_text
+
+
+def test_pipeline_file_api_endpoints(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    """Test REST API endpoints for multi-file pipeline operations."""
+    import det.pipeline.config as pipe_cfg
+
+    cfg_file = tmp_path / "config.json"
+    monkeypatch.setattr(pipe_cfg, "CONFIG_FILE", cfg_file)
+    monkeypatch.setattr(pipe_cfg, "CONFIG_DIR", tmp_path)
+
+    f1 = tmp_path / "api_p1.yaml"
+    f2 = tmp_path / "api_p2.yaml"
+
+    service = PipelineService(f1)
+    set_pipeline_service(service)
+    client = TestClient(app)
+
+    # 1. Create pipeline file
+    res = client.post("/api/pipelines/file/create", json={"path": str(f1), "set_as_default": True})
+    assert res.status_code == 200
+    assert res.json()["active_path"] == str(f1.resolve())
+
+    # 2. Open another pipeline file
+    res = client.post("/api/pipelines/file/open", json={"path": str(f2), "set_as_default": False})
+    assert res.status_code == 200
+    assert res.json()["active_path"] == str(f2.resolve())
+
+    # 3. Create project in f1 via query parameter
+    res = client.post(
+        f"/api/pipelines/projects?file_path={f1}",
+        json={"name": "scoped_p1", "description": "in p1"},
+    )
+    assert res.status_code == 201
+
+    # 4. Get tree with file_path
+    res = client.get(f"/api/pipelines/tree?file_path={f1}")
+    assert res.status_code == 200
+    data = res.json()
+    assert "pipeline_files" in data
+    assert any(p["name"] == "scoped_p1" for p in data["projects"])
+
+    # 5. Get yaml
+    res = client.get(f"/api/pipelines/yaml?path={f1}")
+    assert res.status_code == 200
+    assert "scoped_p1" in res.text
+
+    # 6. Switch back to f1
+    res = client.post("/api/pipelines/file/switch", json={"path": str(f1), "set_as_default": False})
+    assert res.status_code == 200
+    assert res.json()["active_path"] == str(f1.resolve())
+
+    # 7. Set default
+    res = client.post("/api/pipelines/file/set-default", json={"path": str(f2)})
+    assert res.status_code == 200
+
+    # 8. Remove file
+    res = client.post("/api/pipelines/file/remove", json={"path": str(f2)})
+    assert res.status_code == 200
+
+
+def test_pipeline_file_cli(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    """Test CLI commands for pipeline file management."""
+    from typer.testing import CliRunner
+
+    import det.pipeline.config as pipe_cfg
+    from det.cli import app
+
+    cfg_file = tmp_path / "config.json"
+    monkeypatch.setattr(pipe_cfg, "CONFIG_FILE", cfg_file)
+    monkeypatch.setattr(pipe_cfg, "CONFIG_DIR", tmp_path)
+
+    runner = CliRunner()
+    file_a = tmp_path / "cli_a.yaml"
+    file_b = tmp_path / "cli_b.yaml"
+
+    # Create file via CLI
+    res = runner.invoke(app, ["pipeline", "file", "create", str(file_a), "--default"])
+    assert res.exit_code == 0
+    assert "Created pipeline file" in res.stdout
+
+    # Open file via CLI
+    res = runner.invoke(app, ["pipeline", "file", "open", str(file_b)])
+    assert res.exit_code == 0
+    assert "Opened pipeline file" in res.stdout
+
+    # List files via pipeline command
+    res = runner.invoke(app, ["pipeline", "file", "list"])
+    assert res.exit_code == 0
+    assert "cli_a.yaml" in res.stdout
+    assert "cli_b.yaml" in res.stdout
+
+    # List files via etl alias
+    res = runner.invoke(app, ["etl", "file", "list"])
+    assert res.exit_code == 0
+    assert "cli_a.yaml" in res.stdout
+
+    # Set default via pipeline command
+    res = runner.invoke(app, ["pipeline", "set-default", str(file_b)])
+    assert res.exit_code == 0
+    assert "Default pipeline path updated" in res.stdout

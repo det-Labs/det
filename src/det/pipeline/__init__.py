@@ -2,7 +2,13 @@
 
 from __future__ import annotations
 
-from det.pipeline.config import get_default_pipeline_path, set_default_pipeline_path
+from det.pipeline.config import (
+    add_known_pipeline_file,
+    get_default_pipeline_path,
+    get_known_pipeline_files,
+    remove_known_pipeline_file,
+    set_default_pipeline_path,
+)
 from det.pipeline.models import DataPipeline, PipelineCategory, PipelineStoreFile, Project
 from det.pipeline.service import PipelineService
 
@@ -12,7 +18,9 @@ __all__ = [
     "PipelineService",
     "PipelineStoreFile",
     "Project",
+    "add_known_pipeline_file",
     "get_default_pipeline_path",
+    "get_known_pipeline_files",
+    "remove_known_pipeline_file",
     "set_default_pipeline_path",
 ]
-

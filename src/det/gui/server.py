@@ -85,11 +85,47 @@ class UpdateCategoryRequest(BaseModel):
     description: str | None = Field(None, description="New category description")
 
 
+class SwitchPipelineFileRequest(BaseModel):
+    """Payload to switch active pipelines YAML file."""
+
+    path: str = Field(..., description="File path to the target pipeline YAML file")
+    set_as_default: bool = Field(False, description="Whether to persist this as default")
+
+
+class CreatePipelineFileRequest(BaseModel):
+    """Payload to create a new pipeline YAML file."""
+
+    path: str = Field(..., description="File path for the new pipeline YAML file")
+    set_as_default: bool = Field(False, description="Whether to persist this as default")
+    overwrite: bool = Field(False, description="Whether to overwrite if file exists")
+
+
+class OpenPipelineFileRequest(BaseModel):
+    """Payload to open an existing pipeline YAML file."""
+
+    path: str = Field(..., description="File path to existing pipeline YAML file")
+    set_as_default: bool = Field(False, description="Whether to set as default")
+
+
+class RemovePipelineFileRequest(BaseModel):
+    """Payload to remove a pipeline file from explorer."""
+
+    path: str = Field(..., description="Path to pipeline YAML file to remove from explorer")
+
+
+class SetDefaultPipelineFileRequest(BaseModel):
+    """Payload to set a pipeline file as default."""
+
+    path: str = Field(..., description="Path to pipeline YAML file to set as default")
+
+
 class SwitchCatalogRequest(BaseModel):
     """Payload to switch active catalog YAML file."""
 
     path: str = Field(..., description="File path to the target YAML catalog")
-    set_as_default: bool = Field(False, description="Whether to persist this as the default catalog")
+    set_as_default: bool = Field(
+        False, description="Whether to persist this as the default catalog"
+    )
 
 
 class CreateCatalogRequest(BaseModel):
@@ -441,26 +477,103 @@ def scan_path(req: ScanRequest) -> ScanResult:
 # --- Pipelines / ETL API Routes ---
 
 
+@app.post("/api/pipelines/file/switch")
+def switch_pipeline_file(req: SwitchPipelineFileRequest) -> dict[str, Any]:
+    """Switch the active pipeline file path and optionally set it as default."""
+    service = get_pipeline_service()
+    try:
+        new_path = service.switch_file(req.path, set_as_default=req.set_as_default)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Failed to switch pipeline file: {exc}",
+        ) from exc
+    return {"active_path": str(new_path), "pipeline_files": service.get_full_tree()}
+
+
+@app.post("/api/pipelines/file/create")
+def create_pipeline_file(req: CreatePipelineFileRequest) -> dict[str, Any]:
+    """Create a new pipeline YAML file and switch to it as active."""
+    service = get_pipeline_service()
+    try:
+        new_path = service.create_pipeline_file(
+            req.path,
+            set_as_default=req.set_as_default,
+            overwrite=req.overwrite,
+        )
+    except FileExistsError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(exc),
+        ) from exc
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Failed to create pipeline file: {exc}",
+        ) from exc
+    return {"active_path": str(new_path), "pipeline_files": service.get_full_tree()}
+
+
+@app.post("/api/pipelines/file/open")
+def open_pipeline_file(req: OpenPipelineFileRequest) -> dict[str, Any]:
+    """Register an existing pipeline file into known pipelines and switch to it."""
+    service = get_pipeline_service()
+    try:
+        service.switch_file(req.path, set_as_default=req.set_as_default)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Failed to open pipeline file: {exc}",
+        ) from exc
+    return {"active_path": str(service.active_path), "pipeline_files": service.get_full_tree()}
+
+
+@app.post("/api/pipelines/file/remove")
+def remove_pipeline_file(req: RemovePipelineFileRequest) -> dict[str, Any]:
+    """Remove a pipeline file from the known pipelines list in explorer."""
+    service = get_pipeline_service()
+    service.remove_pipeline_file(req.path)
+    return {"active_path": str(service.active_path), "pipeline_files": service.get_full_tree()}
+
+
+@app.post("/api/pipelines/file/set-default")
+def set_default_pipeline_file(req: SetDefaultPipelineFileRequest) -> dict[str, Any]:
+    """Persist a pipeline YAML path as default."""
+    from det.pipeline.config import set_default_pipeline_path
+
+    try:
+        set_default_pipeline_path(req.path)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Failed to set default pipeline file: {exc}",
+        ) from exc
+    service = get_pipeline_service()
+    return {"active_path": str(service.active_path), "pipeline_files": service.get_full_tree()}
+
+
 @app.get("/api/pipelines/tree")
-def get_pipelines_tree() -> dict[str, Any]:
+def get_pipelines_tree(file_path: str | None = None) -> dict[str, Any]:
     """Retrieve full hierarchical tree of projects, categories, and pipelines."""
     service = get_pipeline_service()
-    return service.get_tree()
+    return service.get_tree(file_path=file_path)
 
 
 @app.get("/api/pipelines/projects", response_model=list[Project])
-def list_pipeline_projects() -> list[Project]:
+def list_pipeline_projects(file_path: str | None = None) -> list[Project]:
     """List all configured pipeline projects."""
     service = get_pipeline_service()
-    return service.list_projects()
+    return service.list_projects(file_path=file_path)
 
 
 @app.post("/api/pipelines/projects", response_model=Project, status_code=status.HTTP_201_CREATED)
-def create_pipeline_project(req: CreateProjectRequest) -> Project:
+def create_pipeline_project(req: CreateProjectRequest, file_path: str | None = None) -> Project:
     """Create a new data engineering project."""
     service = get_pipeline_service()
     try:
-        return service.create_project(name=req.name, description=req.description)
+        return service.create_project(
+            name=req.name, description=req.description, file_path=file_path
+        )
     except ValueError as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -469,11 +582,15 @@ def create_pipeline_project(req: CreateProjectRequest) -> Project:
 
 
 @app.put("/api/pipelines/projects/{name}", response_model=Project)
-def update_pipeline_project(name: str, req: UpdateProjectRequest) -> Project:
+def update_pipeline_project(
+    name: str, req: UpdateProjectRequest, file_path: str | None = None
+) -> Project:
     """Update or rename an existing pipeline project."""
     service = get_pipeline_service()
     try:
-        return service.update_project(name=name, new_name=req.new_name, description=req.description)
+        return service.update_project(
+            name=name, new_name=req.new_name, description=req.description, file_path=file_path
+        )
     except ValueError as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -482,11 +599,11 @@ def update_pipeline_project(name: str, req: UpdateProjectRequest) -> Project:
 
 
 @app.delete("/api/pipelines/projects/{name}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_pipeline_project(name: str) -> None:
+def delete_pipeline_project(name: str, file_path: str | None = None) -> None:
     """Delete a project and all its categories and pipelines."""
     service = get_pipeline_service()
     try:
-        service.delete_project(name)
+        service.delete_project(name, file_path=file_path)
     except ValueError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -495,11 +612,11 @@ def delete_pipeline_project(name: str) -> None:
 
 
 @app.get("/api/pipelines/projects/{project}/categories", response_model=list[PipelineCategory])
-def list_pipeline_categories(project: str) -> list[PipelineCategory]:
+def list_pipeline_categories(project: str, file_path: str | None = None) -> list[PipelineCategory]:
     """List categories inside a project."""
     service = get_pipeline_service()
     try:
-        return service.list_categories(project)
+        return service.list_categories(project, file_path=file_path)
     except ValueError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -507,8 +624,14 @@ def list_pipeline_categories(project: str) -> list[PipelineCategory]:
         ) from exc
 
 
-@app.post("/api/pipelines/projects/{project}/categories", response_model=PipelineCategory, status_code=status.HTTP_201_CREATED)
-def create_pipeline_category(project: str, req: CreateCategoryRequest) -> PipelineCategory:
+@app.post(
+    "/api/pipelines/projects/{project}/categories",
+    response_model=PipelineCategory,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_pipeline_category(
+    project: str, req: CreateCategoryRequest, file_path: str | None = None
+) -> PipelineCategory:
     """Create a new category inside a project."""
     service = get_pipeline_service()
     try:
@@ -516,6 +639,7 @@ def create_pipeline_category(project: str, req: CreateCategoryRequest) -> Pipeli
             project_name=project,
             category_name=req.name,
             description=req.description,
+            file_path=file_path,
         )
     except ValueError as exc:
         raise HTTPException(
@@ -525,7 +649,9 @@ def create_pipeline_category(project: str, req: CreateCategoryRequest) -> Pipeli
 
 
 @app.put("/api/pipelines/projects/{project}/categories/{category}", response_model=PipelineCategory)
-def update_pipeline_category(project: str, category: str, req: UpdateCategoryRequest) -> PipelineCategory:
+def update_pipeline_category(
+    project: str, category: str, req: UpdateCategoryRequest, file_path: str | None = None
+) -> PipelineCategory:
     """Rename or update a category inside a project."""
     service = get_pipeline_service()
     try:
@@ -534,6 +660,7 @@ def update_pipeline_category(project: str, category: str, req: UpdateCategoryReq
             category_name=category,
             new_name=req.new_name,
             description=req.description,
+            file_path=file_path,
         )
     except ValueError as exc:
         raise HTTPException(
@@ -542,12 +669,15 @@ def update_pipeline_category(project: str, category: str, req: UpdateCategoryReq
         ) from exc
 
 
-@app.delete("/api/pipelines/projects/{project}/categories/{category}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_pipeline_category(project: str, category: str) -> None:
+@app.delete(
+    "/api/pipelines/projects/{project}/categories/{category}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def delete_pipeline_category(project: str, category: str, file_path: str | None = None) -> None:
     """Delete a category and all its pipelines from a project."""
     service = get_pipeline_service()
     try:
-        service.delete_category(project_name=project, category_name=category)
+        service.delete_category(project_name=project, category_name=category, file_path=file_path)
     except ValueError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -556,10 +686,10 @@ def delete_pipeline_category(project: str, category: str) -> None:
 
 
 @app.get("/api/pipelines/yaml", response_class=PlainTextResponse)
-def get_pipelines_yaml() -> PlainTextResponse:
+def get_pipelines_yaml(path: str | None = None) -> PlainTextResponse:
     """Return raw YAML content of the pipeline store."""
     service = get_pipeline_service()
-    return PlainTextResponse(service.export_yaml())
+    return PlainTextResponse(service.export_yaml(file_path=path))
 
 
 # --- Serve Frontend Single Page App ---

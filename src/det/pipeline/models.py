@@ -30,7 +30,9 @@ class PipelineCategory(BaseModel):
 
     name: str = Field(..., description="Unique category name within the parent project")
     description: str | None = Field(None, description="Optional category description")
-    pipelines: list[DataPipeline] = Field(default_factory=list, description="Data pipelines in category")
+    pipelines: list[DataPipeline] = Field(
+        default_factory=list, description="Data pipelines in category"
+    )
 
 
 class Project(BaseModel):

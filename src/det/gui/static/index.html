@@ -1122,8 +1122,14 @@
           </div>
           <!-- Pipeline / ETL Explorer Toolbar -->
           <div class="explorer-toolbar" id="pipelineToolbar" style="display:none;">
-            <button class="action-icon-btn" id="btnPipelineNewProject" title="Create New Project" onclick="handlePipelineNewProject()">
+            <button class="action-icon-btn" id="btnToolbarNewPipeline" title="Create New Pipeline YAML" onclick="handlePipelineNewFile()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+            </button>
+            <button class="action-icon-btn" id="btnToolbarOpenPipeline" title="Open Existing Pipeline YAML" onclick="handlePipelineOpenFile()">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></svg>
+            </button>
+            <button class="action-icon-btn" id="btnPipelineNewProject" title="Create New Project" onclick="handlePipelineNewProject()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
             </button>
             <button class="action-icon-btn" id="btnPipelineNewCategory" title="Create New Category in Project" onclick="handlePipelineNewCategory()">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
@@ -1384,6 +1390,61 @@
     </div>
   </div>
 
+  <!-- Pipeline Modal 4: Create New Pipeline File Modal -->
+  <div class="modal-overlay" id="createPipelineFileModal">
+    <div class="modal" style="max-width: 500px;">
+      <div class="modal-header">
+        <h3>Create New Pipeline YAML</h3>
+        <button class="action-icon-btn" onclick="closeModal('createPipelineFileModal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">New Pipeline YAML File Path *</label>
+          <input type="text" id="createPipelinePathInput" class="form-input" placeholder="e.g. pipelines/prod_pipelines.yaml">
+          <span style="font-size: 0.73rem; color: var(--text-dim);">Specify the path where to save the new pipeline YAML file.</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:0.5rem; margin-top:0.35rem;">
+          <input type="checkbox" id="chkCreatePipelineSetDefault">
+          <label for="chkCreatePipelineSetDefault" style="font-size:0.82rem; color: var(--text-main); cursor: pointer;">
+            ★ Set as default pipeline file (loads automatically on launch)
+          </label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" onclick="closeModal('createPipelineFileModal')">Cancel</button>
+        <button class="btn btn-primary" id="btnConfirmCreatePipelineFile">Create Pipeline File</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pipeline Modal 5: Open Existing Pipeline File Modal -->
+  <div class="modal-overlay" id="openPipelineFileModal">
+    <div class="modal" style="max-width: 500px;">
+      <div class="modal-header">
+        <h3>Open Existing Pipeline YAML</h3>
+        <button class="action-icon-btn" onclick="closeModal('openPipelineFileModal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Pipeline YAML File Path *</label>
+          <input type="text" id="openPipelinePathInput" class="form-input" placeholder="e.g. D:/projects/pipelines.yaml">
+          <span style="font-size: 0.73rem; color: var(--text-dim);">Enter full path to an existing pipelines.yaml file.</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:0.5rem; margin-top:0.35rem;">
+          <input type="checkbox" id="chkOpenPipelineSetDefault">
+          <label for="chkOpenPipelineSetDefault" style="font-size:0.82rem; color: var(--text-main); cursor: pointer;">
+            ★ Set as default pipeline file (loads automatically on launch)
+          </label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" onclick="closeModal('openPipelineFileModal')">Cancel</button>
+        <button class="btn btn-primary" id="btnConfirmOpenPipelineFile">Open Pipeline File</button>
+      </div>
+    </div>
+  </div>
+
+
   <!-- Modal 1: Add / Edit Dataset Modal -->
   <div class="modal-overlay" id="datasetModal">
     <div class="modal">
@@ -1587,16 +1648,21 @@
     let renamingNamespaceCatalog = null;
 
     // --- Pipeline State ---
+    let pipelineFilesData = [];
     let pipelineTreeData = [];
+    let selectedPipelineFile = null;
     let selectedPipelineProject = null;
     let selectedPipelineCategory = null;
+    let collapsedPipelineFiles = new Set();
     let collapsedPipelineProjects = new Set();
+    let currentModalPipelineFilePath = null;
     let editingPipelineProject = null;
     let editingPipelineCategory = null;
     let editingPipelineCategoryParent = null;
     let pendingDeleteType = null;
     let pendingDeleteProject = null;
     let pendingDeleteCategory = null;
+    let pendingDeleteFilePath = null;
 
     // --- Path Normalizer Helper ---
     function normalizePath(p) {
@@ -2677,32 +2743,40 @@
         const res = await fetch('/api/pipelines/tree');
         if (!res.ok) throw new Error('Failed to load pipeline projects');
         const data = await res.json();
+        pipelineFilesData = data.pipeline_files || [];
         pipelineTreeData = data.projects || [];
+
+        if (!selectedPipelineFile || !pipelineFilesData.some(f => normalizePath(f.path) === normalizePath(selectedPipelineFile))) {
+          selectedPipelineFile = data.active_path || (pipelineFilesData[0] ? pipelineFilesData[0].path : null);
+        }
 
         if (currentProductModule === 'pipeline') {
           const badge = document.getElementById('catalogCountBadge');
-          if (badge) badge.textContent = pipelineTreeData.length;
+          if (badge) badge.textContent = pipelineFilesData.length;
         }
 
         renderPipelineTree();
 
         // Refresh or restore selected detail view
+        const currentFileObj = pipelineFilesData.find(f => normalizePath(f.path) === normalizePath(selectedPipelineFile)) || pipelineFilesData[0];
+        const projectsInActive = currentFileObj ? currentFileObj.projects : pipelineTreeData;
+
         if (selectedPipelineProject && selectedPipelineCategory) {
-          const proj = pipelineTreeData.find(p => p.name === selectedPipelineProject);
+          const proj = projectsInActive.find(p => p.name === selectedPipelineProject);
           if (proj) {
             const cat = (proj.categories || []).find(c => c.name === selectedPipelineCategory);
             if (cat) {
-              renderPipelineCategoryView(proj, cat);
+              renderPipelineCategoryView(proj, cat, currentFileObj ? currentFileObj.path : null);
               return;
             } else {
-              renderPipelineProjectView(proj);
+              renderPipelineProjectView(proj, currentFileObj ? currentFileObj.path : null);
               return;
             }
           }
         } else if (selectedPipelineProject) {
-          const proj = pipelineTreeData.find(p => p.name === selectedPipelineProject);
+          const proj = projectsInActive.find(p => p.name === selectedPipelineProject);
           if (proj) {
-            renderPipelineProjectView(proj);
+            renderPipelineProjectView(proj, currentFileObj ? currentFileObj.path : null);
             return;
           }
         }
@@ -2720,145 +2794,231 @@
 
       const filterVal = (document.getElementById('filterInput').value || '').trim().toLowerCase();
 
-      if (pipelineTreeData.length === 0) {
+      if (pipelineFilesData.length === 0) {
         treeEl.innerHTML = `
           <div style="padding: 1.5rem 1rem; text-align: center; color: var(--text-dim); font-size: 0.78rem;">
-            No projects created yet.<br>Click <strong>+</strong> above to create your first ETL project.
+            No pipeline files open.<br>Click <strong>+</strong> above to create or open a pipeline YAML file.
           </div>
         `;
         return;
       }
 
-      pipelineTreeData.forEach(p => {
-        const isCollapsed = collapsedPipelineProjects.has(p.name);
+      pipelineFilesData.forEach(pf => {
+        const safePfPath = normalizePath(pf.path);
+        const safePfName = (pf.filename || pf.name || '').replace(/['"]/g, '');
+        const isPfCollapsed = collapsedPipelineFiles.has(safePfPath);
 
-        const pMatch = !filterVal || p.name.toLowerCase().includes(filterVal) || (p.description || '').toLowerCase().includes(filterVal);
-        let matchingCats = [];
-        (p.categories || []).forEach(cat => {
-          const catMatch = !filterVal || cat.name.toLowerCase().includes(filterVal) || (cat.description || '').toLowerCase().includes(filterVal);
-          const matchingPipes = (cat.pipelines || []).filter(pipe => {
-            if (!filterVal) return true;
-            return pipe.name.toLowerCase().includes(filterVal) || (pipe.description || '').toLowerCase().includes(filterVal);
+        const pfMatches = !filterVal || pf.filename.toLowerCase().includes(filterVal) || (pf.name || '').toLowerCase().includes(filterVal);
+        let matchingProjects = [];
+
+        (pf.projects || []).forEach(p => {
+          const pMatch = !filterVal || p.name.toLowerCase().includes(filterVal) || (p.description || '').toLowerCase().includes(filterVal);
+          let matchingCats = [];
+          (p.categories || []).forEach(cat => {
+            const catMatch = !filterVal || cat.name.toLowerCase().includes(filterVal) || (cat.description || '').toLowerCase().includes(filterVal);
+            const matchingPipes = (cat.pipelines || []).filter(pipe => {
+              if (!filterVal) return true;
+              return pipe.name.toLowerCase().includes(filterVal) || (pipe.description || '').toLowerCase().includes(filterVal);
+            });
+            if (catMatch || matchingPipes.length > 0 || pMatch || pfMatches) {
+              matchingCats.push({ cat, pipelines: filterVal ? matchingPipes : (cat.pipelines || []) });
+            }
           });
-          if (catMatch || matchingPipes.length > 0 || pMatch) {
-            matchingCats.push({ cat, pipelines: filterVal ? matchingPipes : (cat.pipelines || []) });
+
+          if (pMatch || matchingCats.length > 0 || pfMatches) {
+            matchingProjects.push({
+              proj: p,
+              matchingCats: matchingCats,
+            });
           }
         });
 
-        if (filterVal && !pMatch && matchingCats.length === 0) return;
+        if (filterVal && !pfMatches && matchingProjects.length === 0) return;
 
-        // Level 1: Project Node
-        const projNode = document.createElement('div');
-        const isProjSelected = selectedPipelineProject === p.name && !selectedPipelineCategory;
-        projNode.className = `tree-node project-node ${isProjSelected ? 'selected' : ''}`;
-        projNode.title = `${p.name} • ${p.description || 'ETL Project'}`;
+        // Level 1: Pipeline File Node
+        const fileNode = document.createElement('div');
+        fileNode.className = `tree-node catalog-node`;
+        fileNode.title = `${pf.filename} • ${pf.path}`;
 
-        projNode.onclick = (e) => {
+        fileNode.onclick = (e) => {
           if (e.target.closest('.tree-actions')) return;
-          if (e.target.closest('.tree-chevron')) {
-            if (isCollapsed) collapsedPipelineProjects.delete(p.name);
-            else collapsedPipelineProjects.add(p.name);
-            renderPipelineTree();
-            return;
-          }
-          selectPipelineProject(p.name);
+          if (isPfCollapsed) collapsedPipelineFiles.delete(safePfPath);
+          else collapsedPipelineFiles.add(safePfPath);
+          renderPipelineTree();
         };
 
-        projNode.innerHTML = `
-          <span class="tree-chevron ${isCollapsed ? 'collapsed' : ''}">▼</span>
-          <span class="tree-icon" style="color: var(--primary);">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+        fileNode.innerHTML = `
+          <span class="tree-chevron ${isPfCollapsed ? 'collapsed' : ''}">▼</span>
+          ${pf.is_default ? '<span class="cat-star" title="Default Pipeline File">★</span>' : ''}
+          <span class="tree-icon" style="color: ${pf.is_default ? 'var(--accent-amber)' : 'var(--primary)'};">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
           </span>
-          <span class="tree-label" style="font-weight:600;">${p.name}</span>
-          <span class="count-pill" title="${p.total_categories} categories">
+          <span class="tree-label" style="font-weight:600;">${pf.filename}</span>
+          <span class="count-pill" title="${pf.total_projects} projects">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg>
+            <span>${pf.total_projects}</span>
+          </span>
+          <span class="count-pill" title="${pf.total_categories} categories">
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
-            <span>${p.total_categories}</span>
+            <span>${pf.total_categories}</span>
           </span>
-          <span class="count-pill" title="${p.total_pipelines} pipelines">
+          <span class="count-pill" title="${pf.total_pipelines} pipelines">
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-            <span>${p.total_pipelines}</span>
+            <span>${pf.total_pipelines}</span>
           </span>
           <div class="tree-actions">
-            <button class="action-icon-btn" title="Add Category in '${p.name}'" onclick="handlePipelineAddCategory(event, '${p.name}')">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></svg>
+            <button class="action-icon-btn" title="Create Project in '${safePfName}'" onclick="handlePipelineAddProject(event, '${safePfPath}')">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></svg>
             </button>
-            <button class="action-icon-btn" title="Edit Project '${p.name}'" onclick="handlePipelineEditProject(event, '${p.name}')">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+            <button class="action-icon-btn" title="View Pipeline YAML Code" onclick="handlePipelineViewYaml(event, '${safePfPath}', '${safePfName}')">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
             </button>
-            <button class="action-icon-btn btn-delete-hover" title="Delete Project '${p.name}'" onclick="handlePipelineDeleteProject(event, '${p.name}')">
+            ${!pf.is_default ? `
+            <button class="action-icon-btn" title="Set as Default Pipeline File" onclick="handlePipelineSetDefaultFile(event, '${safePfPath}')">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            </button>` : ''}
+            <button class="action-icon-btn btn-delete-hover" title="Remove '${safePfName}' from Explorer" onclick="handlePipelineRemoveFile(event, '${safePfPath}')">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
             </button>
           </div>
         `;
-        treeEl.appendChild(projNode);
+        treeEl.appendChild(fileNode);
 
-        // Level 2 & 3: Container
-        const projChildrenContainer = document.createElement('div');
-        projChildrenContainer.style.display = isCollapsed ? 'none' : 'block';
+        // Container for Projects under Pipeline File
+        const fileChildrenContainer = document.createElement('div');
+        fileChildrenContainer.className = `children-container ${isPfCollapsed ? 'collapsed' : ''}`;
 
-        const catsToRender = filterVal ? matchingCats.map(m => m.cat) : (p.categories || []);
+        const projectsToRender = filterVal ? matchingProjects : (pf.projects || []).map(p => ({ proj: p, matchingCats: [] }));
 
-        catsToRender.forEach(cat => {
-          const isCatSelected = selectedPipelineProject === p.name && selectedPipelineCategory === cat.name;
-          const catNode = document.createElement('div');
-          catNode.className = `tree-node proj-cat-node ${isCatSelected ? 'selected' : ''}`;
-          catNode.title = `${p.name} / ${cat.name}`;
+        projectsToRender.forEach(({ proj: p, matchingCats }) => {
+          const safeProjName = (p.name || '').replace(/['"]/g, '');
+          const projKey = `${safePfPath}::${safeProjName}`;
+          const isProjCollapsed = collapsedPipelineProjects.has(projKey);
+          const isProjSelected = selectedPipelineFile === safePfPath && selectedPipelineProject === p.name && !selectedPipelineCategory;
 
-          catNode.onclick = (e) => {
+          // Level 2: Project Node
+          const projNode = document.createElement('div');
+          projNode.className = `tree-node project-node ${isProjSelected ? 'selected' : ''}`;
+          projNode.title = `${p.name} • ${p.description || 'ETL Project'}`;
+
+          projNode.onclick = (e) => {
             if (e.target.closest('.tree-actions')) return;
-            selectPipelineCategory(p.name, cat.name);
+            if (e.target.closest('.tree-chevron')) {
+              if (isProjCollapsed) collapsedPipelineProjects.delete(projKey);
+              else collapsedPipelineProjects.add(projKey);
+              renderPipelineTree();
+              return;
+            }
+            selectPipelineProject(p.name, safePfPath);
           };
 
-          const pipeCount = (cat.pipelines || []).length;
-          catNode.innerHTML = `
-            <span class="tree-chevron ${pipeCount === 0 ? 'hidden' : ''}">▼</span>
-            <span class="tree-icon" style="color: var(--accent-amber);">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+          projNode.innerHTML = `
+            <span class="tree-chevron ${isProjCollapsed ? 'collapsed' : ''}">▼</span>
+            <span class="tree-icon" style="color: var(--primary);">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
             </span>
-            <span class="tree-label">${cat.name}</span>
-            <span class="count-pill" title="${pipeCount} pipelines">
+            <span class="tree-label" style="font-weight:600;">${p.name}</span>
+            <span class="count-pill" title="${p.total_categories} categories">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+              <span>${p.total_categories}</span>
+            </span>
+            <span class="count-pill" title="${p.total_pipelines} pipelines">
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-              <span>${pipeCount}</span>
+              <span>${p.total_pipelines}</span>
             </span>
             <div class="tree-actions">
-              <button class="action-icon-btn" title="Edit Category '${cat.name}'" onclick="handlePipelineEditCategory(event, '${p.name}', '${cat.name}')">
+              <button class="action-icon-btn" title="Add Category in '${safeProjName}'" onclick="handlePipelineAddCategory(event, '${safeProjName}', '${safePfPath}')">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></svg>
+              </button>
+              <button class="action-icon-btn" title="Edit Project '${safeProjName}'" onclick="handlePipelineEditProject(event, '${safeProjName}', '${safePfPath}')">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
               </button>
-              <button class="action-icon-btn btn-delete-hover" title="Delete Category '${cat.name}'" onclick="handlePipelineDeleteCategory(event, '${p.name}', '${cat.name}')">
+              <button class="action-icon-btn btn-delete-hover" title="Delete Project '${safeProjName}'" onclick="handlePipelineDeleteProject(event, '${safeProjName}', '${safePfPath}')">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
               </button>
             </div>
           `;
-          projChildrenContainer.appendChild(catNode);
+          fileChildrenContainer.appendChild(projNode);
 
-          // Level 3: Pipelines inside category
-          (cat.pipelines || []).forEach(pipe => {
-            const pipeNode = document.createElement('div');
-            pipeNode.className = 'tree-node';
-            pipeNode.style.paddingLeft = '1.95rem';
-            pipeNode.title = pipe.name;
-            pipeNode.innerHTML = `
-              <span class="tree-chevron hidden">•</span>
-              <span class="tree-icon" style="color: var(--primary);">
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-              </span>
-              <span class="tree-label">${pipe.name}</span>
-            `;
-            pipeNode.onclick = () => {
-              selectPipelineCategory(p.name, cat.name);
+          // Level 3 & 4 Container for Categories and Pipelines
+          const projChildrenContainer = document.createElement('div');
+          projChildrenContainer.style.display = isProjCollapsed ? 'none' : 'block';
+
+          const catsToRender = filterVal && matchingCats.length > 0
+            ? matchingCats.map(m => m.cat)
+            : (p.categories || []);
+
+          catsToRender.forEach(cat => {
+            const safeCatName = (cat.name || '').replace(/['"]/g, '');
+            const isCatSelected = selectedPipelineFile === safePfPath && selectedPipelineProject === p.name && selectedPipelineCategory === cat.name;
+
+            // Level 3: Category Node
+            const catNode = document.createElement('div');
+            catNode.className = `tree-node proj-cat-node ${isCatSelected ? 'selected' : ''}`;
+            catNode.title = `${p.name} / ${cat.name}`;
+
+            catNode.onclick = (e) => {
+              if (e.target.closest('.tree-actions')) return;
+              selectPipelineCategory(p.name, cat.name, safePfPath);
             };
-            projChildrenContainer.appendChild(pipeNode);
+
+            const pipeCount = (cat.pipelines || []).length;
+            catNode.innerHTML = `
+              <span class="tree-chevron ${pipeCount === 0 ? 'hidden' : ''}">▼</span>
+              <span class="tree-icon" style="color: var(--accent-amber);">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+              </span>
+              <span class="tree-label">${cat.name}</span>
+              <span class="count-pill" title="${pipeCount} pipelines">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                <span>${pipeCount}</span>
+              </span>
+              <div class="tree-actions">
+                <button class="action-icon-btn" title="Edit Category '${safeCatName}'" onclick="handlePipelineEditCategory(event, '${safeProjName}', '${safeCatName}', '${safePfPath}')">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                </button>
+                <button class="action-icon-btn btn-delete-hover" title="Delete Category '${safeCatName}'" onclick="handlePipelineDeleteCategory(event, '${safeProjName}', '${safeCatName}', '${safePfPath}')">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+              </div>
+            `;
+            projChildrenContainer.appendChild(catNode);
+
+            // Level 4: Pipelines inside category
+            (cat.pipelines || []).forEach(pipe => {
+              const pipeNode = document.createElement('div');
+              pipeNode.className = 'tree-node';
+              pipeNode.style.paddingLeft = '2.35rem';
+              pipeNode.title = pipe.name;
+              pipeNode.innerHTML = `
+                <span class="tree-chevron hidden">•</span>
+                <span class="tree-icon" style="color: var(--primary);">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                </span>
+                <span class="tree-label">${pipe.name}</span>
+              `;
+              pipeNode.onclick = () => {
+                selectPipelineCategory(p.name, cat.name, safePfPath);
+              };
+              projChildrenContainer.appendChild(pipeNode);
+            });
           });
+
+          fileChildrenContainer.appendChild(projChildrenContainer);
         });
 
-        treeEl.appendChild(projChildrenContainer);
+        treeEl.appendChild(fileChildrenContainer);
       });
     }
 
     function handlePipelineCollapseAll() {
-      pipelineTreeData.forEach(p => collapsedPipelineProjects.add(p.name));
+      pipelineFilesData.forEach(f => {
+        const sf = normalizePath(f.path);
+        collapsedPipelineFiles.add(sf);
+        (f.projects || []).forEach(p => collapsedPipelineProjects.add(`${sf}::${p.name}`));
+      });
       renderPipelineTree();
-      showToast('All projects collapsed');
+      showToast('All pipeline files and projects collapsed');
     }
 
     // ==========================================
@@ -2870,25 +3030,31 @@
       document.getElementById('pipelineEmptyView').style.display = 'flex';
     }
 
-    function selectPipelineProject(projName) {
+    function selectPipelineProject(projName, filePath) {
+      if (filePath) selectedPipelineFile = normalizePath(filePath);
       selectedPipelineProject = projName;
       selectedPipelineCategory = null;
       renderPipelineTree();
-      const proj = pipelineTreeData.find(p => p.name === projName);
-      if (proj) renderPipelineProjectView(proj);
+      const pf = pipelineFilesData.find(f => normalizePath(f.path) === normalizePath(selectedPipelineFile)) || pipelineFilesData[0];
+      const projects = pf ? pf.projects : pipelineTreeData;
+      const proj = projects.find(p => p.name === projName);
+      if (proj) renderPipelineProjectView(proj, pf ? pf.path : null);
       else renderPipelineEmptyView();
     }
 
-    function renderPipelineProjectView(p) {
+    function renderPipelineProjectView(p, filePath) {
       document.getElementById('pipelineEmptyView').style.display = 'none';
       document.getElementById('pipelineCategoryView').style.display = 'none';
       document.getElementById('pipelineProjectView').style.display = 'flex';
+
+      const pf = pipelineFilesData.find(f => normalizePath(f.path) === normalizePath(filePath || selectedPipelineFile));
+      const fileName = pf ? pf.filename : 'Pipelines';
 
       document.getElementById('pipeProjName').textContent = p.name;
       document.getElementById('pipeProjDesc').textContent = p.description || 'No description provided';
       document.getElementById('pipeProjCatCount').textContent = `📁 ${p.categories.length} Categories`;
       document.getElementById('pipeProjPipeCount').textContent = `⚡ ${p.total_pipelines} Data Pipelines`;
-      document.getElementById('pipeProjUpdated').textContent = `Updated: ${p.updated_at ? new Date(p.updated_at).toLocaleString() : 'Recent'}`;
+      document.getElementById('pipeProjUpdated').textContent = `File: ${fileName} • Updated: ${p.updated_at ? new Date(p.updated_at).toLocaleString() : 'Recent'}`;
       document.getElementById('pipeProjCategoriesTitleCount').textContent = p.categories.length;
 
       const grid = document.getElementById('pipeProjCategoriesGrid');
@@ -2897,14 +3063,14 @@
         grid.innerHTML = `
           <div style="grid-column: 1 / -1; padding: 1.8rem; text-align: center; color: var(--text-dim); border: 1px dashed var(--border-color); border-radius: 6px;">
             No categories created yet in this project.<br>
-            <button class="btn btn-sm btn-primary" onclick="handlePipelineAddCategory(event, '${p.name}')" style="margin-top: 0.6rem;">+ Add First Category</button>
+            <button class="btn btn-sm btn-primary" onclick="handlePipelineAddCategory(event, '${p.name}', '${pf ? normalizePath(pf.path) : ''}')" style="margin-top: 0.6rem;">+ Add First Category</button>
           </div>
         `;
       } else {
         p.categories.forEach(c => {
           const card = document.createElement('div');
           card.className = 'category-card';
-          card.onclick = () => selectPipelineCategory(p.name, c.name);
+          card.onclick = () => selectPipelineCategory(p.name, c.name, pf ? pf.path : null);
           card.innerHTML = `
             <div class="category-card-top">
               <div style="display:flex; align-items:center; gap:0.4rem;">
@@ -2915,10 +3081,10 @@
             </div>
             <p class="category-card-desc">${c.description || 'No category description'}</p>
             <div style="display:flex; justify-content:flex-end; gap:0.3rem; margin-top:0.3rem;">
-              <button class="action-icon-btn" title="Edit Category" onclick="handlePipelineEditCategory(event, '${p.name}', '${c.name}')">
+              <button class="action-icon-btn" title="Edit Category" onclick="handlePipelineEditCategory(event, '${p.name}', '${c.name}', '${pf ? normalizePath(pf.path) : ''}')">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
               </button>
-              <button class="action-icon-btn btn-delete-hover" title="Delete Category" onclick="handlePipelineDeleteCategory(event, '${p.name}', '${c.name}')">
+              <button class="action-icon-btn btn-delete-hover" title="Delete Category" onclick="handlePipelineDeleteCategory(event, '${p.name}', '${c.name}', '${pf ? normalizePath(pf.path) : ''}')">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
               </button>
             </div>
@@ -2928,59 +3094,208 @@
       }
     }
 
-    function selectPipelineCategory(projName, catName) {
+    function selectPipelineCategory(projName, catName, filePath) {
+      if (filePath) selectedPipelineFile = normalizePath(filePath);
       selectedPipelineProject = projName;
       selectedPipelineCategory = catName;
       renderPipelineTree();
-      const proj = pipelineTreeData.find(p => p.name === projName);
+      const pf = pipelineFilesData.find(f => normalizePath(f.path) === normalizePath(selectedPipelineFile)) || pipelineFilesData[0];
+      const projects = pf ? pf.projects : pipelineTreeData;
+      const proj = projects.find(p => p.name === projName);
       if (proj) {
         const cat = (proj.categories || []).find(c => c.name === catName);
         if (cat) {
-          renderPipelineCategoryView(proj, cat);
+          renderPipelineCategoryView(proj, cat, pf ? pf.path : null);
           return;
         }
       }
       renderPipelineEmptyView();
     }
 
-    function renderPipelineCategoryView(p, c) {
+    function renderPipelineCategoryView(p, c, filePath) {
       document.getElementById('pipelineEmptyView').style.display = 'none';
       document.getElementById('pipelineProjectView').style.display = 'none';
       document.getElementById('pipelineCategoryView').style.display = 'flex';
 
-      document.getElementById('pipeCatBreadcrumb').textContent = `Projects / ${p.name}`;
+      const pf = pipelineFilesData.find(f => normalizePath(f.path) === normalizePath(filePath || selectedPipelineFile));
+      const fileName = pf ? pf.filename : 'Pipelines';
+
+      document.getElementById('pipeCatBreadcrumb').textContent = `${fileName} / ${p.name}`;
       document.getElementById('pipeCatName').textContent = c.name;
       document.getElementById('pipeCatDesc').textContent = c.description || 'No description provided';
       document.getElementById('pipeCatPipeCount').textContent = `⚡ ${(c.pipelines || []).length} Data Pipelines`;
     }
 
     // ==========================================
-    // --- PIPELINE MODAL & ACTION HANDLERS
+    // --- PIPELINE FILE MODAL & ACTION HANDLERS
     // ==========================================
-    function handlePipelineNewProject() {
+    function handlePipelineNewFile() {
+      document.getElementById('createPipelinePathInput').value = '';
+      document.getElementById('chkCreatePipelineSetDefault').checked = false;
+      openModal('createPipelineFileModal');
+    }
+
+    function handlePipelineOpenFile() {
+      document.getElementById('openPipelinePathInput').value = '';
+      document.getElementById('chkOpenPipelineSetDefault').checked = false;
+      openModal('openPipelineFileModal');
+    }
+
+    document.getElementById('btnConfirmCreatePipelineFile').onclick = async () => {
+      const path = document.getElementById('createPipelinePathInput').value.trim();
+      const setDefault = document.getElementById('chkCreatePipelineSetDefault').checked;
+
+      if (!path) {
+        showToast('Pipeline file path is required', true);
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/pipelines/file/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ path: normalizePath(path), set_as_default: setDefault })
+        });
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.detail || 'Failed to create pipeline file');
+        }
+        closeModal('createPipelineFileModal');
+        showToast(`Pipeline file created at '${path}'!`);
+        selectedPipelineFile = normalizePath(path);
+        await loadPipelineTree();
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    };
+
+    document.getElementById('btnConfirmOpenPipelineFile').onclick = async () => {
+      const path = document.getElementById('openPipelinePathInput').value.trim();
+      const setDefault = document.getElementById('chkOpenPipelineSetDefault').checked;
+
+      if (!path) {
+        showToast('Pipeline file path is required', true);
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/pipelines/file/open', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ path: normalizePath(path), set_as_default: setDefault })
+        });
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.detail || 'Failed to open pipeline file');
+        }
+        closeModal('openPipelineFileModal');
+        showToast(`Pipeline file opened successfully!`);
+        selectedPipelineFile = normalizePath(path);
+        await loadPipelineTree();
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    };
+
+    async function handlePipelineSetDefaultFile(e, filePath) {
+      if (e) e.stopPropagation();
+      try {
+        const res = await fetch('/api/pipelines/file/set-default', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ path: normalizePath(filePath) })
+        });
+        if (!res.ok) throw new Error('Failed to set default pipeline file');
+        showToast('Default pipeline file updated ★');
+        await loadPipelineTree();
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    }
+
+    async function handlePipelineRemoveFile(e, filePath) {
+      if (e) e.stopPropagation();
+      const normPath = normalizePath(filePath);
+      const pf = pipelineFilesData.find(f => normalizePath(f.path) === normPath);
+      const name = pf ? pf.filename : 'pipeline file';
+      if (!confirm(`Remove '${name}' from explorer?\n(The file on disk is not deleted)`)) return;
+
+      try {
+        const res = await fetch('/api/pipelines/file/remove', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ path: normPath })
+        });
+        if (!res.ok) throw new Error('Failed to remove pipeline file');
+        showToast(`Pipeline file '${name}' removed from explorer`);
+        if (normalizePath(selectedPipelineFile) === normPath) {
+          selectedPipelineFile = null;
+          selectedPipelineProject = null;
+          selectedPipelineCategory = null;
+          renderPipelineEmptyView();
+        }
+        await loadPipelineTree();
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    }
+
+    async function handlePipelineViewYaml(e, filePath, fileName) {
+      if (e) e.stopPropagation();
+      try {
+        const normPath = normalizePath(filePath);
+        const url = `/api/pipelines/yaml?path=${encodeURIComponent(normPath)}`;
+        const res = await fetch(url);
+        if (!res.ok) {
+          const errData = await res.json().catch(() => null);
+          throw new Error((errData && errData.detail) || 'Failed to fetch pipeline YAML');
+        }
+        const yaml = await res.text();
+        document.getElementById('yamlModalTitle').textContent = `YAML: ${fileName || 'Pipelines'}`;
+        document.getElementById('rawYamlText').value = yaml;
+        openModal('yamlModal');
+      } catch (err) {
+        showToast(err.message, true);
+      }
+    }
+
+    // ==========================================
+    // --- PIPELINE PROJECT & CATEGORY MODAL HANDLERS
+    // ==========================================
+    function handlePipelineNewProject(targetFilePath) {
       editingPipelineProject = null;
+      currentModalPipelineFilePath = targetFilePath || selectedPipelineFile;
       document.getElementById('pipelineProjectModalTitle').textContent = 'New Project';
       document.getElementById('pipeProjNameInput').value = '';
       document.getElementById('pipeProjDescInput').value = '';
       openModal('pipelineProjectModal');
     }
 
-    function handlePipelineEditProject(e, projName) {
+    function handlePipelineAddProject(e, targetFilePath) {
       if (e) e.stopPropagation();
-      const proj = pipelineTreeData.find(p => p.name === projName);
+      handlePipelineNewProject(targetFilePath);
+    }
+
+    function handlePipelineEditProject(e, projName, targetFilePath) {
+      if (e) e.stopPropagation();
+      const pf = pipelineFilesData.find(f => normalizePath(f.path) === normalizePath(targetFilePath || selectedPipelineFile));
+      const projects = pf ? pf.projects : pipelineTreeData;
+      const proj = projects.find(p => p.name === projName);
       if (!proj) return;
       editingPipelineProject = projName;
+      currentModalPipelineFilePath = targetFilePath || selectedPipelineFile;
       document.getElementById('pipelineProjectModalTitle').textContent = `Edit Project: ${projName}`;
       document.getElementById('pipeProjNameInput').value = proj.name;
       document.getElementById('pipeProjDescInput').value = proj.description || '';
       openModal('pipelineProjectModal');
     }
 
-    function handlePipelineDeleteProject(e, projName) {
+    function handlePipelineDeleteProject(e, projName, targetFilePath) {
       if (e) e.stopPropagation();
       pendingDeleteType = 'project';
       pendingDeleteProject = projName;
       pendingDeleteCategory = null;
+      pendingDeleteFilePath = targetFilePath || selectedPipelineFile;
 
       document.getElementById('pipelineDeleteModalTitle').textContent = 'Confirm Delete Project';
       document.getElementById('pipelineDeleteWarningMessage').innerHTML = `
@@ -2990,18 +3305,21 @@
       openModal('pipelineDeleteModal');
     }
 
-    function handlePipelineNewCategory(defaultProjectName) {
-      if (pipelineTreeData.length === 0) {
+    function handlePipelineNewCategory(defaultProjectName, targetFilePath) {
+      const pf = pipelineFilesData.find(f => normalizePath(f.path) === normalizePath(targetFilePath || selectedPipelineFile)) || pipelineFilesData[0];
+      const projects = pf ? pf.projects : pipelineTreeData;
+      if (!projects || projects.length === 0) {
         showToast('Create a project first before adding a category', true);
-        handlePipelineNewProject();
+        handlePipelineNewProject(targetFilePath);
         return;
       }
       editingPipelineCategory = null;
       editingPipelineCategoryParent = null;
+      currentModalPipelineFilePath = targetFilePath || (pf ? pf.path : selectedPipelineFile);
 
       const select = document.getElementById('pipeCatProjectSelect');
       select.innerHTML = '';
-      pipelineTreeData.forEach(p => {
+      projects.forEach(p => {
         const opt = document.createElement('option');
         opt.value = p.name;
         opt.textContent = p.name;
@@ -3020,20 +3338,23 @@
       openModal('pipelineCategoryModal');
     }
 
-    function handlePipelineAddCategory(e, projName) {
+    function handlePipelineAddCategory(e, projName, targetFilePath) {
       if (e) e.stopPropagation();
-      handlePipelineNewCategory(projName);
+      handlePipelineNewCategory(projName, targetFilePath);
     }
 
-    function handlePipelineEditCategory(e, projName, catName) {
+    function handlePipelineEditCategory(e, projName, catName, targetFilePath) {
       if (e) e.stopPropagation();
-      const proj = pipelineTreeData.find(p => p.name === projName);
+      const pf = pipelineFilesData.find(f => normalizePath(f.path) === normalizePath(targetFilePath || selectedPipelineFile));
+      const projects = pf ? pf.projects : pipelineTreeData;
+      const proj = projects.find(p => p.name === projName);
       if (!proj) return;
       const cat = (proj.categories || []).find(c => c.name === catName);
       if (!cat) return;
 
       editingPipelineCategory = catName;
       editingPipelineCategoryParent = projName;
+      currentModalPipelineFilePath = targetFilePath || selectedPipelineFile;
 
       const select = document.getElementById('pipeCatProjectSelect');
       select.innerHTML = `<option value="${projName}">${projName}</option>`;
@@ -3045,11 +3366,12 @@
       openModal('pipelineCategoryModal');
     }
 
-    function handlePipelineDeleteCategory(e, projName, catName) {
+    function handlePipelineDeleteCategory(e, projName, catName, targetFilePath) {
       if (e) e.stopPropagation();
       pendingDeleteType = 'category';
       pendingDeleteProject = projName;
       pendingDeleteCategory = catName;
+      pendingDeleteFilePath = targetFilePath || selectedPipelineFile;
 
       document.getElementById('pipelineDeleteModalTitle').textContent = 'Confirm Delete Category';
       document.getElementById('pipelineDeleteWarningMessage').innerHTML = `
@@ -3075,14 +3397,16 @@
 
       try {
         let res;
+        const targetFile = currentModalPipelineFilePath || selectedPipelineFile;
+        const fileParam = targetFile ? `?file_path=${encodeURIComponent(normalizePath(targetFile))}` : '';
         if (editingPipelineProject) {
-          res = await fetch(`/api/pipelines/projects/${encodeURIComponent(editingPipelineProject)}`, {
+          res = await fetch(`/api/pipelines/projects/${encodeURIComponent(editingPipelineProject)}${fileParam}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ new_name: name, description: desc })
           });
         } else {
-          res = await fetch('/api/pipelines/projects', {
+          res = await fetch(`/api/pipelines/projects${fileParam}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name: name, description: desc })
@@ -3097,7 +3421,7 @@
         closeModal('pipelineProjectModal');
         showToast(`Project '${name}' saved!`);
         await loadPipelineTree();
-        selectPipelineProject(name);
+        selectPipelineProject(name, targetFile);
       } catch (err) {
         showToast(err.message, true);
       }
@@ -3124,14 +3448,16 @@
 
       try {
         let res;
+        const targetFile = currentModalPipelineFilePath || selectedPipelineFile;
+        const fileParam = targetFile ? `?file_path=${encodeURIComponent(normalizePath(targetFile))}` : '';
         if (editingPipelineCategory) {
-          res = await fetch(`/api/pipelines/projects/${encodeURIComponent(editingPipelineCategoryParent)}/categories/${encodeURIComponent(editingPipelineCategory)}`, {
+          res = await fetch(`/api/pipelines/projects/${encodeURIComponent(editingPipelineCategoryParent)}/categories/${encodeURIComponent(editingPipelineCategory)}${fileParam}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ new_name: name, description: desc })
           });
         } else {
-          res = await fetch(`/api/pipelines/projects/${encodeURIComponent(proj)}/categories`, {
+          res = await fetch(`/api/pipelines/projects/${encodeURIComponent(proj)}/categories${fileParam}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name: name, description: desc })
@@ -3146,7 +3472,7 @@
         closeModal('pipelineCategoryModal');
         showToast(`Category '${name}' saved!`);
         await loadPipelineTree();
-        selectPipelineCategory(proj, name);
+        selectPipelineCategory(proj, name, targetFile);
       } catch (err) {
         showToast(err.message, true);
       }
@@ -3157,9 +3483,11 @@
       if (!pendingDeleteType || !pendingDeleteProject) return;
 
       try {
+        const targetFile = pendingDeleteFilePath || selectedPipelineFile;
+        const fileParam = targetFile ? `?file_path=${encodeURIComponent(normalizePath(targetFile))}` : '';
         if (pendingDeleteType === 'project') {
           const projToDelete = pendingDeleteProject;
-          const res = await fetch(`/api/pipelines/projects/${encodeURIComponent(projToDelete)}`, {
+          const res = await fetch(`/api/pipelines/projects/${encodeURIComponent(projToDelete)}${fileParam}`, {
             method: 'DELETE'
           });
           if (!res.ok) {
@@ -3177,7 +3505,7 @@
         } else if (pendingDeleteType === 'category') {
           const parentProj = pendingDeleteProject;
           const catToDelete = pendingDeleteCategory;
-          const res = await fetch(`/api/pipelines/projects/${encodeURIComponent(parentProj)}/categories/${encodeURIComponent(catToDelete)}`, {
+          const res = await fetch(`/api/pipelines/projects/${encodeURIComponent(parentProj)}/categories/${encodeURIComponent(catToDelete)}${fileParam}`, {
             method: 'DELETE'
           });
           if (!res.ok) {
@@ -3188,7 +3516,7 @@
           showToast(`Category '${catToDelete}' and all its contents deleted!`);
           if (selectedPipelineProject === parentProj && selectedPipelineCategory === catToDelete) {
             selectedPipelineCategory = null;
-            selectPipelineProject(parentProj);
+            selectPipelineProject(parentProj, targetFile);
           }
           await loadPipelineTree();
         }
