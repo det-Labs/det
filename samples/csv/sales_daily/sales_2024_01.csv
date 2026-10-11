@@ -1,0 +1,3 @@
+order_id,date,amount,region
+ORD-101,2024-01-05,250.0,East
+ORD-102,2024-01-12,180.5,West

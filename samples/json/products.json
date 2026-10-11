@@ -1,0 +1,30 @@
+[
+  {
+    "product_id": 101,
+    "name": "Wireless Noise-Canceling Headphones",
+    "category": "Audio",
+    "price": 199.99,
+    "stock": 45
+  },
+  {
+    "product_id": 102,
+    "name": "Ultra-Wide Gaming Monitor 34-inch",
+    "category": "Displays",
+    "price": 499.5,
+    "stock": 18
+  },
+  {
+    "product_id": 103,
+    "name": "Ergonomic Mechanical Keyboard",
+    "category": "Peripherals",
+    "price": 129.0,
+    "stock": 72
+  },
+  {
+    "product_id": 104,
+    "name": "USB-C Fast Charging Dock 100W",
+    "category": "Accessories",
+    "price": 59.95,
+    "stock": 120
+  }
+]

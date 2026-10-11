@@ -1,3 +1,9 @@
 """det: Data Engineering Toolkit by det Labs."""
 
-__version__ = "0.1.0a1"
+from __future__ import annotations
+
+__version__ = "0.1.1a2"
+
+from det import catalog, connectors
+
+__all__ = ["__version__", "catalog", "connectors"]

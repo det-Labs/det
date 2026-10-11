@@ -1,17 +1,15 @@
-"""det.catalog - YAML metadata catalog module."""
+"""Catalog data models and service API."""
 
 from det.catalog.config import get_default_catalog_path, set_default_catalog_path
-from det.catalog.models import CatalogFile, ColumnMetadata, DatasetMetadata, ScanResult
-from det.catalog.scanner import scan_location
+from det.catalog.models import CatalogFile, CatalogState, ColumnMetadata, DatasetMetadata
 from det.catalog.service import CatalogService
 
 __all__ = [
     "CatalogFile",
     "CatalogService",
+    "CatalogState",
     "ColumnMetadata",
     "DatasetMetadata",
-    "ScanResult",
     "get_default_catalog_path",
-    "scan_location",
     "set_default_catalog_path",
 ]

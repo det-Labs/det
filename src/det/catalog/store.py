@@ -1,8 +1,9 @@
-"""det.catalog.store - Safe, atomic, and concurrency-locked YAML catalog persistence."""
+"""Safe, locked, atomic YAML catalog persistence."""
 
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 from filelock import FileLock
 from ruamel.yaml import YAML
@@ -10,65 +11,67 @@ from ruamel.yaml import YAML
 from det.catalog.models import CatalogFile
 
 
-def _get_yaml_handler() -> YAML:
-    """Return a configured ruamel.yaml instance with clean indentation."""
-    yaml = YAML()
-    yaml.preserve_quotes = True
-    yaml.indent(mapping=2, sequence=4, offset=2)
-    yaml.default_flow_style = False
-    return yaml
-
-
 def load_catalog(path: str | Path) -> CatalogFile:
-    """Load a CatalogFile from a YAML file, creating a default one if it does not exist."""
-    file_path = Path(path).resolve()
-    lock_path = file_path.with_name(f"{file_path.name}.lock")
-
-    if not file_path.exists():
-        # Initialize an empty catalog file
-        catalog = CatalogFile(catalog_version=1, catalog_name="det_catalog", datasets=[])
-        save_catalog(file_path, catalog)
-        return catalog
-
-    yaml = _get_yaml_handler()
-    with FileLock(str(lock_path), timeout=10), open(file_path, "r", encoding="utf-8") as f:
-        data = yaml.load(f)
-
-    if not data:
-        return CatalogFile(catalog_version=1, catalog_name="det_catalog", datasets=[])
-
+    file_path = Path(path).expanduser().resolve()
+    if not file_path.is_file():
+        raise FileNotFoundError(f"Catalog file does not exist: {file_path}")
+    try:
+        with (
+            FileLock(str(file_path) + ".lock", timeout=10),
+            file_path.open("r", encoding="utf-8") as stream,
+        ):
+            data: Any = YAML(typ="safe").load(stream)
+    except OSError as exc:
+        raise OSError(f"Cannot read catalog file: {file_path}") from exc
+    if data is None:
+        raise ValueError(f"Catalog file is empty: {file_path}")
+    if not isinstance(data, dict):
+        raise TypeError(f"Catalog root must be a YAML mapping: {file_path}")
     return CatalogFile.model_validate(data)
 
 
-def save_catalog(path: str | Path, catalog: CatalogFile) -> None:
-    """Persist a CatalogFile atomically to a YAML file under a concurrency file lock."""
-    file_path = Path(path).resolve()
+def read_catalog_yaml(path: str | Path) -> str:
+    file_path = Path(path).expanduser().resolve()
+    if not file_path.is_file():
+        raise FileNotFoundError(f"Catalog file does not exist: {file_path}")
+    try:
+        with (
+            FileLock(str(file_path) + ".lock", timeout=10),
+            file_path.open("r", encoding="utf-8") as stream,
+        ):
+            return stream.read()
+    except OSError as exc:
+        raise OSError(f"Cannot read catalog file: {file_path}") from exc
+
+
+def create_catalog(path: str | Path, name: str, overwrite: bool = False) -> CatalogFile:
+    file_path = Path(path).expanduser().resolve()
     file_path.parent.mkdir(parents=True, exist_ok=True)
-    lock_path = file_path.with_name(f"{file_path.name}.lock")
-    temp_path = file_path.with_name(f"{file_path.name}.tmp")
-
-    yaml = _get_yaml_handler()
-    data = catalog.model_dump(exclude_none=True)
-
+    lock_path = Path(str(file_path) + ".lock")
     with FileLock(str(lock_path), timeout=10):
-        try:
-            with open(temp_path, "w", encoding="utf-8") as f:
-                yaml.dump(data, f)
-            # Atomic replacement on Windows and POSIX
-            temp_path.replace(file_path)
-        finally:
-            if temp_path.exists():
-                try:
-                    temp_path.unlink()
-                except OSError:
-                    pass
+        if not overwrite and file_path.exists():
+            raise FileExistsError(f"Catalog file already exists: {file_path}")
+        cat = CatalogFile(catalog_name=name)
+        write_catalog_unlocked(file_path, cat)
+    return cat
 
 
-def get_catalog_yaml_str(path: str | Path) -> str:
-    """Return the raw YAML content as a string."""
-    file_path = Path(path).resolve()
-    if not file_path.exists():
-        return ""
-    lock_path = file_path.with_name(f"{file_path.name}.lock")
-    with FileLock(str(lock_path), timeout=10), open(file_path, "r", encoding="utf-8") as f:
-        return f.read()
+def save_catalog(path: str | Path, catalog: CatalogFile) -> None:
+    file_path = Path(path).expanduser().resolve()
+    file_path.parent.mkdir(parents=True, exist_ok=True)
+    with FileLock(str(file_path) + ".lock", timeout=10):
+        if not file_path.is_file():
+            raise FileNotFoundError(f"Catalog file does not exist: {file_path}")
+        write_catalog_unlocked(file_path, catalog)
+
+
+def write_catalog_unlocked(file_path: Path, catalog: CatalogFile) -> None:
+    yaml = YAML()
+    yaml.preserve_quotes = True
+    yaml.indent(mapping=2, sequence=4, offset=2)
+    payload = catalog.model_dump(mode="json", exclude_none=True)
+    with file_path.open("w", encoding="utf-8") as stream:
+        yaml.dump(payload, stream)
+
+
+get_catalog_yaml_str = read_catalog_yaml
