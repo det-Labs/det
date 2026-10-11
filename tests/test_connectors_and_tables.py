@@ -357,3 +357,67 @@ class MockCustomConnector(BaseConnector):
     assert conn.test_connection({}).success is True
 
 
+def test_table_and_column_descriptions_and_nullable_persistence(tmp_path: Path):
+    catalog_path = tmp_path / "catalog.yaml"
+    service = CatalogService()
+    service.create_catalog(catalog_path, "Description Test Catalog")
+    server.set_service(service)
+
+    cols = [
+        ColumnMetadata(name="order_id", type="String", nullable=False, description="Primary order identifier"),
+        ColumnMetadata(name="amount", type="Float64", nullable=True, description="Total amount, nullable for refunds"),
+        ColumnMetadata(name="region", type="String", nullable=False, description="Fulfillment region"),
+    ]
+
+    service.create_table(
+        name="orders",
+        namespace="default",
+        connector="csv",
+        options={"path": "orders.csv"},
+        columns=cols,
+        description="Daily sales orders with full column metadata",
+    )
+
+    # 1. Test get_table directly on service
+    table = service.get_table("default.orders")
+    assert table.description == "Daily sales orders with full column metadata"
+    assert len(table.columns) == 3
+    assert table.columns[0].name == "order_id"
+    assert table.columns[0].nullable is False
+    assert table.columns[0].description == "Primary order identifier"
+    assert table.columns[1].name == "amount"
+    assert table.columns[1].nullable is True
+    assert table.columns[1].description == "Total amount, nullable for refunds"
+
+    # 2. Test via FastAPI client
+    client = TestClient(server.app)
+    resp = client.get("/api/catalog/tables/default.orders")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["name"] == "orders"
+    assert data["description"] == "Daily sales orders with full column metadata"
+    assert len(data["columns"]) == 3
+    assert data["columns"][0]["nullable"] is False
+    assert data["columns"][0]["description"] == "Primary order identifier"
+    assert data["columns"][1]["nullable"] is True
+    assert data["columns"][1]["description"] == "Total amount, nullable for refunds"
+
+    # 3. Test state representation
+    state = service.state()
+    cat_default = next(c for c in state.categories if c["name"] == "default")
+    tbl_state = next(t for t in cat_default["tables"] if t["name"] == "orders")
+    assert tbl_state["description"] == "Daily sales orders with full column metadata"
+    assert tbl_state["columns"][0]["description"] == "Primary order identifier"
+    assert tbl_state["columns"][0]["nullable"] is False
+    assert tbl_state["columns"][1]["description"] == "Total amount, nullable for refunds"
+    assert tbl_state["columns"][1]["nullable"] is True
+
+    # 4. Verify index.html contains Description column header and table description card
+    html_content = (Path(__file__).parent.parent / "src" / "det" / "gui" / "static" / "index.html").read_text(encoding="utf-8")
+    assert "<th>Description</th>" in html_content
+    assert "tableViewDescriptionCard" in html_content
+    assert "tableViewDescriptionText" in html_content
+    assert "isColumnNullable" in html_content
+
+
+

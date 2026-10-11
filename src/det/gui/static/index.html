@@ -583,6 +583,24 @@
       color: var(--text);
       border-color: var(--border-hover);
     }
+    .table-view-description {
+      margin-top: 10px;
+      padding: 10px 14px;
+      border-radius: 6px;
+      background: var(--bg-main);
+      border: 1px solid var(--border);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .table-view-desc-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--dim);
+      margin-bottom: 4px;
+      display: block;
+    }
     .table-view-tabs {
       display: flex;
       gap: 8px;
@@ -1244,6 +1262,10 @@
                 <div class="pill-group" id="tableViewBadges" style="margin: 0;"></div>
               </div>
               <div id="tableViewMeta" style="color: var(--dim); font-size: 12px; margin-top: 6px; line-height: 1.5;"></div>
+              <div id="tableViewDescriptionCard" class="table-view-description">
+                <span class="table-view-desc-label">Table Description</span>
+                <div id="tableViewDescriptionText" style="color: var(--text); font-size: 13px; line-height: 1.5; white-space: pre-wrap;"></div>
+              </div>
             </div>
 
             <div class="table-view-tabs" role="tablist">
@@ -1288,7 +1310,8 @@
                       <th style="width: 40px;">#</th>
                       <th>Column Name</th>
                       <th>Data Type</th>
-                      <th>Nullable</th>
+                      <th style="width: 90px;">Nullable</th>
+                      <th>Description</th>
                     </tr>
                   </thead>
                   <tbody id="tableViewSchemaBody"></tbody>
@@ -2102,7 +2125,27 @@
 
       const metaContainer = document.getElementById('tableViewMeta');
       const locText = selectedTable.location || selectedTable.source_table || (selectedTable.options?.path ? selectedTable.options.path : 'Location not set');
-      metaContainer.textContent = locText + (selectedTable.description ? ` · ${selectedTable.description}` : '');
+      metaContainer.textContent = locText;
+
+      const descTextEl = document.getElementById('tableViewDescriptionText');
+      const tableDesc = (selectedTable.description || '').trim();
+      if (tableDesc) {
+        descTextEl.textContent = tableDesc;
+        descTextEl.style.color = 'var(--text)';
+        descTextEl.style.fontStyle = 'normal';
+      } else {
+        descTextEl.innerHTML = '<span style="color: var(--dim); font-style: italic;">No table description provided. Click <strong>Edit Table</strong> to add one.</span>';
+      }
+
+      // Immediately render saved schema if present
+      const schemaBody = document.getElementById('tableViewSchemaBody');
+      const schemaStatus = document.getElementById('tableViewSchemaStatus');
+      const savedCols = selectedTable.columns || [];
+      if (savedCols.length) {
+        renderTableViewSchema(schemaBody, savedCols);
+        document.getElementById('tabSchemaCountBadge').textContent = `${savedCols.length} cols`;
+        schemaStatus.textContent = `${savedCols.length} columns defined`;
+      }
 
       switchTableViewTab(activeTableViewTab);
       fetchAndRenderTableDetails();
@@ -2163,9 +2206,35 @@
         previewStatus.textContent = `Showing ${previewRows.length} sample rows (${previewCols.length} columns)`;
         renderTableViewGrid(gridContainer, previewCols, previewRows);
 
-        const schemaCols = (schemaRes.columns && schemaRes.columns.length)
-          ? schemaRes.columns
-          : (selectedTable.columns || []);
+        // Build map of saved catalog columns to preserve user-defined metadata
+        const savedColMap = new Map();
+        for (const col of (selectedTable.columns || [])) {
+          if (col && col.name) {
+            savedColMap.set(col.name.toLowerCase(), col);
+          }
+        }
+
+        let schemaCols = [];
+        if (schemaRes.columns && schemaRes.columns.length) {
+          schemaCols = schemaRes.columns.map(connCol => {
+            const saved = savedColMap.get((connCol.name || '').toLowerCase());
+            return {
+              name: connCol.name,
+              type: (saved && saved.type) ? saved.type : connCol.type,
+              nullable: (saved && saved.nullable !== undefined) ? saved.nullable : connCol.nullable,
+              description: (saved && saved.description) ? saved.description : (connCol.description || '')
+            };
+          });
+          const inferredNames = new Set(schemaRes.columns.map(c => (c.name || '').toLowerCase()));
+          for (const col of (selectedTable.columns || [])) {
+            if (col && col.name && !inferredNames.has(col.name.toLowerCase())) {
+              schemaCols.push(col);
+            }
+          }
+        } else {
+          schemaCols = selectedTable.columns || [];
+        }
+
         document.getElementById('tabSchemaCountBadge').textContent = `${schemaCols.length} cols`;
         schemaStatus.textContent = `${schemaCols.length} columns defined`;
         renderTableViewSchema(schemaBody, schemaCols);
@@ -2178,6 +2247,7 @@
         if (selectedTable.columns && selectedTable.columns.length) {
           renderTableViewSchema(schemaBody, selectedTable.columns);
           document.getElementById('tabSchemaCountBadge').textContent = `${selectedTable.columns.length} cols`;
+          schemaStatus.textContent = `${selectedTable.columns.length} columns defined`;
         }
       }
     }
@@ -2224,11 +2294,18 @@
       container.appendChild(table);
     }
 
+    function isColumnNullable(val) {
+      if (val === false || val === 'false' || val === 'False' || val === 0 || val === '0' || val === 'no' || val === 'No') {
+        return false;
+      }
+      return true;
+    }
+
     function renderTableViewSchema(tbody, columns) {
       tbody.replaceChildren();
-      if (!columns.length) {
+      if (!columns || !columns.length) {
         const tr = document.createElement('tr');
-        tr.innerHTML = '<td colspan="4" style="text-align: center; color: var(--dim); padding: 16px;">No schema columns inferred or saved.</td>';
+        tr.innerHTML = '<td colspan="5" style="text-align: center; color: var(--dim); padding: 16px;">No schema columns inferred or saved.</td>';
         tbody.appendChild(tr);
         return;
       }
@@ -2245,14 +2322,26 @@
         const tdType = document.createElement('td');
         const badgeType = document.createElement('span');
         badgeType.className = 'badge';
-        badgeType.textContent = col.type || 'string';
+        badgeType.textContent = (col.type || 'string').toUpperCase();
         tdType.appendChild(badgeType);
 
         const tdNull = document.createElement('td');
-        tdNull.textContent = col.nullable ? 'Yes' : 'No';
-        tdNull.style.color = col.nullable ? 'var(--muted)' : 'var(--text)';
+        const isNull = isColumnNullable(col.nullable);
+        const nullBadge = document.createElement('span');
+        nullBadge.className = isNull ? 'badge' : 'badge badge-accent';
+        nullBadge.textContent = isNull ? 'Yes' : 'No';
+        tdNull.appendChild(nullBadge);
 
-        tr.append(tdIdx, tdName, tdType, tdNull);
+        const tdDesc = document.createElement('td');
+        const descText = (col.description || '').trim();
+        if (descText) {
+          tdDesc.textContent = descText;
+          tdDesc.style.color = 'var(--text)';
+        } else {
+          tdDesc.innerHTML = '<span style="color: var(--dim); font-style: italic;">—</span>';
+        }
+
+        tr.append(tdIdx, tdName, tdType, tdNull, tdDesc);
         tbody.appendChild(tr);
       });
     }
@@ -2939,7 +3028,23 @@
         document.getElementById('previewRowEstimateHint').textContent =
           `Estimated rows: ${schemaRes.row_count_estimate ?? 'unknown'} · Sample size: ${schemaRes.sample_size || prevRes.rows.length}`;
 
-        inferredSchemaColumns = schemaRes.columns;
+        if (inferredSchemaColumns && inferredSchemaColumns.length) {
+          const existingMap = new Map();
+          for (const col of inferredSchemaColumns) {
+            if (col && col.name) existingMap.set(col.name.toLowerCase(), col);
+          }
+          inferredSchemaColumns = (schemaRes.columns || []).map(newCol => {
+            const prev = existingMap.get((newCol.name || '').toLowerCase());
+            return {
+              name: newCol.name,
+              type: (prev && prev.type) ? prev.type : newCol.type,
+              nullable: (prev && prev.nullable !== undefined) ? prev.nullable : newCol.nullable,
+              description: (prev && prev.description) ? prev.description : (newCol.description || '')
+            };
+          });
+        } else {
+          inferredSchemaColumns = schemaRes.columns || [];
+        }
         renderSchemaTable(inferredSchemaColumns);
         renderPreviewGrid(prevRes.columns, prevRes.rows);
       } catch (err) {
@@ -2996,7 +3101,7 @@
         const tdNull = document.createElement('td');
         const nullCheck = document.createElement('input');
         nullCheck.type = 'checkbox';
-        nullCheck.checked = Boolean(col.nullable);
+        nullCheck.checked = isColumnNullable(col.nullable);
         nullCheck.addEventListener('change', () => { col.nullable = nullCheck.checked; });
         tdNull.appendChild(nullCheck);
 
@@ -3104,6 +3209,9 @@
           if (selectedTable.id === activeTableData.id || selectedTable.name === activeTableData.name) {
             selectedTable.name = name;
             selectedTable.namespace = namespace;
+            selectedTable.description = document.getElementById('tableDescriptionInput').value.trim();
+            selectedTable.columns = inferredSchemaColumns;
+            selectedTable.options = tableOptions;
           }
         }
         await loadCatalogState();

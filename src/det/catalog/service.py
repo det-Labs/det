@@ -22,8 +22,15 @@ from det.catalog.models import (
     ScanResult,
 )
 from det.catalog.scanner import scan_location
-from det.catalog.store import create_catalog as create_catalog_file
-from det.catalog.store import get_catalog_yaml_str, load_catalog, read_catalog_yaml, save_catalog
+from det.catalog.store import (
+    create_catalog as create_catalog_file,
+)
+from det.catalog.store import (
+    get_catalog_yaml_str,
+    load_catalog,
+    read_catalog_yaml,
+    save_catalog,
+)
 from det.connectors.connections import (
     delete_connection,
     get_connection,
@@ -431,6 +438,13 @@ class CatalogService:
         self._save_catalog(catalog)
         return self.state()
 
+    def get_table(self, table_id: str) -> DatasetMetadata:
+        catalog = self._require_catalog()
+        for t in catalog.datasets:
+            if t.id == table_id:
+                return t
+        raise KeyError(f"Table '{table_id}' does not exist.")
+
     # ---------------- Connector Discovery & Preview ----------------
 
     def _resolve_connection_params(
@@ -823,3 +837,5 @@ class CatalogService:
         if not target_path or not target_path.is_file():
             return ""
         return get_catalog_yaml_str(target_path)
+
+

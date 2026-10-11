@@ -361,7 +361,12 @@ def create_table(request: CreateTableRequest) -> CatalogState:
     )
 
 
-@app.put("/api/catalog/tables/{table_id}", response_model=CatalogState)
+@app.get("/api/catalog/tables/{table_id:path}", response_model=DatasetMetadata)
+def get_table(table_id: str) -> DatasetMetadata:
+    return _catalog_action(get_service().get_table, table_id)
+
+
+@app.put("/api/catalog/tables/{table_id:path}", response_model=CatalogState)
 def update_table(table_id: str, request: UpdateTableRequest) -> CatalogState:
     return _catalog_action(
         get_service().update_table,
@@ -376,7 +381,7 @@ def update_table(table_id: str, request: UpdateTableRequest) -> CatalogState:
     )
 
 
-@app.delete("/api/catalog/tables/{table_id}", response_model=CatalogState)
+@app.delete("/api/catalog/tables/{table_id:path}", response_model=CatalogState)
 def delete_table(table_id: str) -> CatalogState:
     return _catalog_action(get_service().delete_table, table_id)
 
@@ -452,8 +457,6 @@ def preview_data(request: ConnectorPreviewRequest) -> PreviewResult:
 
 
 # ---------------- Pipeline Integration ----------------
-
-# pipeline service instances
 
 _pipeline_service: PipelineService | None = None
 
@@ -717,7 +720,6 @@ def get_pipelines_yaml(path: str | None = None) -> PlainTextResponse:
 # --- Legacy Dataset & Namespace Endpoints for Compatibility ---
 
 
-
 class CatalogStatusResponse(BaseModel):
     active_path: str
     default_path: str
@@ -811,7 +813,6 @@ def remove_catalog_endpoint(req: RemoveCatalogRequest):
 
 @app.post("/api/catalog/set-default")
 def set_default_catalog_endpoint(req: SetDefaultCatalogRequest):
-
     try:
         set_default_catalog_path(req.path)
     except Exception as exc:
