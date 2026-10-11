@@ -287,6 +287,7 @@ def test_csv_live_ftp_public_endpoint():
 
 @pytest.mark.network
 def test_csv_live_sftp_public_endpoint():
+    pytest.importorskip("paramiko", reason="SFTP requires paramiko")
     connector = CSVConnector()
     src_config = {
         "protocol": "sftp",

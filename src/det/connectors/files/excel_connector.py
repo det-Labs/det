@@ -221,29 +221,49 @@ class ExcelConnector(BaseConnector):
         cols_raw = str(table_options.get("columns") or "").strip()
         selected_cols = [c.strip() for c in cols_raw.split(",") if c.strip()] if cols_raw else None
 
-        read_opts: dict[str, Any] = {}
         if skip_rows > 0:
-            read_opts["header_row"] = skip_rows if has_header else None
+            import openpyxl
 
-        # Prefer high-performance calamine, fallback to openpyxl if calamine fails
-        try:
-            df = pl.read_excel(
-                source,
-                sheet_name=sheet,
-                has_header=has_header,
-                read_options=read_opts or None,
-                engine="calamine",
-            )
-        except Exception:
-            if isinstance(source, io.BytesIO):
-                source.seek(0)
-            df = pl.read_excel(
-                source,
-                sheet_name=sheet,
-                has_header=has_header,
-                read_options=read_opts or None,
-                engine="openpyxl",
-            )
+            wb = openpyxl.load_workbook(source, data_only=True, read_only=True)
+            try:
+                ws = wb[sheet] if (sheet and sheet in wb.sheetnames) else wb.active
+                raw_rows = list(ws.iter_rows(values_only=True))
+                if skip_rows < len(raw_rows):
+                    raw_rows = raw_rows[skip_rows:]
+                else:
+                    raw_rows = []
+                if not raw_rows:
+                    df = pl.DataFrame()
+                elif has_header:
+                    header = [str(c) if c is not None else f"col_{i}" for i, c in enumerate(raw_rows[0])]
+                    data_rows = raw_rows[1:]
+                    data_rows = [list(r) + [None] * (len(header) - len(r)) for r in data_rows]
+                    data_dict = {col: [r[i] for r in data_rows] for i, col in enumerate(header)}
+                    df = pl.DataFrame(data_dict, strict=False)
+                else:
+                    header = [f"col_{i}" for i in range(len(raw_rows[0]))]
+                    data_rows = [list(r) + [None] * (len(header) - len(r)) for r in raw_rows]
+                    data_dict = {col: [r[i] for r in data_rows] for i, col in enumerate(header)}
+                    df = pl.DataFrame(data_dict, strict=False)
+            finally:
+                wb.close()
+        else:
+            try:
+                df = pl.read_excel(
+                    source,
+                    sheet_name=sheet,
+                    has_header=has_header,
+                    engine="calamine",
+                )
+            except Exception:
+                if isinstance(source, io.BytesIO):
+                    source.seek(0)
+                df = pl.read_excel(
+                    source,
+                    sheet_name=sheet,
+                    has_header=has_header,
+                    engine="openpyxl",
+                )
 
         if selected_cols:
             valid_cols = [c for c in selected_cols if c in df.columns]
