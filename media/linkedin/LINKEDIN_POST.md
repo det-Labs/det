@@ -1,6 +1,6 @@
 # 🚀 Official LinkedIn Announcement Post
 
-*Copy and paste the text below directly into your LinkedIn post. You can attach either the PDF carousel (`det_linkedin_carousel.pdf`), the MP4 video (`det_product_walkthrough.mp4`), or the 3D banner graphic (`det_3d_announcement_visual.jpg`).*
+*Copy and paste the text below directly into your LinkedIn post. You can attach either the 47s demo video (`det_demo_video.mp4`), the PDF carousel (`det_linkedin_carousel.pdf`), or the 3D announcement visual (`det_3d_announcement_visual.jpg`).*
 
 ---
 
