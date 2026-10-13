@@ -1,0 +1,35 @@
+1
+00:00:00,500 --> 00:00:07,613
+Welcome to det — the fast, local-first SQL ETL workspace powered by Apache DataFusion.
+
+2
+00:00:08,113 --> 00:00:15,561
+Adding data sources is effortless. We declare a new Parquet source with strict schemas and rich descriptions.
+
+3
+00:00:16,061 --> 00:00:23,419
+With one click, DataFusion inspects the Parquet schema, column contracts, and instant tabular previews.
+
+4
+00:00:23,919 --> 00:00:30,777
+Next, we add our CSV customer master file and preview live records directly in the catalog.
+
+5
+00:00:31,277 --> 00:00:42,274
+In the ETL module, we create a new pipeline. Step 1 writes pure ANSI SQL directly joining Parquet and CSV — zero Jinja templating.
+
+6
+00:00:42,774 --> 00:00:51,762
+We attach markdown documentation notes to Step 1, then add Step 2 to compute regional aggregate sales and configure our destination sink.
+
+7
+00:00:52,262 --> 00:01:01,730
+We run pre-flight DataFusion logical plan validation, then hit Save and Run. Execution completes in sub-second vectorized time.
+
+8
+00:01:02,230 --> 00:01:12,758
+Running it a second time captures real-time audit telemetry. In Monitoring, we inspect 100% pipeline health, step latencies, and logs.
+
+9
+00:01:13,258 --> 00:01:24,110
+Finally, we generate living HTML documentation with embedded schema lineage DAGs. That's det: fast, modular, and pure SQL.
