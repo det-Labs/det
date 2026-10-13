@@ -35,81 +35,9 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e .
 
-      - name: Prepare Documentation Site
+      - name: Build Documentation Site
         run: |
-          mkdir -p _site
-          # Initialize workspace and install sample data to build documentation
-          python -c "
-          import det
-          from pathlib import Path
-          from det.sample_data import install_sample_data
-          from det.docs import PipelineDocsGenerator
-
-          ws = Path('demo_workspace')
-          det.Workspace(ws)
-          install_sample_data(ws)
-          gen = PipelineDocsGenerator(ws)
-          
-          # Generate static documentation portal for all pipelines
-          for p_path in ws.glob('pipelines/*/*.yaml'):
-              p_key = f"{p_path.parent.name}/{p_path.stem}"
-              try:
-                  doc_res = gen.save(p_key, doc_format='html')
-                  print(f'Generated: {doc_res["saved_path"]}')
-              except Exception as e:
-                  print(f'Skipped {p_key}: {e}')
-          "
-          # Copy generated docs and all static UI assets to _site
-          cp -r demo_workspace/documentation/* _site/ 2>/dev/null || true
-          cp -r src/det/ui/* _site/ 2>/dev/null || true
-          mv _site/index.html _site/demo.html
-          # Create landing index
-          cat << 'EOF' > _site/index.html
-          <!DOCTYPE html>
-          <html lang="en">
-          <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>det Documentation & Interactive Workspace</title>
-            <script src="https://cdn.tailwindcss.com"></script>
-            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-          </head>
-          <body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col items-center justify-center p-6">
-            <div class="max-w-2xl w-full bg-slate-800 border border-slate-700 rounded-xl p-8 shadow-2xl text-center">
-              <div class="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 text-3xl font-black shadow-lg shadow-blue-500/20">
-                d
-              </div>
-              <h1 class="text-3xl font-bold tracking-tight mb-2">det &mdash; Data Engineering Tool</h1>
-              <p class="text-slate-400 mb-6 text-sm">Fast, local-first SQL ETL workspace & pipeline orchestration engine powered by Apache DataFusion.</p>
-              
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 my-6 text-left">
-                <a href="demo.html" class="p-4 bg-slate-900/60 border border-slate-700/60 rounded-lg hover:border-blue-500 transition-colors block group">
-                  <div class="font-semibold text-blue-400 group-hover:text-blue-300 flex items-center gap-2">
-                    <i class="fa-solid fa-desktop"></i> Interactive Web IDE
-                  </div>
-                  <p class="text-xs text-slate-400 mt-1">Explore visual DAG topologies, SQL editor, catalog viewer, and live data preview.</p>
-                </a>
-                <a href="https://github.com/det-Labs/det" class="p-4 bg-slate-900/60 border border-slate-700/60 rounded-lg hover:border-blue-500 transition-colors block group">
-                  <div class="font-semibold text-emerald-400 group-hover:text-emerald-300 flex items-center gap-2">
-                    <i class="fa-brands fa-github"></i> GitHub Repository
-                  </div>
-                  <p class="text-xs text-slate-400 mt-1">Star the repo, view source code, report issues, and submit custom connectors.</p>
-                </a>
-              </div>
-
-              <div class="bg-slate-950 rounded-lg p-4 font-mono text-xs text-slate-300 text-left border border-slate-800">
-                <span class="text-slate-500"># Install & launch in 30 seconds</span><br>
-                <span class="text-blue-400">pip</span> install det-core<br>
-                <span class="text-blue-400">det</span> sample-data<br>
-                <span class="text-blue-400">det</span> gui
-              </div>
-            </div>
-            <footer class="mt-8 text-xs text-slate-500">
-              Maintained by Saurabh Rai & det-Labs &bull; Released under MIT License
-            </footer>
-          </body>
-          </html>
-          EOF
+          python scripts/build_docs_site.py
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
