@@ -66,10 +66,11 @@ dev = [
 det = "det.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/det-labs/det"
-Repository = "https://github.com/det-labs/det"
-Issues = "https://github.com/det-labs/det/issues"
-Documentation = "https://github.com/det-labs/det#readme"
+Homepage = "https://github.com/det-Labs/det"
+Repository = "https://github.com/det-Labs/det"
+Documentation = "https://github.com/det-Labs/det/wiki"
+Showcase = "https://det-labs.github.io/det/demo.html"
+Issues = "https://github.com/det-Labs/det/issues"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/det"]

@@ -2,6 +2,8 @@
 
 [![PyPI Version](https://img.shields.io/pypi/v/det-core.svg?color=blue&logo=pypi&logoColor=white)](https://pypi.org/project/det-core/)
 [![CI](https://github.com/det-Labs/det/actions/workflows/ci.yml/badge.svg)](https://github.com/det-Labs/det/actions/workflows/ci.yml)
+[![Docs: GitHub Wiki](https://img.shields.io/badge/Docs-GitHub%20Wiki-blueviolet.svg?logo=github)](https://github.com/det-Labs/det/wiki)
+[![Demo: Interactive Web IDE](https://img.shields.io/badge/Demo-Interactive%20Web%20IDE-0ea5e9.svg)](https://det-labs.github.io/det/demo.html)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Python: 3.14+](https://img.shields.io/badge/Python-3.14+-3776AB.svg?logo=python&logoColor=white)](https://www.python.org/)
 [![Engine: Apache DataFusion](https://img.shields.io/badge/Engine-Apache%20DataFusion-orange.svg)](https://datafusion.apache.org/)
@@ -114,6 +116,21 @@ Serve the visual workspace interface locally:
 det gui --port 8765
 ```
 Open your browser to `http://127.0.0.1:8765` to visually explore catalogs, run SQL pipelines, inspect DAG topologies, and monitor execution metrics.
+
+---
+
+## 📖 Documentation & GitHub Wiki
+
+In-depth technical guides, API references, and architecture blueprints are maintained in the **[det GitHub Wiki](https://github.com/det-Labs/det/wiki)**:
+
+- 🏠 **[Wiki Home](https://github.com/det-Labs/det/wiki)** — Vision, architecture, and core directives (**Modularity, Performance, Extensibility**).
+- 🚀 **[Quickstart & Installation Guide](https://github.com/det-Labs/det/wiki/Quickstart-&-Installation)** — 60-second setup, PyPI package installation, and running your first pipeline.
+- 🏛️ **[Core Directives & Architecture](https://github.com/det-Labs/det/wiki/Core-Directives-&-Architecture)** — Deep dive into the Apache DataFusion query engine, Apache Arrow memory layout, and catalog decoupling.
+- 📐 **[SQL ETL Pipeline Authoring](https://github.com/det-Labs/det/wiki/SQL-ETL-Pipeline-Authoring)** — Multi-stage DAG orchestration, CTEs, DataFusion SQL, and destination sink routing.
+- 🔌 **[Custom Connectors Guide](https://github.com/det-Labs/det/wiki/Custom-Connectors-Guide)** — Step-by-step tutorial on building custom source/sink connectors via Python plugins.
+- 💻 **[CLI & Web IDE Reference](https://github.com/det-Labs/det/wiki/CLI-&-Web-IDE-Reference)** — Complete CLI flag reference and Web IDE keyboard shortcuts.
+
+> 🌐 **Live Browser Showcase:** Try the zero-install **[Interactive Web IDE Showcase](https://det-labs.github.io/det/demo.html)** directly in your browser.
 
 ---
 
