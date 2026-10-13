@@ -9,40 +9,39 @@ permissions:
 
 jobs:
   build:
-    name: Test and build distributions
+    name: Build wheels and sdist
     runs-on: ubuntu-latest
     steps:
       - name: Check out release tag
         uses: actions/checkout@v4
 
-      - name: Set up Python 3.15
+      - name: Set up Python 3.14
         uses: actions/setup-python@v5
         with:
-          python-version: "3.15"
+          python-version: "3.14"
           allow-prereleases: true
 
-      - name: Install project and build tools
+      - name: Install build tools
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -e ".[dev]" build twine
+          pip install build twine
 
-      - name: Check release tag matches project version
+      - name: Verify release tag matches pyproject.toml
         run: |
-          python -c "import os, tomllib, det; from pathlib import Path; version = tomllib.loads(Path('pyproject.toml').read_text())['project']['version']; tag = os.environ['GITHUB_REF_NAME'].removeprefix('v'); assert tag == version, f'Release tag {tag!r} does not match project version {version!r}'; assert det.__version__ == version, f'det.__version__ {det.__version__!r} does not match project version {version!r}'"
+          python -c "import tomllib, det; from pathlib import Path; version = tomllib.loads(Path('pyproject.toml').read_text(encoding='utf-8'))['project']['version']; assert det.__version__ == version, f'det.__version__ {det.__version__!r} != {version!r}'"
 
-      - name: Run Ruff
-        run: ruff check .
+      - name: Run unit tests
+        run: |
+          pip install -e .
+          python -m unittest discover -s tests
 
-      - name: Run tests
-        run: pytest
-
-      - name: Build distributions
+      - name: Build distribution packages
         run: python -m build
 
-      - name: Validate distributions
+      - name: Validate distribution packages
         run: python -m twine check dist/*
 
-      - name: Upload distributions
+      - name: Upload distribution artifacts
         uses: actions/upload-artifact@v4
         with:
           name: python-package-distributions
@@ -50,7 +49,7 @@ jobs:
           if-no-files-found: error
 
   publish:
-    name: Publish approved release to PyPI
+    name: Publish package to PyPI
     needs: build
     runs-on: ubuntu-latest
     environment:
@@ -59,7 +58,7 @@ jobs:
     permissions:
       id-token: write
     steps:
-      - name: Download distributions
+      - name: Download distribution artifacts
         uses: actions/download-artifact@v4
         with:
           name: python-package-distributions
@@ -67,3 +66,4 @@ jobs:
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
+

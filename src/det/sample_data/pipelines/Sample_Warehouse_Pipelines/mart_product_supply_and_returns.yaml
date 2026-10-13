@@ -1,0 +1,34 @@
+id: 8633399d-ee51-41cc-943a-dec2f4ff17bd
+name: mart_product_supply_and_returns
+folder: Sample_Warehouse_Pipelines
+catalog: sample_warehouse.yaml
+description: End-to-end merchandise supply chain and quality mart joining Inbound
+  Delta Lake Shipments, CSV Orders, Parquet Returns, and JSON Products.
+steps:
+- id: 6f041a8a-21c2-4d2d-a2ba-3d1b6a8c2dc2
+  name: supply_chain_quality_analysis
+  description: Correlate sales volumes with customer returns and supplier receipt
+    volumes.
+  sql: "WITH product_sales AS (\n  SELECT\n    product_id,\n    COUNT(DISTINCT order_id)\
+    \ AS orders_count,\n    SUM(quantity) AS units_sold,\n    ROUND(SUM(quantity *\
+    \ unit_price * COALESCE(fx.rate_to_usd, 1.0) * (1.0 - discount_pct)), 2) AS sales_revenue_usd\n\
+    \  FROM raw_orders o\n  LEFT JOIN raw_exchange_rates fx ON o.currency = fx.currency_code\n\
+    \  WHERE order_status = 'Completed'\n  GROUP BY product_id\n),\nproduct_returns\
+    \ AS (\n  SELECT\n    product_id,\n    COUNT(DISTINCT return_id) AS returns_count,\n\
+    \    ROUND(SUM(refund_amount_usd), 2) AS total_refunded_usd\n  FROM raw_returns\n\
+    \  GROUP BY product_id\n),\ninbound_supply AS (\n  SELECT\n    product_id,\n \
+    \   SUM(quantity_received) AS total_units_received,\n    ROUND(SUM(total_cost_usd),\
+    \ 2) AS total_inbound_cost_usd\n  FROM raw_supplier_shipments\n  WHERE delivery_status\
+    \ = 'Delivered'\n  GROUP BY product_id\n)\nSELECT\n  p.product_id,\n  p.product_name,\n\
+    \  p.category,\n  p.sub_category,\n  p.retail_price_usd,\n  COALESCE(ps.units_sold,\
+    \ 0) AS units_sold,\n  COALESCE(ps.sales_revenue_usd, 0.0) AS sales_revenue_usd,\n\
+    \  COALESCE(pr.returns_count, 0) AS returns_count,\n  COALESCE(pr.total_refunded_usd,\
+    \ 0.0) AS total_refunded_usd,\n  ROUND(CAST(COALESCE(pr.returns_count, 0) AS DOUBLE)\
+    \ / NULLIF(COALESCE(ps.units_sold, 0), 0) * 100, 2) AS return_rate_pct,\n  COALESCE(sup.total_units_received,\
+    \ 0) AS units_received_from_suppliers,\n  ROUND(CAST(COALESCE(ps.units_sold, 0)\
+    \ AS DOUBLE) / NULLIF(COALESCE(sup.total_units_received, 0), 0) * 100, 2) AS inventory_sell_through_pct\n\
+    FROM raw_products p\nLEFT JOIN product_sales ps ON p.product_id = ps.product_id\n\
+    LEFT JOIN product_returns pr ON p.product_id = pr.product_id\nLEFT JOIN inbound_supply\
+    \ sup ON p.product_id = sup.product_id\nORDER BY sales_revenue_usd DESC"
+  destinations: []
+  keep_temporary: true

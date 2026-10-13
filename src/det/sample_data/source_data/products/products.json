@@ -1,0 +1,642 @@
+[
+  {
+    "product_id": "P001",
+    "product_name": "Smartphones Model A-101",
+    "category": "Electronics",
+    "sub_category": "Smartphones",
+    "cost_price_usd": 93.43,
+    "retail_price_usd": 190.11,
+    "sku": "SKU-ELE-SMA-001",
+    "is_active": true
+  },
+  {
+    "product_id": "P002",
+    "product_name": "Smartphones Model B-102",
+    "category": "Electronics",
+    "sub_category": "Smartphones",
+    "cost_price_usd": 159.55,
+    "retail_price_usd": 316.25,
+    "sku": "SKU-ELE-SMA-002",
+    "is_active": true
+  },
+  {
+    "product_id": "P003",
+    "product_name": "Smartphones Model C-103",
+    "category": "Electronics",
+    "sub_category": "Smartphones",
+    "cost_price_usd": 196.21,
+    "retail_price_usd": 253.7,
+    "sku": "SKU-ELE-SMA-003",
+    "is_active": true
+  },
+  {
+    "product_id": "P004",
+    "product_name": "Smartphones Model D-104",
+    "category": "Electronics",
+    "sub_category": "Smartphones",
+    "cost_price_usd": 349.75,
+    "retail_price_usd": 685.73,
+    "sku": "SKU-ELE-SMA-004",
+    "is_active": true
+  },
+  {
+    "product_id": "P005",
+    "product_name": "Laptops Model A-105",
+    "category": "Electronics",
+    "sub_category": "Laptops",
+    "cost_price_usd": 339.4,
+    "retail_price_usd": 691.5,
+    "sku": "SKU-ELE-LAP-005",
+    "is_active": true
+  },
+  {
+    "product_id": "P006",
+    "product_name": "Laptops Model B-106",
+    "category": "Electronics",
+    "sub_category": "Laptops",
+    "cost_price_usd": 298.25,
+    "retail_price_usd": 414.97,
+    "sku": "SKU-ELE-LAP-006",
+    "is_active": true
+  },
+  {
+    "product_id": "P007",
+    "product_name": "Laptops Model C-107",
+    "category": "Electronics",
+    "sub_category": "Laptops",
+    "cost_price_usd": 174.09,
+    "retail_price_usd": 249.24,
+    "sku": "SKU-ELE-LAP-007",
+    "is_active": true
+  },
+  {
+    "product_id": "P008",
+    "product_name": "Laptops Model D-108",
+    "category": "Electronics",
+    "sub_category": "Laptops",
+    "cost_price_usd": 145.16,
+    "retail_price_usd": 188.68,
+    "sku": "SKU-ELE-LAP-008",
+    "is_active": true
+  },
+  {
+    "product_id": "P009",
+    "product_name": "Audio Model A-109",
+    "category": "Electronics",
+    "sub_category": "Audio",
+    "cost_price_usd": 137.61,
+    "retail_price_usd": 287.26,
+    "sku": "SKU-ELE-AUD-009",
+    "is_active": true
+  },
+  {
+    "product_id": "P010",
+    "product_name": "Audio Model B-110",
+    "category": "Electronics",
+    "sub_category": "Audio",
+    "cost_price_usd": 98.7,
+    "retail_price_usd": 189.15,
+    "sku": "SKU-ELE-AUD-010",
+    "is_active": true
+  },
+  {
+    "product_id": "P011",
+    "product_name": "Audio Model C-111",
+    "category": "Electronics",
+    "sub_category": "Audio",
+    "cost_price_usd": 163.61,
+    "retail_price_usd": 263.34,
+    "sku": "SKU-ELE-AUD-011",
+    "is_active": true
+  },
+  {
+    "product_id": "P012",
+    "product_name": "Audio Model D-112",
+    "category": "Electronics",
+    "sub_category": "Audio",
+    "cost_price_usd": 335.4,
+    "retail_price_usd": 703.04,
+    "sku": "SKU-ELE-AUD-012",
+    "is_active": true
+  },
+  {
+    "product_id": "P013",
+    "product_name": "Accessories Model A-113",
+    "category": "Electronics",
+    "sub_category": "Accessories",
+    "cost_price_usd": 198.07,
+    "retail_price_usd": 368.54,
+    "sku": "SKU-ELE-ACC-013",
+    "is_active": true
+  },
+  {
+    "product_id": "P014",
+    "product_name": "Accessories Model B-114",
+    "category": "Electronics",
+    "sub_category": "Accessories",
+    "cost_price_usd": 60.94,
+    "retail_price_usd": 91.54,
+    "sku": "SKU-ELE-ACC-014",
+    "is_active": true
+  },
+  {
+    "product_id": "P015",
+    "product_name": "Accessories Model C-115",
+    "category": "Electronics",
+    "sub_category": "Accessories",
+    "cost_price_usd": 339.3,
+    "retail_price_usd": 591.16,
+    "sku": "SKU-ELE-ACC-015",
+    "is_active": true
+  },
+  {
+    "product_id": "P016",
+    "product_name": "Accessories Model D-116",
+    "category": "Electronics",
+    "sub_category": "Accessories",
+    "cost_price_usd": 193.43,
+    "retail_price_usd": 364.77,
+    "sku": "SKU-ELE-ACC-016",
+    "is_active": true
+  },
+  {
+    "product_id": "P017",
+    "product_name": "Kitchen Model A-117",
+    "category": "Home & Living",
+    "sub_category": "Kitchen",
+    "cost_price_usd": 27.55,
+    "retail_price_usd": 48.12,
+    "sku": "SKU-HOM-KIT-017",
+    "is_active": true
+  },
+  {
+    "product_id": "P018",
+    "product_name": "Kitchen Model B-118",
+    "category": "Home & Living",
+    "sub_category": "Kitchen",
+    "cost_price_usd": 179.97,
+    "retail_price_usd": 355.41,
+    "sku": "SKU-HOM-KIT-018",
+    "is_active": true
+  },
+  {
+    "product_id": "P019",
+    "product_name": "Kitchen Model C-119",
+    "category": "Home & Living",
+    "sub_category": "Kitchen",
+    "cost_price_usd": 61.84,
+    "retail_price_usd": 127.8,
+    "sku": "SKU-HOM-KIT-019",
+    "is_active": true
+  },
+  {
+    "product_id": "P020",
+    "product_name": "Kitchen Model D-120",
+    "category": "Home & Living",
+    "sub_category": "Kitchen",
+    "cost_price_usd": 35.4,
+    "retail_price_usd": 49.84,
+    "sku": "SKU-HOM-KIT-020",
+    "is_active": true
+  },
+  {
+    "product_id": "P021",
+    "product_name": "Furniture Model A-121",
+    "category": "Home & Living",
+    "sub_category": "Furniture",
+    "cost_price_usd": 211.5,
+    "retail_price_usd": 385.76,
+    "sku": "SKU-HOM-FUR-021",
+    "is_active": true
+  },
+  {
+    "product_id": "P022",
+    "product_name": "Furniture Model B-122",
+    "category": "Home & Living",
+    "sub_category": "Furniture",
+    "cost_price_usd": 88.44,
+    "retail_price_usd": 119.56,
+    "sku": "SKU-HOM-FUR-022",
+    "is_active": true
+  },
+  {
+    "product_id": "P023",
+    "product_name": "Furniture Model C-123",
+    "category": "Home & Living",
+    "sub_category": "Furniture",
+    "cost_price_usd": 312.48,
+    "retail_price_usd": 456.0,
+    "sku": "SKU-HOM-FUR-023",
+    "is_active": true
+  },
+  {
+    "product_id": "P024",
+    "product_name": "Furniture Model D-124",
+    "category": "Home & Living",
+    "sub_category": "Furniture",
+    "cost_price_usd": 211.33,
+    "retail_price_usd": 375.42,
+    "sku": "SKU-HOM-FUR-024",
+    "is_active": true
+  },
+  {
+    "product_id": "P025",
+    "product_name": "Bedding Model A-125",
+    "category": "Home & Living",
+    "sub_category": "Bedding",
+    "cost_price_usd": 151.37,
+    "retail_price_usd": 264.31,
+    "sku": "SKU-HOM-BED-025",
+    "is_active": true
+  },
+  {
+    "product_id": "P026",
+    "product_name": "Bedding Model B-126",
+    "category": "Home & Living",
+    "sub_category": "Bedding",
+    "cost_price_usd": 186.79,
+    "retail_price_usd": 381.89,
+    "sku": "SKU-HOM-BED-026",
+    "is_active": true
+  },
+  {
+    "product_id": "P027",
+    "product_name": "Bedding Model C-127",
+    "category": "Home & Living",
+    "sub_category": "Bedding",
+    "cost_price_usd": 77.86,
+    "retail_price_usd": 144.72,
+    "sku": "SKU-HOM-BED-027",
+    "is_active": true
+  },
+  {
+    "product_id": "P028",
+    "product_name": "Bedding Model D-128",
+    "category": "Home & Living",
+    "sub_category": "Bedding",
+    "cost_price_usd": 89.63,
+    "retail_price_usd": 142.19,
+    "sku": "SKU-HOM-BED-028",
+    "is_active": true
+  },
+  {
+    "product_id": "P029",
+    "product_name": "Decor Model A-129",
+    "category": "Home & Living",
+    "sub_category": "Decor",
+    "cost_price_usd": 237.72,
+    "retail_price_usd": 357.77,
+    "sku": "SKU-HOM-DEC-029",
+    "is_active": true
+  },
+  {
+    "product_id": "P030",
+    "product_name": "Decor Model B-130",
+    "category": "Home & Living",
+    "sub_category": "Decor",
+    "cost_price_usd": 116.13,
+    "retail_price_usd": 219.38,
+    "sku": "SKU-HOM-DEC-030",
+    "is_active": true
+  },
+  {
+    "product_id": "P031",
+    "product_name": "Decor Model C-131",
+    "category": "Home & Living",
+    "sub_category": "Decor",
+    "cost_price_usd": 32.81,
+    "retail_price_usd": 53.79,
+    "sku": "SKU-HOM-DEC-031",
+    "is_active": true
+  },
+  {
+    "product_id": "P032",
+    "product_name": "Decor Model D-132",
+    "category": "Home & Living",
+    "sub_category": "Decor",
+    "cost_price_usd": 349.47,
+    "retail_price_usd": 732.73,
+    "sku": "SKU-HOM-DEC-032",
+    "is_active": true
+  },
+  {
+    "product_id": "P033",
+    "product_name": "Menswear Model A-133",
+    "category": "Apparel",
+    "sub_category": "Menswear",
+    "cost_price_usd": 33.06,
+    "retail_price_usd": 47.31,
+    "sku": "SKU-APP-MEN-033",
+    "is_active": true
+  },
+  {
+    "product_id": "P034",
+    "product_name": "Menswear Model B-134",
+    "category": "Apparel",
+    "sub_category": "Menswear",
+    "cost_price_usd": 98.7,
+    "retail_price_usd": 201.67,
+    "sku": "SKU-APP-MEN-034",
+    "is_active": true
+  },
+  {
+    "product_id": "P035",
+    "product_name": "Menswear Model C-135",
+    "category": "Apparel",
+    "sub_category": "Menswear",
+    "cost_price_usd": 309.26,
+    "retail_price_usd": 617.71,
+    "sku": "SKU-APP-MEN-035",
+    "is_active": true
+  },
+  {
+    "product_id": "P036",
+    "product_name": "Menswear Model D-136",
+    "category": "Apparel",
+    "sub_category": "Menswear",
+    "cost_price_usd": 134.38,
+    "retail_price_usd": 185.99,
+    "sku": "SKU-APP-MEN-036",
+    "is_active": true
+  },
+  {
+    "product_id": "P037",
+    "product_name": "Womenswear Model A-137",
+    "category": "Apparel",
+    "sub_category": "Womenswear",
+    "cost_price_usd": 293.14,
+    "retail_price_usd": 541.73,
+    "sku": "SKU-APP-WOM-037",
+    "is_active": true
+  },
+  {
+    "product_id": "P038",
+    "product_name": "Womenswear Model B-138",
+    "category": "Apparel",
+    "sub_category": "Womenswear",
+    "cost_price_usd": 217.19,
+    "retail_price_usd": 453.74,
+    "sku": "SKU-APP-WOM-038",
+    "is_active": true
+  },
+  {
+    "product_id": "P039",
+    "product_name": "Womenswear Model C-139",
+    "category": "Apparel",
+    "sub_category": "Womenswear",
+    "cost_price_usd": 231.66,
+    "retail_price_usd": 291.12,
+    "sku": "SKU-APP-WOM-039",
+    "is_active": true
+  },
+  {
+    "product_id": "P040",
+    "product_name": "Womenswear Model D-140",
+    "category": "Apparel",
+    "sub_category": "Womenswear",
+    "cost_price_usd": 287.45,
+    "retail_price_usd": 432.46,
+    "sku": "SKU-APP-WOM-040",
+    "is_active": true
+  },
+  {
+    "product_id": "P041",
+    "product_name": "Footwear Model A-141",
+    "category": "Apparel",
+    "sub_category": "Footwear",
+    "cost_price_usd": 234.88,
+    "retail_price_usd": 481.06,
+    "sku": "SKU-APP-FOO-041",
+    "is_active": true
+  },
+  {
+    "product_id": "P042",
+    "product_name": "Footwear Model B-142",
+    "category": "Apparel",
+    "sub_category": "Footwear",
+    "cost_price_usd": 53.93,
+    "retail_price_usd": 72.7,
+    "sku": "SKU-APP-FOO-042",
+    "is_active": true
+  },
+  {
+    "product_id": "P043",
+    "product_name": "Footwear Model C-143",
+    "category": "Apparel",
+    "sub_category": "Footwear",
+    "cost_price_usd": 44.61,
+    "retail_price_usd": 76.74,
+    "sku": "SKU-APP-FOO-043",
+    "is_active": true
+  },
+  {
+    "product_id": "P044",
+    "product_name": "Footwear Model D-144",
+    "category": "Apparel",
+    "sub_category": "Footwear",
+    "cost_price_usd": 101.14,
+    "retail_price_usd": 178.42,
+    "sku": "SKU-APP-FOO-044",
+    "is_active": true
+  },
+  {
+    "product_id": "P045",
+    "product_name": "Activewear Model A-145",
+    "category": "Apparel",
+    "sub_category": "Activewear",
+    "cost_price_usd": 253.42,
+    "retail_price_usd": 360.63,
+    "sku": "SKU-APP-ACT-045",
+    "is_active": true
+  },
+  {
+    "product_id": "P046",
+    "product_name": "Activewear Model B-146",
+    "category": "Apparel",
+    "sub_category": "Activewear",
+    "cost_price_usd": 224.91,
+    "retail_price_usd": 331.6,
+    "sku": "SKU-APP-ACT-046",
+    "is_active": true
+  },
+  {
+    "product_id": "P047",
+    "product_name": "Activewear Model C-147",
+    "category": "Apparel",
+    "sub_category": "Activewear",
+    "cost_price_usd": 175.08,
+    "retail_price_usd": 353.58,
+    "sku": "SKU-APP-ACT-047",
+    "is_active": true
+  },
+  {
+    "product_id": "P048",
+    "product_name": "Activewear Model D-148",
+    "category": "Apparel",
+    "sub_category": "Activewear",
+    "cost_price_usd": 297.37,
+    "retail_price_usd": 395.04,
+    "sku": "SKU-APP-ACT-048",
+    "is_active": true
+  },
+  {
+    "product_id": "P049",
+    "product_name": "Camping Model A-149",
+    "category": "Sports & Outdoors",
+    "sub_category": "Camping",
+    "cost_price_usd": 152.86,
+    "retail_price_usd": 227.02,
+    "sku": "SKU-SPO-CAM-049",
+    "is_active": true
+  },
+  {
+    "product_id": "P050",
+    "product_name": "Camping Model B-150",
+    "category": "Sports & Outdoors",
+    "sub_category": "Camping",
+    "cost_price_usd": 9.21,
+    "retail_price_usd": 17.55,
+    "sku": "SKU-SPO-CAM-050",
+    "is_active": true
+  },
+  {
+    "product_id": "P051",
+    "product_name": "Camping Model C-151",
+    "category": "Sports & Outdoors",
+    "sub_category": "Camping",
+    "cost_price_usd": 225.89,
+    "retail_price_usd": 332.66,
+    "sku": "SKU-SPO-CAM-051",
+    "is_active": true
+  },
+  {
+    "product_id": "P052",
+    "product_name": "Camping Model D-152",
+    "category": "Sports & Outdoors",
+    "sub_category": "Camping",
+    "cost_price_usd": 261.5,
+    "retail_price_usd": 449.5,
+    "sku": "SKU-SPO-CAM-052",
+    "is_active": true
+  },
+  {
+    "product_id": "P053",
+    "product_name": "Fitness Model A-153",
+    "category": "Sports & Outdoors",
+    "sub_category": "Fitness",
+    "cost_price_usd": 154.27,
+    "retail_price_usd": 194.11,
+    "sku": "SKU-SPO-FIT-053",
+    "is_active": true
+  },
+  {
+    "product_id": "P054",
+    "product_name": "Fitness Model B-154",
+    "category": "Sports & Outdoors",
+    "sub_category": "Fitness",
+    "cost_price_usd": 33.73,
+    "retail_price_usd": 67.48,
+    "sku": "SKU-SPO-FIT-054",
+    "is_active": true
+  },
+  {
+    "product_id": "P055",
+    "product_name": "Fitness Model C-155",
+    "category": "Sports & Outdoors",
+    "sub_category": "Fitness",
+    "cost_price_usd": 317.14,
+    "retail_price_usd": 543.5,
+    "sku": "SKU-SPO-FIT-055",
+    "is_active": true
+  },
+  {
+    "product_id": "P056",
+    "product_name": "Fitness Model D-156",
+    "category": "Sports & Outdoors",
+    "sub_category": "Fitness",
+    "cost_price_usd": 293.43,
+    "retail_price_usd": 512.07,
+    "sku": "SKU-SPO-FIT-056",
+    "is_active": true
+  },
+  {
+    "product_id": "P057",
+    "product_name": "Cycling Model A-157",
+    "category": "Sports & Outdoors",
+    "sub_category": "Cycling",
+    "cost_price_usd": 58.65,
+    "retail_price_usd": 79.67,
+    "sku": "SKU-SPO-CYC-057",
+    "is_active": true
+  },
+  {
+    "product_id": "P058",
+    "product_name": "Cycling Model B-158",
+    "category": "Sports & Outdoors",
+    "sub_category": "Cycling",
+    "cost_price_usd": 113.42,
+    "retail_price_usd": 228.44,
+    "sku": "SKU-SPO-CYC-058",
+    "is_active": true
+  },
+  {
+    "product_id": "P059",
+    "product_name": "Cycling Model C-159",
+    "category": "Sports & Outdoors",
+    "sub_category": "Cycling",
+    "cost_price_usd": 280.27,
+    "retail_price_usd": 555.38,
+    "sku": "SKU-SPO-CYC-059",
+    "is_active": true
+  },
+  {
+    "product_id": "P060",
+    "product_name": "Cycling Model D-160",
+    "category": "Sports & Outdoors",
+    "sub_category": "Cycling",
+    "cost_price_usd": 315.43,
+    "retail_price_usd": 450.61,
+    "sku": "SKU-SPO-CYC-060",
+    "is_active": true
+  },
+  {
+    "product_id": "P061",
+    "product_name": "Water Sports Model A-161",
+    "category": "Sports & Outdoors",
+    "sub_category": "Water Sports",
+    "cost_price_usd": 93.34,
+    "retail_price_usd": 124.83,
+    "sku": "SKU-SPO-WAT-061",
+    "is_active": true
+  },
+  {
+    "product_id": "P062",
+    "product_name": "Water Sports Model B-162",
+    "category": "Sports & Outdoors",
+    "sub_category": "Water Sports",
+    "cost_price_usd": 274.8,
+    "retail_price_usd": 550.02,
+    "sku": "SKU-SPO-WAT-062",
+    "is_active": true
+  },
+  {
+    "product_id": "P063",
+    "product_name": "Water Sports Model C-163",
+    "category": "Sports & Outdoors",
+    "sub_category": "Water Sports",
+    "cost_price_usd": 146.98,
+    "retail_price_usd": 261.27,
+    "sku": "SKU-SPO-WAT-063",
+    "is_active": true
+  },
+  {
+    "product_id": "P064",
+    "product_name": "Water Sports Model D-164",
+    "category": "Sports & Outdoors",
+    "sub_category": "Water Sports",
+    "cost_price_usd": 60.86,
+    "retail_price_usd": 124.18,
+    "sku": "SKU-SPO-WAT-064",
+    "is_active": true
+  }
+]

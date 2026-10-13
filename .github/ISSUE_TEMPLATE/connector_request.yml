@@ -1,0 +1,59 @@
+name: "🔌 Connector Request / Proposal"
+description: "Propose or request a new data source or destination connector"
+title: "feat(connector): add [Connector Name] connector"
+labels: ["connector", "help wanted"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Propose a new connector plugin for `det`! Connectors implement the `BaseConnector` interface and read/write Apache Arrow tables or DataFusion dataframes.
+  - type: input
+    id: connector-name
+    attributes:
+      label: "Connector Name & Target System"
+      description: "What database, file format, cloud lakehouse, or API is this connector for?"
+      placeholder: "e.g. PostgreSQL, ClickHouse, DuckDB, Snowflake, AWS S3, REST API"
+    validations:
+      required: true
+  - type: dropdown
+    id: connector-mode
+    attributes:
+      label: "Connector Capabilities"
+      description: "Is this connector intended for reading, writing, or both?"
+      options:
+        - "Read-Only (Source scan)"
+        - "Write-Only (Destination sink)"
+        - "Bidirectional (Read and Write)"
+    validations:
+      required: true
+  - type: textarea
+    id: libraries
+    attributes:
+      label: "Underlying Python Library / Driver"
+      description: "What Python library or Arrow-native package would be used?"
+      placeholder: "e.g. connectorx, adbc-driver-postgresql, clickhouse-connect, duckdb"
+    validations:
+      required: true
+  - type: dropdown
+    id: will-contribute
+    attributes:
+      label: "Are you interested in submitting a PR for this connector?"
+      options:
+        - "Yes! I would like to author and submit the PR."
+        - "No, this is a feature request for the community/maintainers."
+    validations:
+      required: true
+  - type: textarea
+    id: sample-config
+    attributes:
+      label: "Proposed YAML Catalog Syntax"
+      description: "How should users configure this connection in catalog/*.yaml?"
+      placeholder: |
+        name: my_db
+        type: postgres
+        options:
+          connection_url: "postgresql://user:pass@host:5432/dbname"
+          table: "public.sales"
+    validations:
+      required: false
+

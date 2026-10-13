@@ -1,0 +1,24 @@
+id: 2398e560-9fe8-4478-9c8e-7400a77dc6e3
+name: fct_daily_channel_kpis
+folder: Sample_Warehouse_Pipelines
+catalog: sample_warehouse.yaml
+description: Daily sales summary table with 7-day rolling window analytics, exported
+  idempotently to Delta Lake.
+steps:
+- id: e83973ed-d238-49d7-9156-2bcd8d06d1fb
+  name: calculate_daily_rolling_kpis
+  description: Aggregate daily channel metrics and compute moving window sums.
+  sql: "WITH daily_channel AS (\n  SELECT\n    o.order_date,\n    o.channel,\n   \
+    \ COUNT(DISTINCT o.order_id) AS order_count,\n    SUM(o.quantity) AS total_units_sold,\n\
+    \    ROUND(SUM(o.quantity * o.unit_price * COALESCE(fx.rate_to_usd, 1.0) * (1.0\
+    \ - o.discount_pct)), 2) AS daily_revenue_usd,\n    ROUND(AVG(o.quantity * o.unit_price\
+    \ * COALESCE(fx.rate_to_usd, 1.0) * (1.0 - o.discount_pct)), 2) AS avg_basket_size_usd\n\
+    \  FROM raw_orders o\n  LEFT JOIN raw_exchange_rates fx ON o.currency = fx.currency_code\n\
+    \  WHERE o.order_status != 'Cancelled'\n  GROUP BY o.order_date, o.channel\n)\n\
+    SELECT\n  order_date,\n  channel,\n  order_count,\n  total_units_sold,\n  daily_revenue_usd,\n\
+    \  avg_basket_size_usd,\n  ROUND(SUM(daily_revenue_usd) OVER (PARTITION BY channel\
+    \ ORDER BY order_date ROWS BETWEEN 6 PRECEDING AND CURRENT ROW), 2) AS rolling_7d_revenue_usd\n\
+    FROM daily_channel\nORDER BY order_date DESC, channel ASC"
+  destinations:
+  - dw_daily_sales_delta
+  keep_temporary: true

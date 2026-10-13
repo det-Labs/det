@@ -1,0 +1,9 @@
+blank_issues_enabled: false
+contact_links:
+  - name: "💬 GitHub Discussions"
+    url: "https://github.com/det-Labs/det/discussions"
+    about: "Ask questions, share pipeline recipes, and discuss ideas with the det community."
+  - name: "🛡️ Security Vulnerabilities"
+    url: "https://github.com/det-Labs/det/security/policy"
+    about: "Privately disclose security vulnerabilities directly to the maintainers."
+

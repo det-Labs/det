@@ -1,77 +1,75 @@
 [build-system]
-requires = ["setuptools>=61.0"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [project]
 name = "det-core"
-version = "0.1.1a3"
-description = "A modular, Python-first data engineering framework by det Labs."
+version = "0.2.0"
+description = "Fast, local-first SQL ETL workspace and pipeline orchestration engine powered by Apache DataFusion"
 readme = "README.md"
-requires-python = ">=3.15"
-license = "Apache-2.0"
-license-files = ["LICENSE"]
+license = "MIT"
+requires-python = ">=3.14"
 authors = [
-    { name = "det Labs", email = "saurabhr2@gmail.com" }
+    { name = "Saurabh Rai", email = "saurabhr2@gmail.com" },
+    { name = "det-Labs" },
 ]
-keywords = ["data-engineering", "catalog", "parquet", "polars", "pyarrow", "schema", "cli", "gui", "connectors"]
+maintainers = [
+    { name = "Saurabh Rai", email = "saurabhr2@gmail.com" },
+]
+keywords = [
+    "etl",
+    "det",
+    "dbt-alternative",
+    "sql",
+    "data-engineering",
+    "data-pipeline",
+    "datafusion",
+    "apache-arrow",
+    "parquet",
+    "delta-lake",
+    "duckdb-alternative",
+    "analytics-engineering",
+    "data-orchestration",
+]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
+    "Intended Audience :: Information Technology",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.15",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Database",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+    "Topic :: Software Development :: Build Tools",
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
-
 dependencies = [
-    "polars>=1.0.0",
-    "pyarrow>=15.0.0",
-    "pydantic>=2.7.0",
-    "sqlglot>=23.0.0",
-    "typer>=0.12.0",
-    "ruamel.yaml>=0.18.0",
-    "filelock>=3.13.0",
-    "fastapi>=0.110.0",
-    "uvicorn>=0.29.0",
-    "httpx>=0.27.0",
+    "datafusion>=55.0.0,<56",
+    "pyarrow>=22",
+    "pydantic",
+    "PyYAML",
+    "fastexcel>=0.20.0",
     "openpyxl>=3.1.0",
-    "pymssql>=2.2.0",
-    "psycopg2-binary>=2.9.0",
+    "deltalake>=1.0.0",
 ]
-
-[project.urls]
-Homepage = "https://github.com/det-Labs/det"
-Repository = "https://github.com/det-Labs/det"
-Issues = "https://github.com/det-Labs/det/issues"
 
 [project.optional-dependencies]
 dev = [
     "pytest>=8.0.0",
-    "ruff>=0.4.0",
-    "httpx>=0.27.0",
-    "openpyxl>=3.1.0",
-    "pymssql>=2.2.0",
-    "psycopg2-binary>=2.9.0",
-    "pytest-playwright>=0.5.0",
+    "ruff>=0.3.0",
+    "build>=1.0.0",
+    "twine>=5.0.0",
 ]
 
 [project.scripts]
 det = "det.cli:main"
-det-gui = "det.gui:cli_main"
 
-[tool.setuptools.packages.find]
-where = ["src"]
+[project.urls]
+Homepage = "https://github.com/det-labs/det"
+Repository = "https://github.com/det-labs/det"
+Issues = "https://github.com/det-labs/det/issues"
+Documentation = "https://github.com/det-labs/det#readme"
 
-[tool.setuptools.package-data]
-"det.gui" = ["static/*", "static/**/*"]
-
-[tool.ruff]
-line-length = 100
-target-version = "py315"
-
-[tool.ruff.lint]
-select = ["E", "F", "I"]
-ignore = ["E501"]
-
-[tool.pytest.ini_options]
-testpaths = ["tests"]
+[tool.hatch.build.targets.wheel]
+packages = ["src/det"]

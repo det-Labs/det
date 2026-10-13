@@ -1,61 +1,84 @@
-# Local plan / internal spec (kept local, never pushed)
-plan.txt
-*.docx
-
-# Local logo & visual identity source assets
-detlabs-logo*
+# =============================================================================
+# Git Ignore - det-core
+# =============================================================================
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
+*.so
+
+# C extensions
+*.obj
+*.o
+*.lib
 
 # Distribution / packaging
 build/
+develop-eggs/
 dist/
-*.egg-info/
+downloads/
+eggs/
 .eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
 
-# Virtual environments
+# Virtual Environments
 .venv/
 venv/
-ENV/
 env/
+ENV/
+env.bak/
+venv.bak/
 
-# Testing and coverage
-.pytest_cache/
-.coverage
-.coverage.*
-htmlcov/
-.mypy_cache/
-.ruff_cache/
-
-# Local state & databases (det operational state, checkpoints, catalog data)
-*.db
-*.sqlite
-*.sqlite3
-!samples/**/*.db
-!samples/**/*.sqlite
-.det/
-det_state.db
-catalog.yaml
-pipelines.yaml
-*.lock
-sample_data/
-
-# Environment variables & secrets
-.env
-.env.*
-*.pem
-*.key
-secrets.yaml
-
-# IDEs and editors
-.idea/
+# IDE, Editor & OS files
 .vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
 *.swp
 *.swo
-
-# OS files
+*~
 .DS_Store
 Thumbs.db
+Desktop.ini
+
+# Testing, Type Checking & Linting
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# det Root Workspace Runtime Artifacts
+# (Generated when running 'det init', 'det sample-data', or pipelines in the repo root)
+/catalog/
+/pipelines/
+/source_data/
+/logs/
+/docs/
+/documentation/
+/extensions/
+/Sample Workspace/
+/*.duckdb
+/*.sqlite
+/*.db
+
+# Scratch and internal planning notes
+/IMPLEMENTATION_PLAN.md
+/scratch/
+*.tmp
+*.bak
+

@@ -1,0 +1,24 @@
+id: 9a0b1c2d-3e4f-5a6b-7c8d-9e0f1a2b3c4d
+name: multi_source_customers
+folder: retail_samples
+catalog: default.yaml
+description: Multi-step ETL pipeline enriching customer dimensions with aggregated sales totals.
+steps:
+- id: a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c61
+  name: customer_spending
+  description: Step 1 - Aggregate order spend by customer
+  sql: "SELECT\n  customer_id,\n  SUM(quantity * unit_price) AS lifetime_spend,\n\
+    \  COUNT(order_id) AS total_orders\nFROM Orders_Daily\nGROUP BY customer_id\n"
+  destinations: []
+  keep_temporary: true
+- id: a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c62
+  name: curated_customer_report
+  description: Step 2 - Join customer_spending view from Step 1 with Customers dimension
+  sql: "SELECT\n  c.customer_id,\n  c.name,\n  c.email,\n  c.active,\n  c.balance,\n\
+    \  COALESCE(s.lifetime_spend, 0.0) AS lifetime_spend,\n  COALESCE(s.total_orders,\
+    \ 0) AS total_orders\nFROM Customers c\nLEFT JOIN customer_spending s ON c.customer_id\
+    \ = s.customer_id\nORDER BY lifetime_spend DESC\n"
+  destinations:
+  - Curated_Orders_Parquet
+  - DW_Orders_Delta
+  keep_temporary: true

@@ -1,0 +1,28 @@
+id: 59d1f556-c240-4cdd-bcf1-f243f84bf5ea
+name: fct_orders
+folder: Sample_Warehouse_Pipelines
+catalog: sample_warehouse.yaml
+description: 'Core Enterprise Fact Table: joins 5 data sources across CSV, XML, JSON,
+  and Excel, exported to Parquet.'
+steps:
+- id: 35169ac9-fdf6-4040-8af4-9453f68a966c
+  name: build_order_facts
+  description: Join order lines, customer loyalty, product margins, and store metadata.
+  sql: "SELECT\n  o.order_id,\n  o.order_date,\n  o.customer_id,\n  c.loyalty_status\
+    \ AS customer_loyalty_tier,\n  o.product_id,\n  p.product_name,\n  p.category\
+    \ AS product_category,\n  p.sub_category,\n  o.store_id,\n  s.name AS store_name,\n\
+    \  o.channel,\n  o.quantity,\n  ROUND(o.unit_price * COALESCE(fx.rate_to_usd,\
+    \ 1.0), 2) AS unit_price_usd,\n  ROUND(o.quantity * o.unit_price * COALESCE(fx.rate_to_usd,\
+    \ 1.0), 2) AS gross_sales_usd,\n  ROUND(o.quantity * o.unit_price * COALESCE(fx.rate_to_usd,\
+    \ 1.0) * o.discount_pct, 2) AS discount_usd,\n  ROUND(o.quantity * o.unit_price\
+    \ * COALESCE(fx.rate_to_usd, 1.0) * (1.0 - o.discount_pct), 2) AS net_sales_usd,\n\
+    \  ROUND(o.quantity * p.cost_price_usd, 2) AS total_cost_usd,\n  ROUND(\n    (o.quantity\
+    \ * o.unit_price * COALESCE(fx.rate_to_usd, 1.0) * (1.0 - o.discount_pct)) - (o.quantity\
+    \ * p.cost_price_usd),\n    2\n  ) AS gross_margin_usd,\n  o.payment_method,\n\
+    \  o.order_status\nFROM raw_orders o\nLEFT JOIN raw_customers c ON o.customer_id\
+    \ = c.customer_id\nLEFT JOIN raw_products p ON o.product_id = p.product_id\nLEFT\
+    \ JOIN raw_stores s ON o.store_id = s.store_id\nLEFT JOIN raw_exchange_rates fx\
+    \ ON o.currency = fx.currency_code"
+  destinations:
+  - dw_fct_orders_parquet
+  keep_temporary: true

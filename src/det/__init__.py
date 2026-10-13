@@ -1,9 +1,3 @@
-"""det: Data Engineering Toolkit by det Labs."""
+"""Python API and command-line tools for the det application."""
 
-from __future__ import annotations
-
-__version__ = "0.1.1a3"
-
-from det import catalog, connectors
-
-__all__ = ["__version__", "catalog", "connectors"]
+__version__ = "0.2.0"

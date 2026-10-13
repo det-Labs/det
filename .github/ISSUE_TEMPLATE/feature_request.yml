@@ -1,0 +1,33 @@
+name: "✨ Feature Request"
+description: "Suggest an idea, optimization, or capability for det"
+title: "feat: [Short description of proposed feature]"
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Have an idea to make `det` even better? We'd love to hear it!
+  - type: textarea
+    id: problem
+    attributes:
+      label: "Problem or Use Case"
+      description: "Is your feature request related to a problem or a specific data engineering workflow?"
+      placeholder: "I'm always frustrated when I need to..."
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: "Proposed Solution"
+      description: "Describe the solution or behavior you would like to see."
+      placeholder: "Add support for..."
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: "Alternatives Considered"
+      description: "Any alternative solutions or workarounds you have considered."
+    validations:
+      required: false
+

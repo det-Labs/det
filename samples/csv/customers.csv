@@ -1,5 +1,0 @@
-customer_id,name,email,signup_date,active,balance
-C001,Alice Johnson,alice@example.com,2024-01-10,true,1250.75
-C002,Bob Smith,bob@example.com,2024-02-15,false,450.00
-C003,Charlie Brown,charlie@example.com,2024-03-20,true,3100.50
-C004,Diana Prince,diana@example.com,2024-04-05,true,890.20

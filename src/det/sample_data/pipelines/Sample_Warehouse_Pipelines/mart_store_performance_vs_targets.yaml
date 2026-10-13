@@ -1,0 +1,27 @@
+id: 02409f6f-dd38-46b2-bb78-d09b94dfaf12
+name: mart_store_performance_vs_targets
+folder: Sample_Warehouse_Pipelines
+catalog: sample_warehouse.yaml
+description: 'Store performance analytical mart: computes quota attainment and dense
+  rankings, exported to Parquet.'
+steps:
+- id: 8369f9d2-3cc0-4b3b-8d17-7b5c011a4f05
+  name: store_performance_rankings
+  description: Join store registry XML, Excel monthly targets, and completed sales.
+  sql: "WITH store_actuals AS (\n  SELECT\n    o.store_id,\n    COUNT(DISTINCT o.order_id)\
+    \ AS transactions_count,\n    SUM(o.quantity) AS total_units_sold,\n    ROUND(SUM(o.quantity\
+    \ * o.unit_price * COALESCE(fx.rate_to_usd, 1.0) * (1.0 - o.discount_pct)), 2)\
+    \ AS actual_revenue_usd\n  FROM raw_orders o\n  LEFT JOIN raw_exchange_rates fx\
+    \ ON o.currency = fx.currency_code\n  WHERE o.order_status = 'Completed'\n  GROUP\
+    \ BY o.store_id\n)\nSELECT\n  s.store_id,\n  s.name AS store_name,\n  s.store_type,\n\
+    \  s.city,\n  s.state,\n  s.region,\n  CAST(s.sqft AS BIGINT) AS sqft,\n  st.monthly_target_usd,\n\
+    \  COALESCE(sa.actual_revenue_usd, 0.0) AS actual_revenue_usd,\n  ROUND(COALESCE(sa.actual_revenue_usd,\
+    \ 0.0) / NULLIF(st.monthly_target_usd, 0.0) * 100, 2) AS target_attainment_pct,\n\
+    \  DENSE_RANK() OVER (PARTITION BY s.region ORDER BY COALESCE(sa.actual_revenue_usd,\
+    \ 0.0) DESC) AS regional_rank,\n  RANK() OVER (ORDER BY COALESCE(sa.actual_revenue_usd,\
+    \ 0.0) DESC) AS national_rank\nFROM raw_stores s\nLEFT JOIN raw_store_targets\
+    \ st ON s.store_id = st.store_id\nLEFT JOIN store_actuals sa ON s.store_id = sa.store_id\n\
+    ORDER BY actual_revenue_usd DESC"
+  destinations:
+  - dw_store_perf_parquet
+  keep_temporary: true

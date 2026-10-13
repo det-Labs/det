@@ -1,0 +1,6 @@
+# det Code Ownership
+# Lines starting with '#' are comments.
+# Each line is a pattern followed by one or more owners.
+
+# Default owner for everything in the repository
+* @saurabhr2

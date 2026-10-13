@@ -1,0 +1,23 @@
+id: 8777772b-a760-4c26-bf70-946bdf3f7e1f
+name: dim_stores
+folder: Sample_Warehouse_Pipelines
+catalog: sample_warehouse.yaml
+description: 'Dimensional store table: combines XML stores, Excel targets, and completed
+  sales performance.'
+steps:
+- id: 7a2290ae-9002-40aa-afd3-4233ccd4d742
+  name: store_dimension_curation
+  description: Join store details with revenue actuals and targets.
+  sql: "WITH store_sales AS (\n  SELECT\n    o.store_id,\n    COUNT(DISTINCT o.order_id)\
+    \ AS orders_count,\n    ROUND(SUM(o.quantity * o.unit_price * COALESCE(fx.rate_to_usd,\
+    \ 1.0) * (1.0 - o.discount_pct)), 2) AS actual_sales_usd\n  FROM raw_orders o\n\
+    \  LEFT JOIN raw_exchange_rates fx ON o.currency = fx.currency_code\n  WHERE o.order_status\
+    \ = 'Completed'\n  GROUP BY o.store_id\n)\nSELECT\n  s.store_id,\n  s.name AS\
+    \ store_name,\n  s.store_type,\n  s.city,\n  s.state,\n  s.region,\n  CAST(s.sqft\
+    \ AS BIGINT) AS sqft,\n  st.monthly_target_usd,\n  st.quarterly_target_usd,\n\
+    \  COALESCE(ss.orders_count, 0) AS completed_orders,\n  COALESCE(ss.actual_sales_usd,\
+    \ 0.0) AS actual_sales_usd,\n  ROUND(COALESCE(ss.actual_sales_usd, 0.0) / NULLIF(st.monthly_target_usd,\
+    \ 0.0) * 100, 2) AS target_attainment_pct\nFROM raw_stores s\nLEFT JOIN raw_store_targets\
+    \ st ON s.store_id = st.store_id\nLEFT JOIN store_sales ss ON s.store_id = ss.store_id"
+  destinations: []
+  keep_temporary: true
