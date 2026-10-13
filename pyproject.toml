@@ -50,7 +50,7 @@ dependencies = [
     "pydantic",
     "PyYAML",
     "fastexcel>=0.20.0",
-    "openpyxl>=3.1.0",
+    "openpyxl>=3.1.5",
     "deltalake>=1.0.0",
 ]
 
