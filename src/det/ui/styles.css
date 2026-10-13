@@ -4537,32 +4537,83 @@ details[open] > .etl-accordion-summary .accordion-chevron {
 }
 
 /* ==========================================================================
-   Automated Guided Demo Floating Controls & HUD
+   Automated Guided Demo Floating Icon & Animated Mouse Cursor
    ========================================================================== */
-.guided-demo-trigger-btn {
+.guided-demo-floating-btn {
   position: fixed;
-  top: 9px;
-  right: 170px;
-  z-index: 9999;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
+  bottom: 22px;
+  right: 22px;
+  z-index: 99999;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
   background: linear-gradient(135deg, #0284c7, #2563eb);
   color: #ffffff;
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  border-radius: 999px;
-  padding: 6px 14px;
-  font-size: 11.5px;
-  font-weight: 600;
-  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 4px 18px rgba(37, 99, 235, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
-  transition: all 0.2s ease;
-  font-family: inherit;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 0;
+  outline: none;
 }
-.guided-demo-trigger-btn:hover {
+.guided-demo-floating-btn:hover {
+  transform: scale(1.08) translateY(-2px);
+  box-shadow: 0 8px 24px rgba(37, 99, 235, 0.6);
   background: linear-gradient(135deg, #0369a1, #1d4ed8);
-  transform: translateY(-1px);
-  box-shadow: 0 6px 18px rgba(37, 99, 235, 0.45);
+}
+.guided-demo-floating-btn svg {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+  margin-left: 2px;
+}
+.guided-demo-floating-btn .countdown-num {
+  font-size: 16px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+/* Virtual Animated Mouse Pointer */
+.virtual-cursor-pointer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  z-index: 100001;
+  transition: transform 0.65s cubic-bezier(0.25, 1, 0.5, 1);
+  transform: translate(50vw, 50vh);
+  display: none;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.45));
+}
+.virtual-cursor-pointer.is-active {
+  display: block;
+}
+.virtual-cursor-pointer svg {
+  display: block;
+  width: 22px;
+  height: 22px;
+}
+.virtual-cursor-ripple {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid #38bdf8;
+  transform: translate(-16px, -16px) scale(0);
+  opacity: 0;
+  pointer-events: none;
+}
+.virtual-cursor-pointer.is-clicking .virtual-cursor-ripple {
+  animation: cursorRippleAnim 0.35s ease-out;
+}
+@keyframes cursorRippleAnim {
+  0% { transform: translate(-16px, -16px) scale(0.2); opacity: 0.9; }
+  100% { transform: translate(-16px, -16px) scale(1.6); opacity: 0; }
 }
 
 .guided-demo-hud {

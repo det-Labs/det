@@ -4163,12 +4163,26 @@ Promise.all([api("/api/state"), api("/api/connectors")])
    Automated Guided Demo Walkthrough Controller
    ========================================================================== */
 function initGuidedDemoController() {
+  // Small circular floating icon button in bottom-right corner
   const triggerBtn = document.createElement("button");
   triggerBtn.id = "guided-demo-btn";
-  triggerBtn.className = "guided-demo-trigger-btn";
+  triggerBtn.className = "guided-demo-floating-btn";
   triggerBtn.type = "button";
-  triggerBtn.innerHTML = `<span>▶</span> Run Demo Walkthrough`;
+  triggerBtn.title = "Run Guided Demo Walkthrough (5s countdown)";
+  triggerBtn.innerHTML = `<svg viewBox="0 0 24 24"><polygon points="6 4 20 12 6 20 6 4"/></svg>`;
   document.body.appendChild(triggerBtn);
+
+  // Virtual animated cursor element
+  const cursorEl = document.createElement("div");
+  cursorEl.id = "virtual-demo-cursor";
+  cursorEl.className = "virtual-cursor-pointer";
+  cursorEl.innerHTML = `
+    <svg viewBox="0 0 24 24">
+      <path d="M4 3l15 9.5-6.5 1.5 4 8-3 1.5-4-8-5.5 4V3z" fill="#0f172a" stroke="#38bdf8" stroke-width="1.6" stroke-linejoin="round"/>
+    </svg>
+    <div class="virtual-cursor-ripple"></div>
+  `;
+  document.body.appendChild(cursorEl);
 
   let hudEl = null;
   function showHud(tag, title) {
@@ -4188,99 +4202,194 @@ function initGuidedDemoController() {
 
   const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+  async function moveCursorTo(target, click = true, offset = { x: 0, y: 0 }, waitAfter = 350) {
+    let el = typeof target === "string" ? document.querySelector(target) : target;
+    if (!el) return null;
+
+    el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    await delay(180);
+
+    const rect = el.getBoundingClientRect();
+    const targetX = Math.round(rect.left + rect.width / 2 + offset.x);
+    const targetY = Math.round(rect.top + rect.height / 2 + offset.y);
+
+    cursorEl.classList.add("is-active");
+    cursorEl.style.transform = `translate(${targetX}px, ${targetY}px)`;
+    await delay(650); // Natural gliding ease
+
+    if (click) {
+      cursorEl.classList.add("is-clicking");
+      await delay(120);
+      el.focus();
+      el.click();
+      el.dispatchEvent(new Event("input", { bubbles: true }));
+      el.dispatchEvent(new Event("change", { bubbles: true }));
+      await delay(180);
+      cursorEl.classList.remove("is-clicking");
+    }
+
+    if (waitAfter > 0) await delay(waitAfter);
+    return el;
+  }
+
+  async function typeTextInto(el, text, speedMs = 12) {
+    if (!el) return;
+    el.focus();
+    el.value = "";
+    for (let i = 0; i < text.length; i++) {
+      el.value += text[i];
+      el.dispatchEvent(new Event("input", { bubbles: true }));
+      if (i % 2 === 0) await delay(speedMs);
+    }
+    el.dispatchEvent(new Event("change", { bubbles: true }));
+    await delay(300);
+  }
+
   triggerBtn.addEventListener("click", async () => {
     triggerBtn.disabled = true;
 
-    // 5-second countdown so user can hit Record in Snipping Tool
+    // 5-second countdown inside the small circle
     for (let c = 5; c > 0; c--) {
-      triggerBtn.innerHTML = `<span>⏳</span> Starting in ${c}s (hit record)...`;
+      triggerBtn.innerHTML = `<span class="countdown-num">${c}</span>`;
       await delay(1000);
     }
-    triggerBtn.innerHTML = `<span>⏺</span> Running Walkthrough...`;
+    triggerBtn.innerHTML = `<span style="font-size:12px;">⏺</span>`;
+
+    // Position cursor at center initially
+    cursorEl.style.transform = `translate(${window.innerWidth / 2}px, ${window.innerHeight / 2}px)`;
+    cursorEl.classList.add("is-active");
+    await delay(400);
 
     try {
-      // 1. Catalog: Adding Parquet Source
+      // =============================================================
+      // 1. Catalog: Adding Parquet Source with Description
+      // =============================================================
       showHud("1. Catalog", "Adding Parquet source connection with schema & description...");
       const folderRow = document.querySelector(".folder-row");
+      if (folderRow) await moveCursorTo(folderRow, false, { x: 50, y: 0 });
+
       const addBtn = document.querySelector("button.tree-action[data-action='add-connection']");
       if (addBtn) {
-        addBtn.click();
-        await delay(800);
+        await moveCursorTo(addBtn, true);
+        await delay(500);
+
+        // Type Name
         const nameInput = document.querySelector("#editor-form input[name='name']");
-        if (nameInput) nameInput.value = "lakehouse_orders";
+        if (nameInput) {
+          await moveCursorTo(nameInput, true);
+          await typeTextInto(nameInput, "lakehouse_orders", 20);
+        }
+
+        // Select Parquet
         const connSelect = document.querySelector("#editor-form select[name='connector']");
         if (connSelect) {
+          await moveCursorTo(connSelect, true);
           for (const opt of connSelect.options) {
             if (opt.text.toLowerCase().includes("parquet")) {
               connSelect.value = opt.value;
-              connSelect.dispatchEvent(new Event("change"));
+              connSelect.dispatchEvent(new Event("change", { bubbles: true }));
               break;
             }
           }
+          await delay(400);
         }
+
+        // Type Description
         const descInput = document.querySelector("#editor-form textarea[name='description']");
-        if (descInput) descInput.value = "Partitioned Parquet sales orders lakehouse from S3 object storage";
-        await delay(1500);
+        if (descInput) {
+          await moveCursorTo(descInput, true);
+          await typeTextInto(descInput, "Partitioned Parquet sales orders lakehouse from S3 object storage", 10);
+        }
+
+        await delay(800);
         const cancelBtn = document.querySelector("#dialog-cancel");
-        if (cancelBtn) cancelBtn.click();
+        if (cancelBtn) await moveCursorTo(cancelBtn, true);
         const dlg = document.querySelector("#editor-dialog");
         if (dlg && dlg.open) dlg.close();
-        await delay(800);
+        await delay(400);
       }
 
+      // =============================================================
       // 2. Auto Schema Discovery for Parquet
+      // =============================================================
       showHud("2. Schema Discovery", "Auto-discovered Arrow column types for Parquet lakehouse...");
       const orderConn = Array.from(document.querySelectorAll(".connection-select")).find((el) => el.textContent.includes("raw_orders")) || document.querySelector(".connection-select");
       if (orderConn) {
-        orderConn.click();
-        await delay(1000);
+        await moveCursorTo(orderConn, true);
+        await delay(600);
+
         const schemaTab = Array.from(document.querySelectorAll(".detail-tab")).find((el) => el.textContent.trim() === "Schema");
         if (schemaTab) {
-          schemaTab.click();
-          await delay(2500);
-        }
-      }
-
-      // 3. Tabular Data Preview
-      showHud("3. Data Preview", "Instant lazy tabular preview of real Parquet records...");
-      const previewTab = Array.from(document.querySelectorAll(".detail-tab")).find((el) => el.textContent.trim() === "Preview");
-      if (previewTab) {
-        previewTab.click();
-        await delay(2500);
-      }
-
-      // 4. CSV Source Inspection & Preview
-      showHud("4. CSV Source", "Customer master CSV table inspection and row preview...");
-      const custConn = Array.from(document.querySelectorAll(".connection-select")).find((el) => el.textContent.includes("raw_customers"));
-      if (custConn) {
-        custConn.click();
-        await delay(1000);
-        const pTab2 = Array.from(document.querySelectorAll(".detail-tab")).find((el) => el.textContent.trim() === "Preview");
-        if (pTab2) {
-          pTab2.click();
+          await moveCursorTo(schemaTab, true);
           await delay(2200);
         }
       }
 
+      // =============================================================
+      // 3. Tabular Data Preview
+      // =============================================================
+      showHud("3. Data Preview", "Instant lazy tabular preview of real Parquet records...");
+      const previewTab = Array.from(document.querySelectorAll(".detail-tab")).find((el) => el.textContent.trim() === "Preview");
+      if (previewTab) {
+        await moveCursorTo(previewTab, true);
+        await delay(2400);
+      }
+
+      // =============================================================
+      // 4. CSV Source Inspection & Preview
+      // =============================================================
+      showHud("4. CSV Source", "Customer master CSV table inspection and row preview...");
+      const custConn = Array.from(document.querySelectorAll(".connection-select")).find((el) => el.textContent.includes("raw_customers"));
+      if (custConn) {
+        await moveCursorTo(custConn, true);
+        await delay(600);
+
+        const pTab2 = Array.from(document.querySelectorAll(".detail-tab")).find((el) => el.textContent.trim() === "Preview");
+        if (pTab2) {
+          await moveCursorTo(pTab2, true);
+          await delay(2000);
+        }
+      }
+
+      // =============================================================
       // 5. ETL: Create Pipeline & Add Description
+      // =============================================================
       showHud("5. ETL Module", "Create multi-step pipeline 'sales_performance_analysis'...");
       const etlTab = document.querySelector("button.module-tab[data-module='ETL']");
       if (etlTab) {
-        etlTab.click();
-        await delay(1200);
+        await moveCursorTo(etlTab, true);
+        await delay(800);
       }
-      const pipeNameInput = document.querySelector("#etl-pipeline-name-input");
-      if (pipeNameInput) pipeNameInput.value = "sales_performance_analysis";
-      const overviewAcc = document.querySelector("#etl-overview-details");
-      if (overviewAcc) overviewAcc.open = true;
-      const pipeDesc = document.querySelector("#etl-pipeline-description");
-      if (pipeDesc) pipeDesc.value = "End-to-end customer sales pipeline: joins Parquet lakehouse orders with CSV demographics, computes regional KPIs, and publishes curated summaries.";
-      await delay(1500);
 
+      const pipeNameInput = document.querySelector("#etl-pipeline-name-input");
+      if (pipeNameInput) {
+        await moveCursorTo(pipeNameInput, true);
+        await typeTextInto(pipeNameInput, "sales_performance_analysis", 16);
+      }
+
+      const overviewAcc = document.querySelector("#etl-overview-details");
+      if (overviewAcc) {
+        const sumEl = overviewAcc.querySelector("summary");
+        if (sumEl && !overviewAcc.open) await moveCursorTo(sumEl, true);
+        await delay(300);
+
+        const pipeDesc = document.querySelector("#etl-pipeline-description");
+        if (pipeDesc) {
+          await moveCursorTo(pipeDesc, true);
+          await typeTextInto(pipeDesc, "End-to-end customer sales pipeline: joins Parquet lakehouse orders with CSV demographics, computes regional KPIs, and publishes curated summaries.", 8);
+        }
+      }
+
+      // =============================================================
       // 6. Step 1: Pure ANSI SQL (Zero Jinja) & Notes
+      // =============================================================
       showHud("6. Pure ANSI SQL", "Step 1: Joining Parquet Lakehouse + CSV Master with Zero Jinja...");
       const step1Name = document.querySelector("#etl-step-name-input");
-      if (step1Name) step1Name.value = "joined_orders_customers";
+      if (step1Name) {
+        await moveCursorTo(step1Name, true);
+        await typeTextInto(step1Name, "joined_orders_customers", 18);
+      }
+
       const multiSourceSql = `-- Step 1: Direct JOIN of Parquet Lakehouse + CSV Demographics
 -- Pure ANSI SQL • Zero Jinja • Evaluated by Apache DataFusion
 SELECT 
@@ -4295,34 +4404,45 @@ FROM raw_orders o                  -- Parquet lakehouse
 JOIN raw_customers c               -- CSV customer master
   ON o.customer_id = c.customer_id
 WHERE o.order_status = 'Completed';`;
+
       const sqlText = document.querySelector("#etl-sql-textarea");
       if (sqlText) {
-        sqlText.value = multiSourceSql;
-        sqlText.dispatchEvent(new Event("input"));
+        await moveCursorTo(sqlText, true);
+        await typeTextInto(sqlText, multiSourceSql, 6);
       }
-      await delay(2000);
+      await delay(1200);
 
       // Notes for Step 1
       const notesTab = document.querySelector("#etl-tab-notes");
       const notesContainer = document.querySelector("#notes-editor-container");
-      if (notesContainer && notesContainer.hidden && notesTab) notesTab.click();
-      await delay(600);
-      const notesInput = document.querySelector("#etl-step-desc-input");
-      if (notesInput) {
-        notesInput.value = "Join raw Parquet orders with CSV customer demographics into an in-engine virtual view.";
-        notesInput.dispatchEvent(new Event("input"));
+      if (notesContainer && notesContainer.hidden && notesTab) {
+        await moveCursorTo(notesTab, true);
+        await delay(400);
       }
-      await delay(1800);
 
+      const notesInput = document.querySelector("#etl-step-desc-input");
+      if (notesInput && notesInput.offsetParent !== null) {
+        await moveCursorTo(notesInput, true);
+        await typeTextInto(notesInput, "Join raw Parquet orders with CSV customer demographics into an in-engine virtual view.", 10);
+      }
+      await delay(1200);
+
+      // =============================================================
       // 7. Step 2: Regional Aggregates, Destination & Notes
+      // =============================================================
       showHud("7. Step 2 & Destination", "Step 2: Aggregate sales by region and route to Parquet & CSV...");
       const addStepBtn = document.querySelector("#etl-add-step-button");
       if (addStepBtn) {
-        addStepBtn.click();
-        await delay(1000);
+        await moveCursorTo(addStepBtn, true);
+        await delay(700);
       }
+
       const step2Name = document.querySelector("#etl-step-name-input");
-      if (step2Name) step2Name.value = "regional_sales_summary";
+      if (step2Name) {
+        await moveCursorTo(step2Name, true);
+        await typeTextInto(step2Name, "regional_sales_summary", 18);
+      }
+
       const aggSql = `-- Step 2: Regional aggregations referencing prior step
 SELECT 
     region,
@@ -4332,79 +4452,110 @@ SELECT
 FROM joined_orders_customers
 GROUP BY region
 ORDER BY regional_revenue DESC;`;
+
       if (sqlText) {
-        sqlText.value = aggSql;
-        sqlText.dispatchEvent(new Event("input"));
+        await moveCursorTo(sqlText, true);
+        await typeTextInto(sqlText, aggSql, 8);
       }
+
+      // Add destinations
       if (window.activePipeline && window.activePipeline.steps && window.activePipeline.steps[1]) {
         window.activePipeline.steps[1].destinations = ['dw_rfm_segments_csv', 'curated_lakehouse_parquet'];
         window.activePipeline.steps[1].keep_temporary = false;
         if (typeof renderDestinations === 'function') renderDestinations();
       }
-      await delay(1500);
+      await delay(800);
 
       // Step 2 Notes
-      if (notesInput) {
-        notesInput.value = "Aggregate lifetime metrics by region and publish directly to curated Parquet and CSV destinations.";
-        notesInput.dispatchEvent(new Event("input"));
+      if (notesContainer && notesContainer.hidden && notesTab) {
+        await moveCursorTo(notesTab, true);
+        await delay(400);
       }
-      await delay(1800);
+      if (notesInput && notesInput.offsetParent !== null) {
+        await moveCursorTo(notesInput, true);
+        await typeTextInto(notesInput, "Aggregate lifetime metrics by region and publish directly to curated Parquet and CSV destinations.", 10);
+      }
+      await delay(1200);
 
+      // =============================================================
       // 8. Validate Pipeline
+      // =============================================================
       showHud("8. Validate Plan", "Pre-flight DataFusion logical plan validation passes...");
       const valBtn = document.querySelector("#etl-validate-button");
       if (valBtn) {
-        valBtn.click();
-        await delay(2200);
+        await moveCursorTo(valBtn, true);
+        await delay(2000);
       }
 
+      // =============================================================
       // 9. Save & Run Twice
+      // =============================================================
       showHud("9. Vectorized Run", "Executing in DataFusion engine: sub-second duration (38ms)...");
       const runBtn = document.querySelector("#etl-run-button");
       if (runBtn) {
-        runBtn.click();
-        await delay(2500);
+        await moveCursorTo(runBtn, true);
+        await delay(2200);
+
         showHud("9. Vectorized Run (2nd)", "Running pipeline a 2nd time with real-time audit telemetry...");
-        runBtn.click();
-        await delay(2500);
+        await moveCursorTo(runBtn, true);
+        await delay(2200);
       }
 
+      // =============================================================
       // 10. Monitoring: Detailed Latencies
+      // =============================================================
       showHud("10. Monitoring", "Execution audit logs, 100% health rate, and ms stage breakdown...");
       const monTab = document.querySelector("button.module-tab[data-module='Monitoring']");
       if (monTab) {
-        monTab.click();
-        await delay(1500);
+        await moveCursorTo(monTab, true);
+        await delay(1200);
+
         const runRow = document.querySelector("#monitoring-runs-tbody tr[data-run-id]");
         if (runRow) {
-          runRow.click();
-          await delay(2500);
+          await moveCursorTo(runRow, true);
+          await delay(2400);
         }
       }
 
+      // =============================================================
       // 11. Living HTML Docs with Lineage DAG
+      // =============================================================
       showHud("11. Living Docs", "Generated single-file HTML documentation with interactive lineage DAG...");
       if (etlTab) {
-        etlTab.click();
-        await delay(1200);
+        await moveCursorTo(etlTab, true);
+        await delay(800);
+
         const docsBtn = document.querySelector("#etl-docs-button");
         if (docsBtn) {
-          docsBtn.click();
-          await delay(1800);
-        }
-      }
-      const docsTab = document.querySelector("button.module-tab[data-module='Documentation']");
-      if (docsTab) {
-        docsTab.click();
-        await delay(1500);
-        const docItem = document.querySelector("#docs-tree [data-doc-path]");
-        if (docItem) {
-          docItem.click();
-          await delay(3500);
+          await moveCursorTo(docsBtn, true);
+          await delay(1600);
         }
       }
 
+      const docsTab = document.querySelector("button.module-tab[data-module='Documentation']");
+      if (docsTab) {
+        await moveCursorTo(docsTab, true);
+        await delay(1200);
+
+        const docItem = document.querySelector("#docs-tree [data-doc-path]");
+        if (docItem) {
+          await moveCursorTo(docItem, true);
+          await delay(1500);
+
+          // Scroll through living HTML viewer smoothly
+          const viewerEl = document.querySelector("#docs-viewer-container");
+          if (viewerEl) {
+            viewerEl.scrollBy({ top: 350, behavior: "smooth" });
+            await delay(1500);
+            viewerEl.scrollBy({ top: -350, behavior: "smooth" });
+          }
+          await delay(2000);
+        }
+      }
+
+      // Outro
       showHud("🎉 Complete!", "Walkthrough complete! Hit STOP on your Windows Snipping Tool.");
+      cursorEl.style.transform = `translate(${window.innerWidth - 60}px, ${window.innerHeight - 60}px)`;
       await delay(6000);
       removeHud();
     } catch (err) {
@@ -4413,8 +4564,9 @@ ORDER BY regional_revenue DESC;`;
       await delay(4000);
       removeHud();
     } finally {
+      cursorEl.classList.remove("is-active");
       triggerBtn.disabled = false;
-      triggerBtn.innerHTML = `<span>▶</span> Run Demo Walkthrough`;
+      triggerBtn.innerHTML = `<svg viewBox="0 0 24 24"><polygon points="6 4 20 12 6 20 6 4"/></svg>`;
     }
   });
 
