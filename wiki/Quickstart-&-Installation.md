@@ -96,3 +96,4 @@ Generate standalone, interactive HTML documentation complete with Mermaid DAG di
 ```bash
 det doc Sample_Warehouse_Pipelines/mart_customer_rfm_loyalty --format html
 ```
+

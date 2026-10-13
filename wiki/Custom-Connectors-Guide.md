@@ -77,3 +77,4 @@ Custom connectors can be maintained:
 [project.entry-points."det.connectors"]
 snowflake = "det_snowflake.connector:register"
 ```
+

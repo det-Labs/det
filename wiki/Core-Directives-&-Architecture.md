@@ -88,3 +88,4 @@ JOIN raw_store_targets t ON c.city = t.region
 JOIN fct_orders o ON c.customer_id = o.customer_id
 GROUP BY c.customer_id, c.first_name, t.monthly_target_usd;
 ```
+

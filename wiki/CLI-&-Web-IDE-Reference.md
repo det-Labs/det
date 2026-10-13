@@ -82,3 +82,4 @@ The `det` Web IDE offers four unified modules:
 - `Ctrl + Enter` (or `Cmd + Enter`): Run active pipeline or step
 - `Ctrl + S` (or `Cmd + S`): Save pipeline definition
 - `Escape`: Close modals and inspection drawers
+

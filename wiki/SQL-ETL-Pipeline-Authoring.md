@@ -88,3 +88,4 @@ Before executing in production, `det` validates:
 2. Source table and intermediate view existence
 3. Referenced column existence against catalog schemas
 4. Output column mapping to destination schemas
+

@@ -32,10 +32,12 @@ def generate_demo_data() -> None:
     }
 
     # 2. Connectors
-    connectors = [asdict(c) for c in connector_definitions()]
+    from det.connectors import connector_metadata
+    connectors = connector_metadata()
 
     # 3. Catalogs list & active catalog
     catalogs_list = ["sample_warehouse.yaml", "default.yaml"]
+    cat_store.select("sample_warehouse.yaml")
     catalog_data = cat_store.read()
 
     # 4. Pipelines
@@ -262,3 +264,4 @@ def generate_demo_data() -> None:
 
 if __name__ == "__main__":
     generate_demo_data()
+

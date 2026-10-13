@@ -46,3 +46,4 @@ The platform is designed to adapt to any modern or legacy data ecosystem:
 - **Online Showcase**: Try the [Interactive Web IDE](https://det-labs.github.io/det/demo.html) right in your browser.
 - **PyPI Package**: [`pip install det-core`](https://pypi.org/project/det-core/)
 - **Main Codebase**: [det-Labs/det on GitHub](https://github.com/det-Labs/det)
+
