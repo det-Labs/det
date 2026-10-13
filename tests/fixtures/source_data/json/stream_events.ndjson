@@ -1,0 +1,4 @@
+{"ts": 1718001000, "user_id": "U1", "action": "page_view", "path": "/home"}
+{"ts": 1718001015, "user_id": "U2", "action": "search", "query": "headphones"}
+{"ts": 1718001030, "user_id": "U1", "action": "add_to_cart", "product_id": 101}
+{"ts": 1718001060, "user_id": "U3", "action": "checkout", "total": 199.99}

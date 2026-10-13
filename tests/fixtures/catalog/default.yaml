@@ -12,7 +12,7 @@ folders:
     is_destination: false
     description: Customer dimension table with segment and balance.
     options:
-      path: D:\Learning\test\samples\csv\customers.csv
+      path: source_data/csv/customers.csv
       has_header: true
     columns:
     - id: 3c587185-ffd9-49b1-8ad8-973011b7ba78
@@ -52,7 +52,7 @@ folders:
     is_destination: false
     description: Daily sales orders multi-file extracts.
     options:
-      path: D:\Learning\test\samples\csv\orders_daily
+      path: source_data/csv/orders_daily
       file_pattern: '*.csv'
       has_header: true
     columns:
@@ -106,7 +106,7 @@ folders:
     is_destination: false
     description: IoT telemetry events multi-file parquet.
     options:
-      path: D:\Learning\test\samples\parquet\telemetry
+      path: source_data/parquet/telemetry
       file_pattern: '*.parquet'
     columns:
     - id: ee4071ca-3540-4270-894c-0ecb6d2f4b39
@@ -129,7 +129,7 @@ folders:
     is_destination: false
     description: Currency conversion rates to USD.
     options:
-      path: D:\Learning\test\samples\excel\enterprise_data.xlsx
+      path: source_data/excel/enterprise_data.xlsx
       sheet_name: Exchange_Rates
     columns:
     - id: 9dfe237e-2a08-4532-8bb9-75af25d98c9c
@@ -159,7 +159,7 @@ folders:
     is_destination: false
     description: Annual sales targets by retail store location.
     options:
-      path: D:\Learning\test\samples\excel\enterprise_data.xlsx
+      path: source_data/excel/enterprise_data.xlsx
       sheet_name: Store_Targets
     columns:
     - id: 44088d79-a828-4464-a1aa-d08e8e9e1de9
@@ -197,7 +197,7 @@ folders:
     is_destination: false
     description: Catalog of electronic products and inventory.
     options:
-      path: D:\Learning\test\samples\json\products.json
+      path: source_data/json/products.json
       json_format: array
     columns:
     - id: ab083b51-ee12-49e3-b235-1cb431dcfe0b
@@ -232,7 +232,7 @@ folders:
     is_destination: false
     description: Online website customer clickstream events.
     options:
-      path: D:\Learning\test\samples\json\clickstream
+      path: source_data/json/clickstream
       file_pattern: '*.ndjson'
       json_format: lines
     columns:
@@ -276,7 +276,7 @@ folders:
     is_destination: false
     description: Retail brick-and-mortar stores catalog.
     options:
-      path: D:\Learning\test\samples\xml\stores\store_catalog.xml
+      path: source_data/xml/stores/store_catalog.xml
       row_tag: store
       flatten_attributes: true
     columns:
@@ -315,7 +315,7 @@ folders:
     is_destination: false
     description: Delta Lake ACID lakehouse sales orders.
     options:
-      path: D:\Learning\test\samples\delta\orders_lakehouse
+      path: source_data/delta/orders_lakehouse
     columns:
     - id: e35f93ff-154f-49e7-bd81-d3b34dcf8617
       name: order_id
@@ -357,7 +357,7 @@ folders:
     is_destination: true
     description: Export customer revenue totals report to CSV.
     options:
-      path: D:\Learning\test\samples\destinations\csv_reports\customer_totals.csv
+      path: destinations/customer_totals.csv
       has_header: true
   - id: 5a1b2c3d-4e5f-6a7b-8c9d-0e1f2a3b4c51
     name: Curated_Orders_Parquet
@@ -366,7 +366,7 @@ folders:
     is_destination: true
     description: Curated orders data written to Parquet.
     options:
-      path: D:\Learning\test\samples\destinations\parquet_curated\curated_orders.parquet
+      path: destinations/curated_orders.parquet
   - id: 5a1b2c3d-4e5f-6a7b-8c9d-0e1f2a3b4c52
     name: DW_Orders_Delta
     connector: 83bf3805-57e6-5100-aeb6-0596771c91e2
@@ -374,5 +374,5 @@ folders:
     is_destination: true
     description: Data warehouse curated orders written to Delta Lake ACID table.
     options:
-      path: D:\Learning\test\samples\destinations\delta_dw\orders_delta
+      path: destinations/orders_delta
       mode: overwrite

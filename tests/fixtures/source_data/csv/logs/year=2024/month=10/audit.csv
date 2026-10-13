@@ -1,0 +1,3 @@
+log_id,action,status
+1,LOGIN,SUCCESS
+2,VIEW,SUCCESS

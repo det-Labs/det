@@ -31,5 +31,5 @@ jobs:
 
       - name: Run Test Suite
         run: |
-          python -m unittest discover -s tests
+          python -m unittest discover -v -s tests
 

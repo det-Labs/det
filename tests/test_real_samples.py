@@ -16,15 +16,10 @@ from det.connectors import (
 )
 from det.engine import create_session_context, run_sql
 
-SAMPLES_DIR = Path(r"D:\Learning\test\samples")
+SAMPLES_DIR = Path(__file__).parent / "fixtures" / "source_data"
 
 
 class RealSamplesTests(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls) -> None:
-        if not SAMPLES_DIR.exists():
-            raise unittest.SkipTest(f"Samples directory {SAMPLES_DIR} does not exist")
-
     def setUp(self) -> None:
         self.context = create_session_context()
 
