@@ -59,3 +59,20 @@ def validate_workspace(location: str | Path) -> Path:
             f"(missing: {missing_items}). Run 'det init {workspace}'."
         )
     return workspace
+
+
+class Workspace:
+    """High-level Python SDK interface for interacting with a det workspace."""
+
+    def __init__(self, location: str | Path = ".") -> None:
+        self.root = initialize_workspace(location)
+
+    def run_pipeline(self, pipeline_name: str) -> dict:
+        from det.api import configure_api, run_pipeline
+        configure_api(self.root)
+        return run_pipeline(pipeline_name)
+
+    def validate_pipeline(self, pipeline_name: str) -> dict:
+        from det.api import configure_api, validate_pipeline
+        configure_api(self.root)
+        return validate_pipeline(pipeline_name)

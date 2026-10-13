@@ -52,15 +52,17 @@ jobs:
           
           # Generate static documentation portal for all pipelines
           for p_path in ws.glob('pipelines/*/*.yaml'):
+              p_key = f"{p_path.parent.name}/{p_path.stem}"
               try:
-                  doc_res = gen.save(str(p_path.parent.name), doc_format='html')
-                  print(f'Generated: {doc_res[\"saved_path\"]}')
+                  doc_res = gen.save(p_key, doc_format='html')
+                  print(f'Generated: {doc_res["saved_path"]}')
               except Exception as e:
-                  print(f'Skipped {p_path}: {e}')
+                  print(f'Skipped {p_key}: {e}')
           "
-          # Copy generated docs and static UI to _site
+          # Copy generated docs and all static UI assets to _site
           cp -r demo_workspace/documentation/* _site/ 2>/dev/null || true
-          cp src/det/ui/index.html _site/demo.html
+          cp -r src/det/ui/* _site/ 2>/dev/null || true
+          mv _site/index.html _site/demo.html
           # Create landing index
           cat << 'EOF' > _site/index.html
           <!DOCTYPE html>

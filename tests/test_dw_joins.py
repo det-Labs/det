@@ -19,6 +19,11 @@ SAMPLES_DIR = Path(r"D:\Learning\test\samples")
 
 
 class DataWarehouseJoinsTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        if not SAMPLES_DIR.exists():
+            raise unittest.SkipTest(f"Samples directory {SAMPLES_DIR} does not exist")
+
     def setUp(self) -> None:
         self.context = create_session_context()
 
