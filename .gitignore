@@ -81,4 +81,6 @@ htmlcov/
 /scratch/
 *.tmp
 *.bak
+/_site/
+/demo_workspace/
 

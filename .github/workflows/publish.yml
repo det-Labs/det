@@ -22,18 +22,18 @@ jobs:
           python-version: "3.14"
           allow-prereleases: true
 
-      - name: Install build tools
+      - name: Install build tools and package
         run: |
           python -m pip install --upgrade pip
           pip install build twine
+          pip install -e ".[dev]"
 
       - name: Verify release tag matches pyproject.toml
         run: |
-          python -c "import tomllib, det; from pathlib import Path; version = tomllib.loads(Path('pyproject.toml').read_text(encoding='utf-8'))['project']['version']; assert det.__version__ == version, f'det.__version__ {det.__version__!r} != {version!r}'"
+          python -c "import tomllib, det; from pathlib import Path; version = tomllib.loads(Path('pyproject.toml').read_text(encoding='utf-8'))['project']['version']; assert det.__version__ == version, f'det.__version__ {det.__version__!r} != {version!r}'; print(f'Version verified: {version}')"
 
       - name: Run unit tests
         run: |
-          pip install -e .
           python -m unittest discover -s tests
 
       - name: Build distribution packages

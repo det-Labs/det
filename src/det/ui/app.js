@@ -79,16 +79,273 @@ function apiErrorMessage(payload, fallback) {
   return payload && typeof payload.error === "string" ? payload.error : fallback;
 }
 
-async function api(path, options = {}) {
-  const response = await fetch(path, {
-    ...options,
-    headers: { "Content-Type": "application/json", ...(options.headers || {}) },
-  });
-  const result = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    throw new Error(apiErrorMessage(result, `Request failed (${response.status}).`));
+let demoState = null;
+
+function isStaticDemoMode() {
+  return (
+    window.location.hostname.includes("github.io") ||
+    window.location.protocol === "file:" ||
+    window.location.pathname.endsWith("demo.html") ||
+    window.location.pathname.includes("/demo") ||
+    Boolean(window.__DET_STATIC_DEMO__) ||
+    (!window.location.port && Boolean(window.DET_DEMO_DATA))
+  );
+}
+
+function handleStaticMockApi(path, options = {}) {
+  const data = window.DET_DEMO_DATA;
+  if (!data) return null;
+  if (!demoState) {
+    demoState = { ...data.state };
   }
-  return result;
+
+  const url = new URL(path, window.location.origin);
+  const pathname = url.pathname;
+  const method = (options.method || "GET").toUpperCase();
+
+  // 1. State
+  if (pathname === "/api/state") {
+    if (method === "POST" && options.body) {
+      try {
+        const body = JSON.parse(options.body);
+        demoState = { ...demoState, ...body };
+      } catch (e) {}
+    }
+    return demoState;
+  }
+
+  // 2. Connectors
+  if (pathname === "/api/connectors") {
+    return { items: data.connectors };
+  }
+
+  // 3. Catalogs
+  if (pathname === "/api/catalogs") {
+    return { items: data.catalogs, active: data.active_catalog_name };
+  }
+  if (pathname === "/api/catalogs/active") {
+    return { success: true };
+  }
+
+  // 4. Catalog connection preview & detail
+  if (pathname.startsWith("/api/catalog/connections/")) {
+    const parts = pathname.replace(/^\/+|\/+$/g, "").split("/");
+    const connId = decodeURIComponent(parts[3] || "");
+    const subAction = parts[4];
+
+    // Find connection in catalog data
+    let foundConn = null;
+    let foundFolder = "Sample_Warehouse_Connections";
+    for (const c of (data.catalog?.catalog?.connections || [])) {
+      if (c.id === connId || c.name === connId) { foundConn = c; break; }
+    }
+    if (!foundConn) {
+      for (const folder of (data.catalog?.catalog?.folders || [])) {
+        for (const c of (folder.connections || [])) {
+          if (c.id === connId || c.name === connId) {
+            foundConn = c;
+            foundFolder = folder.name;
+            break;
+          }
+        }
+        if (foundConn) break;
+      }
+    }
+
+    if (subAction === "preview") {
+      const connName = foundConn ? foundConn.name : connId;
+      const preview = data.previews[connName] || data.previews["raw_customers"] || {
+        columns: [{ name: "id", data_type: "Utf8", nullable: true, description: "" }],
+        rows: [{ id: "1" }],
+        row_limit: 50,
+        total_rows_sampled: 1,
+      };
+      return preview;
+    }
+
+    if (subAction === "infer-schema") {
+      return { success: true, message: "Schema inferred successfully (demo mode)." };
+    }
+
+    if (foundConn) {
+      return { ...foundConn, folder_name: foundFolder };
+    }
+
+    return {
+      id: connId,
+      name: connId,
+      connector: "e2f4d6f3-a4b9-5dd7-afbb-1a71d98a4616",
+      is_source: true,
+      is_destination: false,
+      folder_name: foundFolder,
+      description: "NovaMart warehouse connection",
+      options: {},
+      columns: [],
+    };
+  }
+
+  if (pathname === "/api/catalog/folders" || pathname.startsWith("/api/catalog/folders/")) {
+    return { success: true };
+  }
+
+  if (pathname === "/api/catalog/name") {
+    return { success: true };
+  }
+
+  if (pathname === "/api/catalog") {
+    return data.catalog;
+  }
+
+  // 5. Pipeline execution
+  if (pathname === "/api/pipelines/run") {
+    let pipelineName = "pipeline";
+    try {
+      const parsed = typeof options.body === "string" ? JSON.parse(options.body) : options.body;
+      pipelineName = (typeof parsed === "string" ? parsed : parsed?.name) || "pipeline";
+    } catch (e) {}
+    return {
+      status: "SUCCESS",
+      pipeline_name: pipelineName,
+      total_duration_seconds: 0.038,
+      steps: [
+        {
+          step_name: "normalize_and_clean",
+          status: "SUCCESS",
+          duration_ms: 19.4,
+          rows_processed: 500,
+          destinations: [{ destination_name: "gold_mart", format: "delta", rows_written: 500, duration_ms: 12.1 }],
+        },
+        {
+          step_name: "aggregate_and_publish",
+          status: "SUCCESS",
+          duration_ms: 18.6,
+          rows_processed: 500,
+          destinations: [{ destination_name: "analytics_mart", format: "parquet", rows_written: 500, duration_ms: 11.2 }],
+        },
+      ],
+    };
+  }
+
+  // 6. Validation
+  if (pathname === "/api/pipelines/validate" || pathname === "/api/pipelines/validate-sql") {
+    return { valid: true, error: null, hints: [], steps: [{ step_name: "step_1", column_count: 6 }] };
+  }
+
+  // 7. Pipeline item details
+  if (pathname.startsWith("/api/pipelines/item/")) {
+    const rawKey = decodeURIComponent(pathname.slice("/api/pipelines/item/".length));
+    let pipe = data.pipeline_details?.[rawKey] || data.pipeline_details?.[`Sample_Warehouse_Pipelines/${rawKey}`];
+    if (!pipe) {
+      for (const [k, p] of Object.entries(data.pipeline_details || {})) {
+        if (p.name === rawKey || p.id === rawKey || k.endsWith("/" + rawKey)) {
+          pipe = p;
+          break;
+        }
+      }
+    }
+    if (!pipe && data.pipelines && data.pipelines.length) {
+      const first = data.pipelines[0];
+      pipe = data.pipeline_details?.[`${first.folder}/${first.name}`] || first;
+    }
+    return pipe || { name: rawKey, folder: "Sample_Warehouse_Pipelines", steps: [] };
+  }
+
+  // 8. Pipelines list
+  if (pathname === "/api/pipelines") {
+    return { folders: ["Sample_Warehouse_Pipelines"], items: data.pipelines };
+  }
+
+  if (pathname === "/api/pipelines/folders" || pathname.startsWith("/api/pipelines/folders/")) {
+    return { success: true };
+  }
+
+  // 9. Monitoring
+  if (pathname === "/api/monitoring/runs") {
+    return { items: data.monitoring_runs };
+  }
+
+  if (pathname.startsWith("/api/monitoring/runs/")) {
+    const runId = decodeURIComponent(pathname.slice("/api/monitoring/runs/".length));
+    const run = (data.monitoring_runs || []).find((r) => r.id === runId || r.run_id === runId);
+    return run || (data.monitoring_runs && data.monitoring_runs[0]) || { status: "SUCCESS" };
+  }
+
+  if (pathname.startsWith("/api/monitoring/pipelines/")) {
+    return {
+      runs: data.monitoring_runs || [],
+      summary: data.monitoring_summary || {},
+    };
+  }
+
+  if (pathname === "/api/monitoring/summary") {
+    return data.monitoring_summary;
+  }
+
+  // 10. Documentation
+  if (pathname.startsWith("/api/docs/item/")) {
+    const rel_path = decodeURIComponent(pathname.slice("/api/docs/item/".length));
+    const item = (data.docs?.items || []).find((d) => d.path === rel_path || d.name === rel_path) || (data.docs?.items && data.docs.items[0]);
+    const content = (data.docs_contents && (data.docs_contents[rel_path] || data.docs_contents[item?.name])) ||
+      `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${item?.name || "Documentation"}</title><style>body{font-family:sans-serif;padding:2rem;background:#0f172a;color:#f8fafc;}</style></head><body><h1>Pipeline: ${item?.name || "Documentation"}</h1><p>Folder: ${item?.folder || "Sample_Warehouse_Pipelines"}</p><p>SQL ETL Pipeline documentation generated by det.</p></body></html>`;
+    return {
+      folder: item?.folder || "Sample_Warehouse_Pipelines",
+      filename: item ? `${item.name}.html` : "doc.html",
+      name: item?.name || "Pipeline Documentation",
+      format: "html",
+      rel_path: rel_path,
+      size_bytes: item?.bytes || content.length,
+      modified_at: "2026-10-13T09:15:00Z",
+      content: content,
+    };
+  }
+
+  if (pathname.startsWith("/api/docs/verify/")) {
+    return { is_stale: false, reason: "In sync with pipeline definition" };
+  }
+
+  if (pathname === "/api/docs/regenerate") {
+    return { success: true, message: "Documentation regenerated (demo mode)." };
+  }
+
+  if (pathname === "/api/docs") {
+    return data.docs;
+  }
+
+  // 11. Sample Data
+  if (pathname === "/api/sample-data/install") {
+    return { success: true, message: "NovaMart Global warehouse loaded." };
+  }
+
+  return { success: true, message: "Operation simulated (demo mode)." };
+}
+
+async function api(path, options = {}) {
+  if (isStaticDemoMode()) {
+    const mockRes = handleStaticMockApi(path, options);
+    if (mockRes !== null) {
+      return mockRes;
+    }
+  }
+
+  try {
+    const response = await fetch(path, {
+      ...options,
+      headers: { "Content-Type": "application/json", ...(options.headers || {}) },
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(apiErrorMessage(result, `Request failed (${response.status}).`));
+    }
+    return result;
+  } catch (error) {
+    if (window.DET_DEMO_DATA) {
+      const mockRes = handleStaticMockApi(path, options);
+      if (mockRes !== null) {
+        return mockRes;
+      }
+    }
+    throw error;
+  }
 }
 
 async function updatePreferences(preferences) {
@@ -3283,14 +3540,18 @@ async function selectDoc(rel_path) {
     }
 
     if (docsActionOpenTabBtn) {
-      docsActionOpenTabBtn.href = `/documentation/${data.rel_path}`;
+      docsActionOpenTabBtn.href = data.rel_path && data.rel_path.startsWith("http") ? data.rel_path : `documentation/${data.rel_path}`;
     }
 
     if (data.format === "html") {
       if (docsHtmlWrap) docsHtmlWrap.hidden = false;
       if (docsMdWrap) docsMdWrap.hidden = true;
       if (docsHtmlFrame) {
-        docsHtmlFrame.src = `/documentation/${data.rel_path}?t=${Date.now()}`;
+        if (data.content) {
+          docsHtmlFrame.srcdoc = data.content;
+        } else {
+          docsHtmlFrame.src = `/documentation/${data.rel_path}?t=${Date.now()}`;
+        }
       }
     } else {
       if (docsHtmlWrap) docsHtmlWrap.hidden = true;

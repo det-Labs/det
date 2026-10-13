@@ -42,6 +42,12 @@ def build_site(output_dir: str = "_site") -> Path:
                 shutil.copy2(item, dest)
 
     # 4. Copy static UI assets for interactive Web IDE showcase
+    try:
+        from generate_demo_data import generate_demo_data
+        generate_demo_data()
+    except Exception as e:
+        print(f"Notice: skipped runtime demo-data generation: {e}")
+
     ui_src = Path(__file__).parent.parent / "src" / "det" / "ui"
     if ui_src.is_dir():
         for f in ui_src.iterdir():
