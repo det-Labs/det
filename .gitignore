@@ -83,6 +83,9 @@ htmlcov/
 *.bak
 /_site/
 /demo_workspace/
+media/*.wav
+media/screen_record.mp4
+media/*.ps1
 media/linkedin/*.wav
 media/linkedin/screen_record.mp4
 media/linkedin/tts.ps1
