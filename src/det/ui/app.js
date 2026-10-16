@@ -572,11 +572,11 @@ function renderCatalogTree() {
 function renderConnectionRow(connection) {
   const connector = connectors.find((item) => item.id === connection.connector);
   const selected = selectedConnectionId === connection.id;
-  const roles = [connection.is_source && "Source", connection.is_destination && "Destination"].filter(Boolean).join(" Â· ");
+  const roles = [connection.is_source && "Source", connection.is_destination && "Destination"].filter(Boolean).join(" · ");
   return `<div class="tree-row connection-row${selected ? " is-selected" : ""}" role="treeitem">
     <span class="tree-item-icon">${svg.connection}</span>
     <button class="tree-label connection-select" type="button" data-connection-id="${escapeHtml(connection.id)}" aria-pressed="${selected}">
-      <span>${escapeHtml(connection.name)}</span><small>${escapeHtml(connector?.label || "Connector")} Â· ${roles}</small>
+      <span>${escapeHtml(connection.name)}</span><small>${escapeHtml(connector?.label || "Connector")} · ${roles}</small>
     </button>
     <span class="tree-actions">
       <button class="icon-button tree-action" type="button" title="Edit connection" aria-label="Edit connection ${escapeHtml(connection.name)}" data-action="edit-connection" data-connection-id="${escapeHtml(connection.id)}">${svg.edit}</button>
@@ -606,9 +606,9 @@ function renderConnectionTable(connections, includeFolder) {
   if (includeFolder) headers.push("FOLDER");
   const rows = connections.map((connection) => {
     const connector = connectors.find((item) => item.id === connection.connector);
-    const roles = [connection.is_source && "Source", connection.is_destination && "Destination"].filter(Boolean).join(" Â· ");
+    const roles = [connection.is_source && "Source", connection.is_destination && "Destination"].filter(Boolean).join(" · ");
     return `<tr><td><button class="table-link" type="button" data-connection-id="${escapeHtml(connection.id)}">${escapeHtml(connection.name)}</button></td>
-      <td>${escapeHtml(connection.description || "â€”")}</td><td>${escapeHtml(connector?.label || "Unknown")}</td><td>${escapeHtml(roles)}</td>
+      <td>${escapeHtml(connection.description || "—")}</td><td>${escapeHtml(connector?.label || "Unknown")}</td><td>${escapeHtml(roles)}</td>
       ${includeFolder ? `<td>${escapeHtml(connection.folder_name || "")}</td>` : ""}</tr>`;
   }).join("");
   const columnCount = headers.length;
@@ -675,7 +675,7 @@ async function renderConnectionDetail(connectionId) {
   if (addConnectionButton) addConnectionButton.hidden = true;
   const connection = await api(`/api/catalog/connections/${encodeURIComponent(connectionId)}`);
   const connector = connectors.find((item) => item.id === connection.connector);
-  const role = [connection.is_source && "Source", connection.is_destination && "Destination"].filter(Boolean).join(" Â· ");
+  const role = [connection.is_source && "Source", connection.is_destination && "Destination"].filter(Boolean).join(" · ");
   const tabs = ["Overview", "Settings", "Schema", "Preview"];
   let pane;
   if (activeDetailTab === "Overview") {
@@ -714,7 +714,7 @@ async function renderConnectionDetail(connectionId) {
       <div id="preview-result" class="preview-result"><div class="empty-state"><strong>Preview not loaded</strong><p>Load a source preview when you are ready.</p></div></div>`;
   }
   catalogDetail.innerHTML = `<div class="detail-header"><div class="connection-badge">${svg.connection}</div>
-      <div class="detail-title"><h2>${escapeHtml(connection.name)}</h2><p>${escapeHtml(connector?.label || "Unknown connector")} Â· ${escapeHtml(role)}</p></div>
+      <div class="detail-title"><h2>${escapeHtml(connection.name)}</h2><p>${escapeHtml(connector?.label || "Unknown connector")} · ${escapeHtml(role)}</p></div>
       <div class="detail-header-actions">
         ${connection.is_source ? `<button class="primary-button compact-btn" id="query-in-pipeline-btn" data-connection-name="${escapeHtml(connection.name)}" title="Query this source in a new pipeline"><svg viewBox="0 0 24 24" aria-hidden="true" style="width:13px;height:13px;margin-right:4px;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>Query in Pipeline</button>` : ""}
         <button class="icon-button" data-action="edit-connection" data-connection-id="${escapeHtml(connection.id)}" title="Edit connection" aria-label="Edit connection">${svg.edit}</button>
@@ -725,7 +725,7 @@ async function renderConnectionDetail(connectionId) {
   catalogDetail.hidden = false;
   catalogSummary.hidden = true;
   catalogHeading.textContent = connection.name;
-  catalogSubtitle.textContent = `${connector?.label || "Unknown connector"} Â· ${role}`;
+  catalogSubtitle.textContent = `${connector?.label || "Unknown connector"} · ${role}`;
   codePanel.hidden = true;
 }
 
@@ -1328,12 +1328,12 @@ async function handleTreeAction(button) {
     });
   } else if (action === "delete-folder") {
     const folder = activeCatalog.catalog.folders.find((item) => item.id === folderId);
-    if (!window.confirm(`Delete folder â€œ${folder.name}â€? It must be empty, and at least one folder must remain.`)) return;
+    if (!window.confirm(`Delete folder "${folder.name}"? It must be empty, and at least one folder must remain.`)) return;
     await api(`/api/catalog/folders/${encodeURIComponent(folderId)}`, { method: "DELETE" });
     await refreshCatalog();
   } else if (action === "delete-connection") {
     const connection = findConnection(connectionId);
-    if (!window.confirm(`Delete connection â€œ${connection.name}â€?`)) return;
+    if (!window.confirm(`Delete connection "${connection.name}"?`)) return;
     await api(`/api/catalog/connections/${encodeURIComponent(connectionId)}`, { method: "DELETE" });
     if (selectedConnectionId === connectionId) selectedConnectionId = null;
     await refreshCatalog();
@@ -1342,7 +1342,7 @@ async function handleTreeAction(button) {
 
 async function loadPreview(connectionId) {
   const target = document.querySelector("#preview-result");
-  target.innerHTML = '<p class="loading-state">Loading previewâ€¦</p>';
+  target.innerHTML = '<p class="loading-state">Loading preview…</p>';
   const connection = findConnection(connectionId);
   const connName = connection ? connection.name : "source";
   showBackgroundTask({ id: "preview-scan", title: `Scanning preview for '${connName}'...`, status: "running" });
@@ -1587,7 +1587,7 @@ catalogDetail.addEventListener("click", async (event) => {
   if (event.target.closest("#infer-schema-button")) {
     const button = document.querySelector("#infer-schema-button");
     button.disabled = true;
-    button.textContent = "Inferringâ€¦";
+    button.textContent = "Inferring…";
     showBackgroundTask({ id: "infer-schema", title: "Inferring schema from source...", status: "running" });
     try {
       await api(`/api/catalog/connections/${encodeURIComponent(selectedConnectionId)}/infer-schema`, { method: "POST", body: "{}" });
@@ -1928,7 +1928,7 @@ function renderStepTabs() {
       const canRemove = activePipeline.steps.length > 1;
       return `<button class="etl-step-tab${isActive ? " is-active" : ""}" type="button" data-step-index="${idx}">
         <span>${numStr} ${escapeHtml(step.name || "step")}</span>
-        ${canRemove ? `<span class="step-remove-btn" title="Remove step" data-remove-step="${idx}">Ã—</span>` : ""}
+        ${canRemove ? `<span class="step-remove-btn" title="Remove step" data-remove-step="${idx}">×</span>` : ""}
       </button>`;
     })
     .join("");
@@ -2243,9 +2243,9 @@ async function runPipeline() {
   etlRunBanner.hidden = false;
   etlRunBanner.className = "etl-run-banner is-running";
   etlRunStatusIndicator.className = "status-indicator is-running";
-  etlRunStatusTitle.textContent = "Executing pipeline via Apache DataFusionâ€¦";
-  etlRunStatusMeta.textContent = `Pipeline: ${pipelineName} Â· Started at: ${new Date().toLocaleTimeString()}`;
-  etlRunBannerBody.innerHTML = '<p class="loading-state">Running stages sequentially, executing SQL transforms and writersâ€¦</p>';
+  etlRunStatusTitle.textContent = "Executing pipeline via Apache DataFusion…";
+  etlRunStatusMeta.textContent = `Pipeline: ${pipelineName} · Started at: ${new Date().toLocaleTimeString()}`;
+  etlRunBannerBody.innerHTML = '<p class="loading-state">Running stages sequentially, executing SQL transforms and writers…</p>';
 
   showBackgroundTask({
     id: "pipeline-run",
@@ -2311,7 +2311,7 @@ function renderRunTelemetry(run, scrollIntoView = false) {
 
   const durationMs = (run.total_duration_seconds * 1000).toFixed(1);
   const totalRows = (run.steps || []).reduce((acc, s) => acc + (s.rows_processed || 0), 0);
-  etlRunStatusMeta.textContent = `Run ID: ${escapeHtml(run.run_id ? run.run_id.slice(0, 8) : "â€”")} Â· Duration: ${durationMs}ms Â· ${totalRows.toLocaleString()} rows processed`;
+  etlRunStatusMeta.textContent = `Run ID: ${escapeHtml(run.run_id ? run.run_id.slice(0, 8) : "—")} · Duration: ${durationMs}ms · ${totalRows.toLocaleString()} rows processed`;
 
   let totalWrittenRows = 0;
   for (const s of run.steps || []) {
@@ -2425,8 +2425,8 @@ async function validateEntirePipeline() {
   etlValidationBanner.hidden = false;
   etlValidationDetails.hidden = false;
   etlValidationIndicator.className = "status-indicator is-running";
-  etlValidationText.textContent = "Running DataFusion pre-flight validationâ€¦";
-  etlValidationDetails.innerHTML = "<p>Analyzing logical plans, schemas, and destination connectionsâ€¦</p>";
+  etlValidationText.textContent = "Running DataFusion pre-flight validation…";
+  etlValidationDetails.innerHTML = "<p>Analyzing logical plans, schemas, and destination connections…</p>";
 
   try {
     const res = await api("/api/pipelines/validate", {
@@ -2441,12 +2441,12 @@ async function validateEntirePipeline() {
       const stepHtml = res.steps
         .map(
           (s) =>
-            `<div style="margin-bottom:6px;"><strong>âœ” Step: ${escapeHtml(s.step_name)}</strong> â€” ${s.column_count} column(s) inferred.</div>`
+            `<div style="margin-bottom:6px;"><strong>✔ Step: ${escapeHtml(s.step_name)}</strong> — ${s.column_count} column(s) inferred.</div>`
         )
         .join("");
       etlValidationDetails.innerHTML = `${stepHtml}
         <div style="margin-top:10px;">
-          <button class="primary-button compact-btn" id="etl-validation-run-now-btn" type="button">â–¶ Run Pipeline Now</button>
+          <button class="primary-button compact-btn" id="etl-validation-run-now-btn" type="button">▶ Run Pipeline Now</button>
         </div>`;
       const runNowBtn = document.querySelector("#etl-validation-run-now-btn");
       if (runNowBtn) {
@@ -2585,7 +2585,7 @@ etlTree.addEventListener("click", async (event) => {
         await refreshETL();
       });
     } else if (action === "delete-etl-folder") {
-      if (!window.confirm(`Delete pipeline folder â€œ${folderName}â€ and its pipelines?`)) return;
+      if (!window.confirm(`Delete pipeline folder "${folderName}" and its pipelines?`)) return;
       await api(`/api/pipelines/folders/${encodeURIComponent(folderName)}`, { method: "DELETE" });
       await refreshETL();
     } else if (action === "duplicate-pipeline") {
@@ -2600,7 +2600,7 @@ etlTree.addEventListener("click", async (event) => {
         window.alert(`Duplicate failed: ${err.message}`);
       }
     } else if (action === "delete-pipeline") {
-      if (!window.confirm(`Delete pipeline â€œ${pipelineKey}â€?`)) return;
+      if (!window.confirm(`Delete pipeline "${pipelineKey}"?`)) return;
       await api(`/api/pipelines/item/${encodeURI(pipelineKey)}`, { method: "DELETE" });
       if (selectedPipelineKey === pipelineKey) selectedPipelineKey = null;
       await refreshETL();
@@ -2613,7 +2613,7 @@ etlStepTabs.addEventListener("click", (event) => {
   if (removeBtn) {
     const idx = parseInt(removeBtn.dataset.removeStep, 10);
     if (activePipeline.steps.length <= 1) return;
-    if (window.confirm(`Remove step â€œ${activePipeline.steps[idx].name}â€?`)) {
+    if (window.confirm(`Remove step "${activePipeline.steps[idx].name}"?`)) {
       syncCurrentEditorToPipeline();
       activePipeline.steps.splice(idx, 1);
       activeStepIndex = Math.min(activeStepIndex, activePipeline.steps.length - 1);
@@ -3248,11 +3248,11 @@ function renderMonitoringRunsTable(runs) {
   monitoringRunsTbody.innerHTML = runs.map((run) => {
     const isSelected = selectedRunId === run.run_id;
     const isSuccess = run.status === "SUCCESS";
-    const started = run.started_at ? new Date(run.started_at).toLocaleString() : "â€”";
+    const started = run.started_at ? new Date(run.started_at).toLocaleString() : "—";
     const durationMs = ((run.total_duration_seconds || 0) * 1000).toFixed(1);
     const stagesCount = (run.steps || []).length;
     const rowsProcessed = (run.steps || []).reduce((acc, s) => acc + (s.rows_processed || 0), 0);
-    const shortId = (run.run_id || "â€”").slice(0, 8);
+    const shortId = (run.run_id || "—").slice(0, 8);
 
     return `
       <tr class="${isSelected ? "is-selected" : ""}" data-run-id="${escapeHtml(run.run_id)}">
@@ -3263,7 +3263,7 @@ function renderMonitoringRunsTable(runs) {
           </span>
         </td>
         <td><strong>${escapeHtml(run.pipeline_name_at_run || "pipeline")}</strong></td>
-        <td>${escapeHtml(run.folder_at_run || "â€”")}</td>
+        <td>${escapeHtml(run.folder_at_run || "—")}</td>
         <td style="font-size:11px;color:var(--muted);">${escapeHtml(started)}</td>
         <td>${durationMs} ms</td>
         <td>${stagesCount} stage${stagesCount === 1 ? "" : "s"}</td>
@@ -3289,7 +3289,7 @@ function renderMonitoringRunDetail(run) {
 
   const isSuccess = run.status === "SUCCESS";
   const durationMs = ((run.total_duration_seconds || 0) * 1000).toFixed(1);
-  const started = run.started_at ? new Date(run.started_at).toLocaleString() : "â€”";
+  const started = run.started_at ? new Date(run.started_at).toLocaleString() : "—";
 
   if (monDetailIndicator) {
     monDetailIndicator.className = `status-indicator ${isSuccess ? "is-success" : "is-failed"}`;
@@ -3302,7 +3302,7 @@ function renderMonitoringRunDetail(run) {
     monDetailStatusBadge.innerHTML = `<span class="mon-dot ${isSuccess ? "is-success" : "is-failed"}"></span> ${escapeHtml(run.status || "UNKNOWN")}`;
   }
   if (monDetailMeta) {
-    monDetailMeta.textContent = `Run ID: ${run.run_id} Â· Folder: ${run.folder_at_run || "root"} Â· Started: ${started} Â· Duration: ${durationMs}ms`;
+    monDetailMeta.textContent = `Run ID: ${run.run_id} · Folder: ${run.folder_at_run || "root"} · Started: ${started} · Duration: ${durationMs}ms`;
   }
 
   renderInferredResultsSection(run);
@@ -3332,7 +3332,7 @@ function renderInferredResultsSection(run) {
         step_name: s.step_name,
         destination_name: d.destination_name,
         format: d.format || "file",
-        target: d.target || "â€”",
+        target: d.target || "—",
         rows_written: d.rows_written || 0,
         duration_ms: d.duration_ms || 0,
         status: d.status || "SUCCESS",
@@ -3403,7 +3403,7 @@ function renderInferredResultsSection(run) {
               ? `<tr><td colspan="4" class="empty-table">No external catalog sources scanned (internal CTEs / queries only).</td></tr>`
               : sources.map((s) => `
                 <tr>
-                  <td><strong>${escapeHtml(s.source_name || "â€”")}</strong></td>
+                  <td><strong>${escapeHtml(s.source_name || "—")}</strong></td>
                   <td><code class="mon-code-snippet">${escapeHtml(s.connector_type || "table")}</code></td>
                   <td>${(s.rows_read || 0).toLocaleString()}</td>
                   <td>${(s.duration_ms || 0).toFixed(1)} ms</td>
@@ -3451,7 +3451,7 @@ function renderInferredResultsSection(run) {
                     <td>${(s.duration_ms || 0).toFixed(1)} ms</td>
                     <td>${(s.rows_processed || 0).toLocaleString()}</td>
                     <td>${destCount > 0 ? `<span style="color:var(--accent);">${escapeHtml(destNames)}</span>` : "Temporary view"}</td>
-                    <td><code class="mon-code-snippet" title="${escapeHtml(s.sql || "")}">${escapeHtml(sqlSnippet.slice(0, 70))}${sqlSnippet.length > 70 ? "â€¦" : ""}</code></td>
+                    <td><code class="mon-code-snippet" title="${escapeHtml(s.sql || "")}">${escapeHtml(sqlSnippet.slice(0, 70))}${sqlSnippet.length > 70 ? "…" : ""}</code></td>
                   </tr>
                 `;
               }).join("")}
@@ -3548,7 +3548,7 @@ function renderLogEntriesSection(run) {
       ${filtered.length === 0
         ? `<div class="empty-table">No log entries found matching level "${escapeHtml(activeLogLevelFilter)}" and search.</div>`
         : filtered.map((e) => {
-          const timeStr = e.timestamp ? e.timestamp.split("T")[1]?.slice(0, 12) || e.timestamp : "â€”";
+          const timeStr = e.timestamp ? e.timestamp.split("T")[1]?.slice(0, 12) || e.timestamp : "—";
           const lvl = (e.level || "INFO").toLowerCase();
           return `
             <div class="mon-log-row">
@@ -4167,7 +4167,7 @@ function renderDocItemRow(doc) {
   const staleInfo = staleDocsMap.get(doc.rel_path);
   const isStale = Boolean(staleInfo && staleInfo.is_stale);
   const staleBadge = isStale
-    ? `<span class="doc-stale-badge" title="${escapeHtml(staleInfo.reason || 'Documentation is out of sync with pipeline definition')}">âš ï¸</span>`
+    ? `<span class="doc-stale-badge" title="${escapeHtml(staleInfo.reason || 'Documentation is out of sync with pipeline definition')}">⚠️</span>`
     : "";
 
   return `
@@ -4211,8 +4211,8 @@ async function selectDoc(rel_path) {
       docsHeaderFormatPill.className = `docs-format-pill is-${data.format}`;
     }
     if (docsHeaderMeta) {
-      const modDate = data.modified_at ? new Date(data.modified_at).toLocaleString() : "â€”";
-      docsHeaderMeta.textContent = `documentation/${data.rel_path} Â· ${formatBytes(data.size_bytes)} Â· Last modified: ${modDate}`;
+      const modDate = data.modified_at ? new Date(data.modified_at).toLocaleString() : "—";
+      docsHeaderMeta.textContent = `documentation/${data.rel_path} · ${formatBytes(data.size_bytes)} · Last modified: ${modDate}`;
     }
 
     // Sync / staleness state check
@@ -4633,7 +4633,7 @@ function renderHelpTree() {
     if (query) {
       helpTopicsCount.textContent = `Showing ${visibleTopicsCount} of ${allTopics.length} articles`;
     } else {
-      helpTopicsCount.textContent = `${allTopics.length} articles Â· ${categories.length} sections`;
+      helpTopicsCount.textContent = `${allTopics.length} articles · ${categories.length} sections`;
     }
   }
 }
@@ -4648,7 +4648,7 @@ function selectHelpTopic(topicId) {
   if (helpBcCategory) helpBcCategory.textContent = category.title;
   if (helpBcTitle) helpBcTitle.textContent = topic.title;
   if (helpArticleTitle) helpArticleTitle.textContent = topic.title;
-  if (helpReadTime) helpReadTime.textContent = `â±ï¸ ${topic.readTime || "3 min read"}`;
+  if (helpReadTime) helpReadTime.textContent = ⏱️ ;
 
   if (helpArticleContent) {
     helpArticleContent.innerHTML = topic.content;
