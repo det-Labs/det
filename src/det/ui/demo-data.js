@@ -3,7 +3,7 @@ window.DET_DEMO_DATA = {
   "state": {
     "app_name": "det",
     "app_description": "SQL ETL workspace",
-    "version": "0.2.1",
+    "version": "0.2.2",
     "workspace": "NovaMart_Global_Warehouse",
     "module": "Catalog",
     "theme": "light"
