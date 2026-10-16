@@ -25,7 +25,7 @@ def generate_demo_data() -> None:
     state = {
         "app_name": "det",
         "app_description": "SQL ETL workspace",
-        "version": "0.2.0",
+        "version": "0.2.1",
         "workspace": "NovaMart_Global_Warehouse",
         "module": "Catalog",
         "theme": "light",
