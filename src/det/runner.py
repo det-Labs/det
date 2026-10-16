@@ -20,6 +20,9 @@ from det.connectors import (
     EXCEL_CONNECTOR,
     JSON_CONNECTOR,
     PARQUET_CONNECTOR,
+    POSTGRESQL_CONNECTOR,
+    build_postgres_uri,
+    resolve_env_vars,
     scan_builtin,
 )
 from det.engine import create_session_context, run_sql
@@ -231,7 +234,15 @@ class PipelineRunner:
         start_write = time.perf_counter()
         write_started_iso = _utcnow_iso()
 
-        options = dest_conn.get("options", {})
+        options = resolve_env_vars(dest_conn.get("options", {}), self.workspace)
+        connector_guid = dest_conn.get("connector", "")
+
+        # 0. PostgreSQL Destination via Apache Arrow ADBC
+        if connector_guid in (POSTGRESQL_CONNECTOR.guid, POSTGRESQL_CONNECTOR.key):
+            return self._write_postgresql(
+                dest_conn, arrow_table, options, start_write, write_started_iso
+            )
+
         raw_path = options.get("path", "")
         if not raw_path:
             raise ValueError(f"Destination connection '{dest_conn['name']}' has no output path configured.")
@@ -241,7 +252,6 @@ class PipelineRunner:
             target_path = self.workspace / target_path
         target_path.parent.mkdir(parents=True, exist_ok=True)
 
-        connector_guid = dest_conn.get("connector", "")
         format_name = "unknown"
 
         # 1. CSV Destination
@@ -335,3 +345,66 @@ class PipelineRunner:
             ws.append(row_vals)
 
         wb.save(str(target_path))
+
+    def _write_postgresql(
+        self,
+        dest_conn: dict[str, Any],
+        arrow_table: Any,
+        options: dict[str, Any],
+        start_write: float,
+        write_started_iso: str,
+    ) -> DestinationWriteMetric:
+        """Ingest Arrow table into PostgreSQL using Apache ADBC."""
+        try:
+            import adbc_driver_postgresql.dbapi as pg_dbapi
+        except ImportError as exc:
+            raise RuntimeError(
+                "PostgreSQL connector requires 'adbc-driver-postgresql'. "
+                "Install it with: pip install adbc-driver-postgresql"
+            ) from exc
+
+        target_table = options.get("target_table") or options.get("table")
+        if not target_table or not str(target_table).strip():
+            target_table = dest_conn["name"]
+        target_table = str(target_table).strip()
+
+        target_schema = options.get("target_schema") or options.get("schema") or "public"
+        target_schema = str(target_schema).strip()
+
+        if "." in target_table:
+            schema_part, _, table_part = target_table.partition(".")
+            target_schema = schema_part
+            target_table = table_part
+
+        write_mode = str(options.get("write_mode") or "create_or_replace").strip()
+        if write_mode in ("create_or_replace", "replace", "overwrite"):
+            adbc_mode = "replace"
+        elif write_mode == "append":
+            adbc_mode = "create_append"
+        elif write_mode in ("error_if_exists", "create"):
+            adbc_mode = "create"
+        else:
+            adbc_mode = "replace"
+
+        uri = build_postgres_uri(options)
+
+        with pg_dbapi.connect(uri, autocommit=True) as conn, conn.cursor() as cursor:
+            cursor.adbc_ingest(
+                table_name=target_table,
+                data=arrow_table,
+                mode=adbc_mode,
+                db_schema_name=target_schema if target_schema else None,
+            )
+            conn.commit()
+
+        duration_ms = round((time.perf_counter() - start_write) * 1000, 2)
+        target_repr = f"{target_schema}.{target_table}"
+        return DestinationWriteMetric(
+            destination_name=dest_conn["name"],
+            target_path=target_repr,
+            format="postgresql",
+            started_at=write_started_iso,
+            completed_at=_utcnow_iso(),
+            rows_written=arrow_table.num_rows,
+            duration_ms=duration_ms,
+        )

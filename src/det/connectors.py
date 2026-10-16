@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import os
+import re
 from dataclasses import asdict, dataclass, field
 from importlib.metadata import entry_points
 from pathlib import Path
 from typing import Any, Literal, Protocol
+from urllib.parse import quote_plus
 from uuid import NAMESPACE_URL, UUID, uuid4, uuid5
 
 import pyarrow as pa
@@ -19,7 +22,7 @@ class ConnectorField:
     name: str
     label: str
     section: Literal["connection", "read", "write"]
-    kind: Literal["text", "number", "boolean", "select", "list", "textarea"]
+    kind: Literal["text", "number", "boolean", "select", "list", "textarea", "password"]
     description: str = ""
     default: Any = None
     choices: tuple[str, ...] = ()
@@ -396,6 +399,165 @@ ICEBERG_CONNECTOR = ConnectorDefinition(
     read=None,
 )
 
+POSTGRESQL_CONNECTOR = ConnectorDefinition(
+    key="postgresql",
+    guid=str(uuid5(NAMESPACE_URL, "https://det.dev/connectors/postgresql")),
+    label="PostgreSQL",
+    description="PostgreSQL database accessed via Apache Arrow ADBC high-speed driver.",
+    fields=(
+        ConnectorField(
+            "host", "Host", "connection", "text",
+            "Database server hostname or IP address.",
+            default="localhost", required=True, placeholder="localhost",
+        ),
+        ConnectorField(
+            "port", "Port", "connection", "number",
+            "Database server port.",
+            default=5432, required=True, placeholder="5432",
+        ),
+        ConnectorField(
+            "database", "Database", "connection", "text",
+            "Database name.",
+            required=True, placeholder="my_database",
+        ),
+        ConnectorField(
+            "user", "Username", "connection", "text",
+            "Database username or ${ENV_VAR}.",
+            required=True, placeholder="postgres",
+        ),
+        ConnectorField(
+            "password", "Password", "connection", "password",
+            "Database password or ${ENV_VAR} reference.",
+            placeholder="password or ${PG_PASSWORD}",
+        ),
+        ConnectorField(
+            "sslmode", "SSL Mode", "connection", "select",
+            "PostgreSQL SSL connection mode.",
+            default="prefer",
+            choices=("disable", "allow", "prefer", "require", "verify-ca", "verify-full"),
+            advanced=True,
+        ),
+        ConnectorField(
+            "uri", "Connection URI (optional)", "connection", "text",
+            "Full ADBC connection URI. If provided, overrides individual connection fields.",
+            placeholder="postgresql://user:password@localhost:5432/dbname",
+            advanced=True,
+        ),
+        ConnectorField(
+            "schema", "Schema name", "read", "text",
+            "Database schema for the source table.",
+            default="public", placeholder="public",
+        ),
+        ConnectorField(
+            "table", "Table name", "read", "text",
+            "Source table name to read.",
+            placeholder="orders",
+        ),
+        ConnectorField(
+            "query", "Custom SQL Query", "read", "textarea",
+            "Optional custom SQL query to execute instead of scanning a table.",
+            placeholder="SELECT * FROM public.orders WHERE status = 'COMPLETED'",
+            advanced=True,
+        ),
+        ConnectorField(
+            "target_schema", "Destination schema", "write", "text",
+            "Target database schema.",
+            default="public", placeholder="public",
+        ),
+        ConnectorField(
+            "target_table", "Destination table", "write", "text",
+            "Target table name to write to.",
+            placeholder="processed_orders",
+        ),
+        ConnectorField(
+            "write_mode", "If output table exists", "write", "select",
+            "Write behavior if the destination table already exists.",
+            default="create_or_replace",
+            choices=("create_or_replace", "append", "error_if_exists"),
+        ),
+    ),
+    read=None,
+)
+
+
+_ENV_VAR_PATTERN = re.compile(r"\$(?:\{([A-Za-z0-9_]+)\}|([A-Za-z0-9_]+))")
+
+
+def load_workspace_env(workspace: Path | str | None) -> None:
+    """Load key-value pairs from workspace/.env into os.environ if not already set."""
+    if not workspace:
+        return
+    env_file = Path(workspace).expanduser().resolve() / ".env"
+    if not env_file.is_file():
+        return
+    try:
+        content = env_file.read_text(encoding="utf-8")
+    except Exception:
+        return
+    for line in content.splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if "=" in line:
+            key, _, val = line.partition("=")
+            key = key.strip()
+            val = val.strip()
+            if (val.startswith('"') and val.endswith('"')) or (val.startswith("'") and val.endswith("'")):
+                val = val[1:-1]
+            if key and key not in os.environ:
+                os.environ[key] = val
+
+
+def resolve_env_vars(data: Any, workspace: Path | str | None = None) -> Any:
+    """Recursively expand ${VAR} and $VAR in strings, dicts, and lists."""
+    if workspace:
+        load_workspace_env(workspace)
+
+    if isinstance(data, str):
+        def _replace_var(match: re.Match[str]) -> str:
+            var_name = match.group(1) or match.group(2)
+            if var_name in os.environ:
+                return os.environ[var_name]
+            raise ValueError(
+                f"Environment variable '{var_name}' referenced in connection options was not found in workspace .env or system environment."
+            )
+
+        return _ENV_VAR_PATTERN.sub(_replace_var, data)
+    elif isinstance(data, dict):
+        return {k: resolve_env_vars(v, workspace=None) for k, v in data.items()}
+    elif isinstance(data, list):
+        return [resolve_env_vars(item, workspace=None) for item in data]
+    return data
+
+
+def build_postgres_uri(options: dict[str, Any]) -> str:
+    """Construct a PostgreSQL connection URI from options dictionary."""
+    raw_uri = options.get("uri")
+    if raw_uri and str(raw_uri).strip():
+        return str(raw_uri).strip()
+
+    host = str(options.get("host") or "localhost").strip()
+    port = options.get("port") or 5432
+    database = str(options.get("database") or "").strip()
+    user = str(options.get("user") or "").strip()
+    password = str(options.get("password") or "").strip()
+    sslmode = str(options.get("sslmode") or "").strip()
+
+    if not database:
+        raise ValueError("PostgreSQL connection requires a 'database' name.")
+
+    auth = ""
+    if user:
+        auth = quote_plus(user)
+        if password:
+            auth += f":{quote_plus(password)}"
+        auth += "@"
+
+    uri = f"postgresql://{auth}{host}:{port}/{database}"
+    if sslmode:
+        uri += f"?sslmode={quote_plus(sslmode)}"
+    return uri
+
 
 def connector_definitions() -> list[ConnectorDefinition]:
     """Return core connectors followed by installed extension connectors."""
@@ -407,6 +569,7 @@ def connector_definitions() -> list[ConnectorDefinition]:
         XML_CONNECTOR,
         DELTA_CONNECTOR,
         ICEBERG_CONNECTOR,
+        POSTGRESQL_CONNECTOR,
     ]
     known_ids = {item.guid for item in definitions}
     known_keys = {item.key for item in definitions}
@@ -880,6 +1043,42 @@ def _scan_iceberg(
         )
 
 
+def _scan_postgresql_adbc(
+    context: SessionContext,
+    options: dict[str, Any],
+    schema: pa.Schema | None,
+) -> DataFrame:
+    """Execute query or table scan on PostgreSQL via Apache Arrow ADBC."""
+    try:
+        import adbc_driver_postgresql.dbapi as pg_dbapi
+    except ImportError as exc:
+        raise RuntimeError(
+            "PostgreSQL connector requires 'adbc-driver-postgresql'. "
+            "Install it with: pip install adbc-driver-postgresql"
+        ) from exc
+
+    query = options.get("query")
+    if query and str(query).strip():
+        sql_to_run = str(query).strip()
+    else:
+        table_name = str(options.get("table") or "").strip()
+        if not table_name:
+            raise ValueError("PostgreSQL connection requires either a 'table' name or a 'query'.")
+        schema_name = str(options.get("schema") or "public").strip() or "public"
+        if "." in table_name:
+            sql_to_run = f"SELECT * FROM {table_name}"
+        else:
+            sql_to_run = f'SELECT * FROM "{schema_name}"."{table_name}"'
+
+    uri = build_postgres_uri(options)
+    with pg_dbapi.connect(uri) as conn, conn.cursor() as cursor:
+        cursor.execute(sql_to_run)
+        arrow_table = cursor.fetch_arrow_table()
+
+    table = _apply_saved_schema(arrow_table, schema)
+    return context.from_arrow(table)
+
+
 def scan_builtin(
     context: SessionContext,
     connector_guid: str,
@@ -889,6 +1088,7 @@ def scan_builtin(
 ) -> DataFrame:
     """Build a lazy DataFusion scan using the saved built-in connector options."""
     resolved_workspace = Path(workspace).expanduser().resolve()
+    resolved_options = resolve_env_vars(options, resolved_workspace)
     connector_by_guid = {item.guid: item for item in connector_definitions()}
     connector = connector_by_guid.get(connector_guid)
     if connector is None:
@@ -896,26 +1096,29 @@ def scan_builtin(
 
     schema = _build_arrow_schema(saved_columns)
 
-    if connector.key in {"delta", "iceberg"}:
-        table_dir = _resolve_table_directory(options, resolved_workspace)
-        if connector.key == "delta":
-            return _scan_delta(context, table_dir, options, schema)
-        if connector.key == "iceberg":
-            return _scan_iceberg(context, table_dir, options, schema)
+    if connector.key == "postgresql":
+        return _scan_postgresql_adbc(context, resolved_options, schema)
 
-    paths = _matched_paths(options, resolved_workspace)
+    if connector.key in {"delta", "iceberg"}:
+        table_dir = _resolve_table_directory(resolved_options, resolved_workspace)
+        if connector.key == "delta":
+            return _scan_delta(context, table_dir, resolved_options, schema)
+        if connector.key == "iceberg":
+            return _scan_iceberg(context, table_dir, resolved_options, schema)
+
+    paths = _matched_paths(resolved_options, resolved_workspace)
 
     if connector.key == "csv":
-        return _scan_csv(context, paths, options, schema)
+        return _scan_csv(context, paths, resolved_options, schema)
     if connector.key == "parquet":
-        return _scan_parquet(context, paths, options, schema)
+        return _scan_parquet(context, paths, resolved_options, schema)
     if connector.key == "json":
-        return _scan_json(context, paths, options, schema)
+        return _scan_json(context, paths, resolved_options, schema)
     if connector.key == "excel":
-        return _scan_excel(context, paths, options, schema)
+        return _scan_excel(context, paths, resolved_options, schema)
     if connector.key == "xml":
-        return _scan_xml(context, paths, options, schema)
+        return _scan_xml(context, paths, resolved_options, schema)
 
     if connector.read is None:
         raise NotImplementedError(f"Connector {connector.label} does not provide a reader.")
-    return connector.read(context, options, resolved_workspace)
+    return connector.read(context, resolved_options, resolved_workspace)

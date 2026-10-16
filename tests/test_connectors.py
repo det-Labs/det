@@ -1,9 +1,11 @@
 """Tests for core file-based connectors: CSV, Parquet, Excel, JSON, XML."""
 
 import json
+import os
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 import openpyxl
 import pyarrow as pa
@@ -19,12 +21,16 @@ from det.connectors import (
     ICEBERG_CONNECTOR,
     JSON_CONNECTOR,
     PARQUET_CONNECTOR,
+    POSTGRESQL_CONNECTOR,
     XML_CONNECTOR,
+    build_postgres_uri,
     connector_definitions,
     connector_metadata,
+    resolve_env_vars,
     scan_builtin,
 )
 from det.engine import create_session_context, run_sql
+from det.runner import PipelineRunner
 from det.workspace import initialize_workspace
 
 
@@ -40,14 +46,14 @@ class FileConnectorsTests(unittest.TestCase):
     def tearDown(self) -> None:
         self.temp_dir.cleanup()
 
-    def test_all_seven_core_connectors_registered_with_unique_guids(self) -> None:
+    def test_all_eight_core_connectors_registered_with_unique_guids(self) -> None:
         definitions = connector_definitions()
         keys = [c.key for c in definitions]
-        self.assertEqual(keys, ["csv", "parquet", "excel", "json", "xml", "delta", "iceberg"])
+        self.assertEqual(keys, ["csv", "parquet", "excel", "json", "xml", "delta", "iceberg", "postgresql"])
         guids = [c.guid for c in definitions]
         self.assertEqual(len(guids), len(set(guids)))
         metadata = connector_metadata()
-        self.assertEqual(len(metadata), 7)
+        self.assertEqual(len(metadata), 8)
 
     def test_csv_single_and_multi_file_nested_scan_with_sql(self) -> None:
         folder = self.workspace / "data_csv" / "nested"
@@ -363,6 +369,174 @@ class FileConnectorsTests(unittest.TestCase):
                 preview = preview_connection(conn_id)
                 self.assertEqual(preview["row_limit"], 50)
                 self.assertEqual(len(preview["rows"]), 1)
+
+    def test_resolve_env_vars_with_system_and_workspace_env(self) -> None:
+        # 1. System environment variable
+        os.environ["DET_TEST_PG_HOST"] = "pg.internal.corp"
+        os.environ["DET_TEST_PG_PASS"] = "s3cr3t#123"
+
+        resolved = resolve_env_vars("postgresql://admin:${DET_TEST_PG_PASS}@${DET_TEST_PG_HOST}:5432/db")
+        self.assertEqual(resolved, "postgresql://admin:s3cr3t#123@pg.internal.corp:5432/db")
+
+        # 2. Workspace .env file
+        env_file = self.workspace / ".env"
+        env_file.write_text("DET_ENV_USER=postgres_user\nDET_ENV_PORT=5433\n# comment\n", encoding="utf-8")
+
+        opts = {
+            "host": "${DET_TEST_PG_HOST}",
+            "port": "${DET_ENV_PORT}",
+            "user": "${DET_ENV_USER}",
+            "password": "${DET_TEST_PG_PASS}",
+            "nested": ["${DET_ENV_USER}", 123],
+        }
+        resolved_opts = resolve_env_vars(opts, self.workspace)
+        self.assertEqual(resolved_opts["host"], "pg.internal.corp")
+        self.assertEqual(resolved_opts["port"], "5433")
+        self.assertEqual(resolved_opts["user"], "postgres_user")
+        self.assertEqual(resolved_opts["password"], "s3cr3t#123")
+        self.assertEqual(resolved_opts["nested"], ["postgres_user", 123])
+
+        # 3. Missing variable raises ValueError with informative message
+        with self.assertRaises(ValueError) as ctx:
+            resolve_env_vars("${NON_EXISTENT_ENV_VAR_12345}", self.workspace)
+        self.assertIn("NON_EXISTENT_ENV_VAR_12345", str(ctx.exception))
+        self.assertIn("workspace .env or system environment", str(ctx.exception))
+
+    def test_build_postgres_uri(self) -> None:
+        # Standard options
+        opts = {
+            "host": "localhost",
+            "port": 5432,
+            "database": "sales_db",
+            "user": "det_user",
+            "password": "my_password",
+            "sslmode": "require",
+        }
+        uri = build_postgres_uri(opts)
+        self.assertEqual(uri, "postgresql://det_user:my_password@localhost:5432/sales_db?sslmode=require")
+
+        # Special characters in credentials URL-encoded
+        opts_special = {
+            "host": "db.cloud.net",
+            "port": 5439,
+            "database": "analytics",
+            "user": "user@domain.com",
+            "password": "p@ss:word/123",
+            "sslmode": "prefer",
+        }
+        uri_special = build_postgres_uri(opts_special)
+        self.assertEqual(
+            uri_special,
+            "postgresql://user%40domain.com:p%40ss%3Aword%2F123@db.cloud.net:5439/analytics?sslmode=prefer",
+        )
+
+        # URI override takes precedence
+        opts_override = {"uri": "postgresql://custom_conn_str:5432/custom_db"}
+        self.assertEqual(build_postgres_uri(opts_override), "postgresql://custom_conn_str:5432/custom_db")
+
+        # Missing database raises ValueError
+        with self.assertRaises(ValueError):
+            build_postgres_uri({"host": "localhost"})
+
+    def test_postgresql_connector_definition(self) -> None:
+        self.assertEqual(POSTGRESQL_CONNECTOR.key, "postgresql")
+        self.assertEqual(POSTGRESQL_CONNECTOR.label, "PostgreSQL")
+        self.assertTrue(POSTGRESQL_CONNECTOR.guid)
+
+        fields_by_name = {f.name: f for f in POSTGRESQL_CONNECTOR.fields}
+        self.assertIn("host", fields_by_name)
+        self.assertIn("port", fields_by_name)
+        self.assertIn("database", fields_by_name)
+        self.assertIn("user", fields_by_name)
+        self.assertIn("password", fields_by_name)
+        self.assertEqual(fields_by_name["password"].kind, "password")
+        self.assertIn("sslmode", fields_by_name)
+        self.assertIn("schema", fields_by_name)
+        self.assertIn("table", fields_by_name)
+        self.assertIn("query", fields_by_name)
+        self.assertIn("target_table", fields_by_name)
+        self.assertIn("write_mode", fields_by_name)
+
+    def test_scan_postgresql_adbc_with_mock(self) -> None:
+        mock_table = pa.Table.from_arrays(
+            [pa.array([101, 102]), pa.array(["Item A", "Item B"])],
+            names=["product_id", "product_name"],
+        )
+
+        mock_cursor = MagicMock()
+        mock_cursor.fetch_arrow_table.return_value = mock_table
+        mock_conn = MagicMock()
+        mock_conn.cursor.return_value.__enter__.return_value = mock_cursor
+        mock_conn.__enter__.return_value = mock_conn
+
+        with patch("adbc_driver_postgresql.dbapi.connect", return_value=mock_conn) as mock_connect:
+            # 1. Scan with table option
+            opts = {
+                "host": "localhost",
+                "database": "store",
+                "schema": "public",
+                "table": "products",
+            }
+            df = scan_builtin(self.context, POSTGRESQL_CONNECTOR.guid, opts, self.workspace)
+            mock_connect.assert_called_once()
+            mock_cursor.execute.assert_called_with('SELECT * FROM "public"."products"')
+
+            # Query the resulting DataFusion DataFrame
+            self.context.register_view("pg_products", df)
+            result = run_sql(self.context, "SELECT * FROM pg_products WHERE product_id = 101")
+            res_table = result.to_arrow_table()
+            self.assertEqual(res_table.num_rows, 1)
+            self.assertEqual(res_table["product_name"][0].as_py(), "Item A")
+
+        with patch("adbc_driver_postgresql.dbapi.connect", return_value=mock_conn):
+            # 2. Scan with custom query option
+            opts_query = {
+                "host": "localhost",
+                "database": "store",
+                "query": "SELECT product_id, product_name FROM products WHERE active = true",
+            }
+            scan_builtin(self.context, POSTGRESQL_CONNECTOR.guid, opts_query, self.workspace)
+            mock_cursor.execute.assert_called_with("SELECT product_id, product_name FROM products WHERE active = true")
+
+    def test_write_postgresql_destination_with_mock(self) -> None:
+        runner = PipelineRunner(self.workspace)
+        test_arrow_table = pa.Table.from_arrays(
+            [pa.array([1, 2, 3]), pa.array(["X", "Y", "Z"])],
+            names=["id", "val"],
+        )
+
+        mock_cursor = MagicMock()
+        mock_conn = MagicMock()
+        mock_conn.cursor.return_value.__enter__.return_value = mock_cursor
+        mock_conn.__enter__.return_value = mock_conn
+
+        with patch("adbc_driver_postgresql.dbapi.connect", return_value=mock_conn):
+            dest_conn = {
+                "name": "pg_dest",
+                "connector": POSTGRESQL_CONNECTOR.guid,
+                "is_destination": True,
+                "options": {
+                    "host": "localhost",
+                    "database": "analytics",
+                    "target_schema": "public",
+                    "target_table": "transformed_metrics",
+                    "write_mode": "create_or_replace",
+                },
+            }
+            metric = runner._write_to_destination(dest_conn, None, test_arrow_table)
+            self.assertEqual(metric.destination_name, "pg_dest")
+            self.assertEqual(metric.format, "postgresql")
+            self.assertEqual(metric.target_path, "public.transformed_metrics")
+            self.assertEqual(metric.rows_written, 3)
+
+            # Verified cursor.adbc_ingest called with 'replace' mode
+            mock_cursor.adbc_ingest.assert_called_once_with(
+                table_name="transformed_metrics",
+                data=test_arrow_table,
+                mode="replace",
+                db_schema_name="public",
+            )
+            mock_conn.commit.assert_called_once()
 
 
 if __name__ == "__main__":

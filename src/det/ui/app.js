@@ -761,6 +761,8 @@ function renderConnectorField(field, values) {
     control = `<select name="option:${escapeHtml(field.name)}">${(field.choices || []).map((choice) =>
       `<option value="${escapeHtml(choice)}" ${String(choice) === String(value) ? "selected" : ""}>${escapeHtml(choice || "Default")}</option>`
     ).join("")}</select>`;
+  } else if (field.kind === "password") {
+    control = `<input name="option:${escapeHtml(field.name)}" type="password" value="${escapeHtml(value)}" placeholder="${escapeHtml(field.placeholder || "")}"${field.required ? " required" : ""}>`;
   } else if (field.kind === "list" || field.kind === "textarea") {
     const listValue = Array.isArray(value)
       ? value.join("\n")
@@ -877,7 +879,7 @@ function connectionEditor(connection = null, folderId = null) {
             <summary class="advanced-summary">
               <span class="advanced-title">
                 <svg class="advanced-chevron" viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3l5 5-5 5"/></svg>
-                File Discovery &amp; Matching
+                ${selected.key === "postgresql" ? "Advanced Connection Settings" : "File Discovery & Matching"}
               </span>
               ${fileMatchConfiguredCount > 0 ? `<span class="advanced-badge">${fileMatchConfiguredCount} customized</span>` : `<span class="advanced-hint">Optional</span>`}
             </summary>
@@ -953,18 +955,19 @@ function connectionEditor(connection = null, folderId = null) {
       if (!panelEl) return;
 
       if (!wasSource) {
-        const outPath = dialogForm.elements.namedItem("option:output_path")?.value || "";
-        const writeMode = dialogForm.elements.namedItem("option:write_mode")?.value || "overwrite";
+        const outPath = dialogForm.elements.namedItem("option:target_table")?.value || dialogForm.elements.namedItem("option:output_path")?.value || "";
+        const writeMode = dialogForm.elements.namedItem("option:write_mode")?.value || (selected.key === "postgresql" ? "create_or_replace" : "overwrite");
+        const pathLabel = selected.key === "postgresql" ? "Target Table" : "Target Path";
         panelEl.innerHTML = `
           <div class="conn-target-specs-card">
             <div class="conn-target-specs-header">
               <span class="conn-tab-badge">Destination Target</span>
               <h3>${escapeHtml(selected.label)} Destination</h3>
             </div>
-            <p class="conn-target-specs-desc">This connection is configured as a write-only target. The destination file or table will be created when an ETL pipeline step outputs to this connection.</p>
+            <p class="conn-target-specs-desc">This connection is configured as a write-only target. The destination ${selected.key === "postgresql" ? "database table" : "file"} will be created when an ETL pipeline step outputs to this connection.</p>
             <div class="conn-target-specs-grid">
               <div class="spec-item"><span class="spec-label">Target Format</span><strong>${escapeHtml(selected.label)}</strong></div>
-              <div class="spec-item"><span class="spec-label">Target Path</span><code>${escapeHtml(outPath || "(Specify in Write Options)")}</code></div>
+              <div class="spec-item"><span class="spec-label">${pathLabel}</span><code>${escapeHtml(outPath || "(Specify in Write Options)")}</code></div>
               <div class="spec-item"><span class="spec-label">Write Mode</span><strong>${escapeHtml(writeMode)}</strong></div>
             </div>
           </div>
@@ -1074,10 +1077,17 @@ function connectionEditor(connection = null, folderId = null) {
       }
 
       const pathVal = String(form.elements.namedItem("option:path")?.value || "").trim();
+      const hostVal = String(form.elements.namedItem("option:host")?.value || "").trim();
+      const dbVal = String(form.elements.namedItem("option:database")?.value || "").trim();
+      const uriVal = String(form.elements.namedItem("option:uri")?.value || "").trim();
       const hasPath = Boolean(pathVal);
-      dialogPreviewBtn.disabled = !hasPath;
-      if (!hasPath) {
-        dialogPreviewBtn.title = "Specify a file path in the General tab to preview data";
+      const hasDb = Boolean(uriVal || (hostVal && dbVal));
+      const canPreview = hasPath || hasDb;
+      dialogPreviewBtn.disabled = !canPreview;
+      if (!canPreview) {
+        dialogPreviewBtn.title = selected.key === "postgresql"
+          ? "Specify host & database in the General tab to preview data"
+          : "Specify a file path in the General tab to preview data";
       } else {
         dialogPreviewBtn.title = "Preview up to 25 sample rows";
       }
@@ -1117,7 +1127,20 @@ function connectionEditor(connection = null, folderId = null) {
         if (val !== "" && val !== null) options[field.name] = val;
       }
 
-      if (!options.path && wasSource) {
+      if (selected.key === "postgresql" && wasSource) {
+        if (!options.uri && (!options.host || !options.database)) {
+          showNotification("Please specify host and database in the General tab first.");
+          switchTab("general");
+          form.elements.namedItem("option:database")?.focus();
+          return;
+        }
+        if (!options.table && !options.query) {
+          showNotification("Please specify a table name or custom SQL query in the Options tab.");
+          switchTab("options");
+          form.elements.namedItem("option:table")?.focus();
+          return;
+        }
+      } else if (!options.path && wasSource) {
         showNotification("Please specify a file or folder path in the General tab first.");
         switchTab("general");
         form.elements.namedItem("option:path")?.focus();

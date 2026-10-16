@@ -52,6 +52,8 @@ dependencies = [
     "fastexcel>=0.20.0",
     "openpyxl>=3.1.0",
     "deltalake>=1.0.0",
+    "adbc-driver-postgresql>=1.0.0",
+    "adbc-driver-manager>=1.0.0",
 ]
 
 [project.optional-dependencies]
@@ -74,3 +76,6 @@ Issues = "https://github.com/det-Labs/det/issues"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/det"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
