@@ -27,7 +27,6 @@ from det.api import (
     update_ui_state,
     validate_pipeline,
     validate_step_sql,
-    generate_pipeline_docs,
     save_pipeline_docs,
     list_pipeline_docs,
     get_pipeline_doc,

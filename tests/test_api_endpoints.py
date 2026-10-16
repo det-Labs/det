@@ -4,10 +4,7 @@ import json
 import shutil
 import unittest
 from io import BytesIO
-from pathlib import Path
-from unittest.mock import MagicMock
 
-from det.api import configure_ui
 from det.gui import DetRequestHandler
 from tests.fixtures import setup_test_workspace
 

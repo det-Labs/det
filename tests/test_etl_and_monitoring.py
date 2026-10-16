@@ -5,7 +5,6 @@ import unittest
 from pathlib import Path
 
 from det.api import (
-    configure_ui,
     get_monitoring_store,
     get_monitoring_summary,
     get_pipeline,
@@ -15,7 +14,6 @@ from det.api import (
     list_pipeline_runs,
     list_pipelines,
     run_pipeline,
-    save_pipeline,
 )
 from det.runner import PipelineRunner
 from tests.fixtures import setup_test_workspace

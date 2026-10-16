@@ -31,7 +31,7 @@ from det.monitoring import (
     StepRunRecord,
     _utcnow_iso,
 )
-from det.pipeline import Pipeline, PipelineStep, PipelineStore
+from det.pipeline import Pipeline, PipelineStore
 from det.validator import PipelineValidator
 
 

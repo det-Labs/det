@@ -6,7 +6,6 @@ import unittest
 from pathlib import Path
 
 from det.api import configure_ui, get_catalog_store, get_pipeline, install_sample_data, run_pipeline
-from det.sample_data import install_sample_data as install_sample_pkg
 from det.workspace import initialize_workspace
 
 

@@ -2,9 +2,7 @@
 
 import shutil
 import unittest
-from pathlib import Path
-
-from det.api import configure_ui, get_catalog_store, infer_connection_schema, preview_connection
+from det.api import get_catalog_store, infer_connection_schema, preview_connection
 from tests.fixtures import setup_test_workspace
 
 

@@ -449,6 +449,9 @@ function applyState(state) {
   themeRoot.dataset.theme = state.theme;
   document.title = `${state.app_name} | ${state.app_description}`;
   renderModule(state.module);
+  if (monCrumbWorkspace && state?.workspace) {
+    monCrumbWorkspace.textContent = state.workspace.split(/[\\/]/).pop() || "WORKSPACE";
+  }
   const nextTheme = state.theme === "light" ? "dark" : "light";
   themeToggle.setAttribute("aria-label", `Switch to ${nextTheme} mode`);
   themeToggle.title = `Switch to ${nextTheme} mode`;
@@ -2499,6 +2502,9 @@ const collapsedMonitoringFolders = new Set();
 
 async function refreshMonitoring() {
   try {
+    if (monCrumbWorkspace && currentState?.workspace) {
+      monCrumbWorkspace.textContent = currentState.workspace.split(/[\\/]/).pop() || "WORKSPACE";
+    }
     const pipelinesResult = await api("/api/pipelines");
     allPipelinesForMonitoring = pipelinesResult.items || [];
     monitoringPipelineFolders = pipelinesResult.folders || [];
