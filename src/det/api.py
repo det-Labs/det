@@ -21,7 +21,7 @@ THEMES = ("light", "dark")
 class UiState:
     workspace: str
     module: str = "Catalog"
-    theme: str = "light"
+    theme: str = "dark"
 
 
 _ui_state: UiState | None = None

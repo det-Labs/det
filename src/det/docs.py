@@ -1243,6 +1243,7 @@ class PipelineDocsGenerator:
       .doc-main {{ padding: 16px 20px 48px; }}
     }}
   </style>
+  <base target="_self">
 </head>
 <body>
   <div class="doc-layout">
@@ -1438,6 +1439,29 @@ class PipelineDocsGenerator:
           applyTheme(next);
         }});
       }}
+
+      // Safe navigation: smooth scroll in-page anchors, open external links in new window, block app recursion
+      document.addEventListener("click", function(e) {{
+        const link = e.target.closest("a");
+        if (!link) return;
+        const href = link.getAttribute("href");
+        if (!href) return;
+
+        if (href.startsWith("#")) {{
+          e.preventDefault();
+          const targetId = href.substring(1);
+          const targetEl = document.getElementById(targetId) || document.querySelector(`[name="${{targetId}}"]`);
+          if (targetEl) {{
+            targetEl.scrollIntoView({{ behavior: "smooth", block: "start" }});
+            try {{ history.replaceState(null, "", href); }} catch(err) {{}}
+          }}
+        }} else if (href.startsWith("http://") || href.startsWith("https://")) {{
+          e.preventDefault();
+          window.open(href, "_blank", "noopener,noreferrer");
+        }} else {{
+          e.preventDefault();
+        }}
+      }});
     }})();
   </script>
 </body>

@@ -368,15 +368,76 @@ function showNotification(message, duration = 3200) {
   }, duration);
 }
 
-async function switchToModule(moduleName) {
-  for (const moduleTab of moduleTabs) moduleTab.disabled = true;
-  try {
-    applyState(await updatePreferences({ module: moduleName }));
-  } catch (error) {
-    console.error(error);
-  } finally {
-    for (const moduleTab of moduleTabs) moduleTab.disabled = false;
+const bgTaskDock = document.querySelector("#bg-task-dock");
+const activeBgTasks = new Map();
+
+function showBackgroundTask({ id, title, status = "running", actionLabel, onAction, autoDismissMs }) {
+  if (!bgTaskDock) return;
+  let pill = activeBgTasks.get(id);
+  if (!pill) {
+    pill = document.createElement("div");
+    pill.className = `bg-task-pill is-${status}`;
+    pill.id = `bg-task-${id}`;
+    bgTaskDock.appendChild(pill);
+    activeBgTasks.set(id, pill);
+  } else {
+    pill.className = `bg-task-pill is-${status}`;
   }
+
+  const iconSvg = status === "running"
+    ? `<svg class="bg-task-spinner" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="3" stroke-dasharray="31.4" stroke-linecap="round"/></svg>`
+    : status === "success"
+    ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>`
+    : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`;
+
+  pill.innerHTML = `
+    <div class="bg-task-icon">${iconSvg}</div>
+    <div class="bg-task-text" title="${escapeHtml(title)}">${escapeHtml(title)}</div>
+    ${actionLabel ? `<button type="button" class="bg-task-action">${escapeHtml(actionLabel)}</button>` : ""}
+    <button type="button" class="bg-task-close" title="Dismiss" aria-label="Dismiss">&times;</button>
+  `;
+
+  if (actionLabel && onAction) {
+    pill.querySelector(".bg-task-action").addEventListener("click", () => {
+      onAction();
+    });
+  }
+
+  pill.querySelector(".bg-task-close").addEventListener("click", () => {
+    dismissBackgroundTask(id);
+  });
+
+  if (pill._dismissTimeout) clearTimeout(pill._dismissTimeout);
+  const timeoutMs = autoDismissMs || (status === "success" ? 5000 : status === "failed" ? 8000 : null);
+  if (timeoutMs) {
+    pill._dismissTimeout = setTimeout(() => {
+      dismissBackgroundTask(id);
+    }, timeoutMs);
+  }
+}
+
+function dismissBackgroundTask(id) {
+  const pill = activeBgTasks.get(id);
+  if (!pill) return;
+  pill.classList.add("is-dismissing");
+  setTimeout(() => {
+    pill.remove();
+    activeBgTasks.delete(id);
+  }, 300);
+}
+
+function switchToModule(moduleName) {
+  if (!currentState) {
+    currentState = { module: moduleName };
+  } else {
+    currentState.module = moduleName;
+  }
+  for (const tab of moduleTabs) {
+    const isActive = tab.dataset.module === moduleName;
+    tab.setAttribute("aria-pressed", String(isActive));
+  }
+  renderModule(moduleName);
+  updatePreferences({ module: moduleName }).catch(console.error);
 }
 
 function applyState(state) {
@@ -500,11 +561,11 @@ function renderCatalogTree() {
 function renderConnectionRow(connection) {
   const connector = connectors.find((item) => item.id === connection.connector);
   const selected = selectedConnectionId === connection.id;
-  const roles = [connection.is_source && "Source", connection.is_destination && "Destination"].filter(Boolean).join(" · ");
+  const roles = [connection.is_source && "Source", connection.is_destination && "Destination"].filter(Boolean).join(" Â· ");
   return `<div class="tree-row connection-row${selected ? " is-selected" : ""}" role="treeitem">
     <span class="tree-item-icon">${svg.connection}</span>
     <button class="tree-label connection-select" type="button" data-connection-id="${escapeHtml(connection.id)}" aria-pressed="${selected}">
-      <span>${escapeHtml(connection.name)}</span><small>${escapeHtml(connector?.label || "Connector")} · ${roles}</small>
+      <span>${escapeHtml(connection.name)}</span><small>${escapeHtml(connector?.label || "Connector")} Â· ${roles}</small>
     </button>
     <span class="tree-actions">
       <button class="icon-button tree-action" type="button" title="Edit connection" aria-label="Edit connection ${escapeHtml(connection.name)}" data-action="edit-connection" data-connection-id="${escapeHtml(connection.id)}">${svg.edit}</button>
@@ -534,9 +595,9 @@ function renderConnectionTable(connections, includeFolder) {
   if (includeFolder) headers.push("FOLDER");
   const rows = connections.map((connection) => {
     const connector = connectors.find((item) => item.id === connection.connector);
-    const roles = [connection.is_source && "Source", connection.is_destination && "Destination"].filter(Boolean).join(" · ");
+    const roles = [connection.is_source && "Source", connection.is_destination && "Destination"].filter(Boolean).join(" Â· ");
     return `<tr><td><button class="table-link" type="button" data-connection-id="${escapeHtml(connection.id)}">${escapeHtml(connection.name)}</button></td>
-      <td>${escapeHtml(connection.description || "—")}</td><td>${escapeHtml(connector?.label || "Unknown")}</td><td>${escapeHtml(roles)}</td>
+      <td>${escapeHtml(connection.description || "â€”")}</td><td>${escapeHtml(connector?.label || "Unknown")}</td><td>${escapeHtml(roles)}</td>
       ${includeFolder ? `<td>${escapeHtml(connection.folder_name || "")}</td>` : ""}</tr>`;
   }).join("");
   const columnCount = headers.length;
@@ -603,7 +664,7 @@ async function renderConnectionDetail(connectionId) {
   if (addConnectionButton) addConnectionButton.hidden = true;
   const connection = await api(`/api/catalog/connections/${encodeURIComponent(connectionId)}`);
   const connector = connectors.find((item) => item.id === connection.connector);
-  const role = [connection.is_source && "Source", connection.is_destination && "Destination"].filter(Boolean).join(" · ");
+  const role = [connection.is_source && "Source", connection.is_destination && "Destination"].filter(Boolean).join(" Â· ");
   const tabs = ["Overview", "Settings", "Schema", "Preview"];
   let pane;
   if (activeDetailTab === "Overview") {
@@ -642,15 +703,18 @@ async function renderConnectionDetail(connectionId) {
       <div id="preview-result" class="preview-result"><div class="empty-state"><strong>Preview not loaded</strong><p>Load a source preview when you are ready.</p></div></div>`;
   }
   catalogDetail.innerHTML = `<div class="detail-header"><div class="connection-badge">${svg.connection}</div>
-      <div class="detail-title"><h2>${escapeHtml(connection.name)}</h2><p>${escapeHtml(connector?.label || "Unknown connector")} · ${escapeHtml(role)}</p></div>
-      <button class="icon-button" data-action="edit-connection" data-connection-id="${escapeHtml(connection.id)}" title="Edit connection" aria-label="Edit connection">${svg.edit}</button></div>
+      <div class="detail-title"><h2>${escapeHtml(connection.name)}</h2><p>${escapeHtml(connector?.label || "Unknown connector")} Â· ${escapeHtml(role)}</p></div>
+      <div class="detail-header-actions">
+        ${connection.is_source ? `<button class="primary-button compact-btn" id="query-in-pipeline-btn" data-connection-name="${escapeHtml(connection.name)}" title="Query this source in a new pipeline"><svg viewBox="0 0 24 24" aria-hidden="true" style="width:13px;height:13px;margin-right:4px;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>Query in Pipeline</button>` : ""}
+        <button class="icon-button" data-action="edit-connection" data-connection-id="${escapeHtml(connection.id)}" title="Edit connection" aria-label="Edit connection">${svg.edit}</button>
+      </div></div>
     <nav class="detail-tabs" aria-label="Connection details">${tabs.map((tab) =>
       `<button type="button" class="detail-tab${activeDetailTab === tab ? " is-active" : ""}" data-detail-tab="${tab}">${tab}</button>`
     ).join("")}</nav><div class="detail-body">${pane}</div>`;
   catalogDetail.hidden = false;
   catalogSummary.hidden = true;
   catalogHeading.textContent = connection.name;
-  catalogSubtitle.textContent = `${connector?.label || "Unknown connector"} · ${role}`;
+  catalogSubtitle.textContent = `${connector?.label || "Unknown connector"} Â· ${role}`;
   codePanel.hidden = true;
 }
 
@@ -870,12 +934,12 @@ async function handleTreeAction(button) {
     });
   } else if (action === "delete-folder") {
     const folder = activeCatalog.catalog.folders.find((item) => item.id === folderId);
-    if (!window.confirm(`Delete folder “${folder.name}”? It must be empty, and at least one folder must remain.`)) return;
+    if (!window.confirm(`Delete folder â€œ${folder.name}â€? It must be empty, and at least one folder must remain.`)) return;
     await api(`/api/catalog/folders/${encodeURIComponent(folderId)}`, { method: "DELETE" });
     await refreshCatalog();
   } else if (action === "delete-connection") {
     const connection = findConnection(connectionId);
-    if (!window.confirm(`Delete connection “${connection.name}”?`)) return;
+    if (!window.confirm(`Delete connection â€œ${connection.name}â€?`)) return;
     await api(`/api/catalog/connections/${encodeURIComponent(connectionId)}`, { method: "DELETE" });
     if (selectedConnectionId === connectionId) selectedConnectionId = null;
     await refreshCatalog();
@@ -884,15 +948,30 @@ async function handleTreeAction(button) {
 
 async function loadPreview(connectionId) {
   const target = document.querySelector("#preview-result");
-  target.innerHTML = '<p class="loading-state">Loading preview…</p>';
-  const result = await api(`/api/catalog/connections/${encodeURIComponent(connectionId)}/preview`);
-  if (!result.columns.length) {
-    target.innerHTML = '<div class="empty-state"><strong>No columns returned</strong><p>The source scan returned no schema.</p></div>';
-    return;
+  target.innerHTML = '<p class="loading-state">Loading previewâ€¦</p>';
+  const connection = findConnection(connectionId);
+  const connName = connection ? connection.name : "source";
+  showBackgroundTask({ id: "preview-scan", title: `Scanning preview for '${connName}'...`, status: "running" });
+  try {
+    const result = await api(`/api/catalog/connections/${encodeURIComponent(connectionId)}/preview`);
+    dismissBackgroundTask("preview-scan");
+    if (!result.columns.length) {
+      target.innerHTML = '<div class="empty-state"><strong>No columns returned</strong><p>The source scan returned no schema.</p></div>';
+      return;
+    }
+    target.innerHTML = `<div class="preview-scroll"><table class="catalog-table"><thead><tr>${result.columns.map((column) => `<th>${escapeHtml(column.name)}<small>${escapeHtml(column.data_type)}</small></th>`).join("")}</tr></thead>
+      <tbody>${result.rows.length ? result.rows.map((row) => `<tr>${result.columns.map((column) => `<td>${escapeHtml(formatCell(row[column.name]))}</td>`).join("")}</tr>`).join("") : `<tr><td colspan="${result.columns.length}" class="empty-table">No rows found.</td></tr>`}</tbody></table></div>
+      <div class="preview-footer-bar">
+        <p class="preview-caption">${result.rows.length} of up to ${result.row_limit} rows</p>
+        <button class="primary-button compact-btn" id="query-preview-in-pipeline-btn" data-connection-name="${escapeHtml(connName)}" title="Query this source in a new pipeline">
+          <svg viewBox="0 0 24 24" aria-hidden="true" style="width:13px;height:13px;margin-right:4px;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          Query in Pipeline
+        </button>
+      </div>`;
+  } catch (err) {
+    dismissBackgroundTask("preview-scan");
+    throw err;
   }
-  target.innerHTML = `<div class="preview-scroll"><table class="catalog-table"><thead><tr>${result.columns.map((column) => `<th>${escapeHtml(column.name)}<small>${escapeHtml(column.data_type)}</small></th>`).join("")}</tr></thead>
-    <tbody>${result.rows.length ? result.rows.map((row) => `<tr>${result.columns.map((column) => `<td>${escapeHtml(formatCell(row[column.name]))}</td>`).join("")}</tr>`).join("") : `<tr><td colspan="${result.columns.length}" class="empty-table">No rows found.</td></tr>`}</tbody></table></div>
-    <p class="preview-caption">${result.rows.length} of up to ${result.row_limit} rows</p>`;
 }
 
 function formatCell(value) {
@@ -919,15 +998,8 @@ function activateEditor() {
 }
 
 for (const tab of moduleTabs) {
-  tab.addEventListener("click", async () => {
-    for (const moduleTab of moduleTabs) moduleTab.disabled = true;
-    try {
-      applyState(await updatePreferences({ module: tab.dataset.module }));
-    } catch (error) {
-      console.error(error);
-    } finally {
-      for (const moduleTab of moduleTabs) moduleTab.disabled = false;
-    }
+  tab.addEventListener("click", () => {
+    switchToModule(tab.dataset.module);
   });
 }
 
@@ -1085,16 +1157,30 @@ catalogDetail.addEventListener("click", async (event) => {
     }
     return;
   }
+  const queryBtn = event.target.closest("#query-in-pipeline-btn, #query-preview-in-pipeline-btn");
+  if (queryBtn) {
+    const connName = queryBtn.dataset.connectionName;
+    if (connName) {
+      switchToModule("ETL");
+      createNewPipelineInMemory("default", `SELECT * FROM ${connName} LIMIT 100;\n`, `query_${connName}`);
+      showNotification(`Created pipeline querying source '${connName}'`);
+    }
+    return;
+  }
   if (event.target.closest("#infer-schema-button")) {
     const button = document.querySelector("#infer-schema-button");
     button.disabled = true;
-    button.textContent = "Inferring…";
+    button.textContent = "Inferringâ€¦";
+    showBackgroundTask({ id: "infer-schema", title: "Inferring schema from source...", status: "running" });
     try {
       await api(`/api/catalog/connections/${encodeURIComponent(selectedConnectionId)}/infer-schema`, { method: "POST", body: "{}" });
+      dismissBackgroundTask("infer-schema");
+      showBackgroundTask({ id: "infer-schema", title: "Schema inferred successfully", status: "success", autoDismissMs: 3000 });
       await refreshCatalog();
       activeDetailTab = "Schema";
       await renderConnectionDetail(selectedConnectionId);
     } catch (error) {
+      dismissBackgroundTask("infer-schema");
       window.alert(error.message);
     }
     return;
@@ -1230,7 +1316,7 @@ async function refreshETL(preferredKey) {
     etlFolders = pipelineRes.folders || [];
     etlPipelines = pipelineRes.items || [];
 
-    etlPipelineCount.textContent = `${etlFolders.length} folders · ${etlPipelines.length} pipelines`;
+    etlPipelineCount.textContent = `${etlFolders.length} folders Â· ${etlPipelines.length} pipelines`;
 
     const catalogs = catalogRes.items || ["default.yaml"];
     etlCatalogSelect.innerHTML = catalogs
@@ -1254,20 +1340,22 @@ async function refreshETL(preferredKey) {
   }
 }
 
-function createNewPipelineInMemory(initialFolder = "default") {
+function createNewPipelineInMemory(initialFolder = "default", initialSql = null, initialName = null) {
   const folder = etlFolders.includes(initialFolder) ? initialFolder : (etlFolders[0] || "default");
+  const pipelineName = initialName || "new_pipeline";
+  const defaultSql = initialSql || "SELECT 1 AS sample_col";
   activePipeline = {
     id: crypto.randomUUID(),
-    name: "new_pipeline",
+    name: pipelineName,
     folder: folder,
     catalog: "default.yaml",
-    description: "",
+    description: initialSql ? `Pipeline querying ${initialName || "source"}` : "",
     steps: [
       {
         id: crypto.randomUUID(),
         name: "step_1",
         description: "",
-        sql: "SELECT 1 AS sample_col",
+        sql: defaultSql,
         destinations: [],
         keep_temporary: true,
       },
@@ -1388,7 +1476,7 @@ function renderStepTabs() {
       const canRemove = activePipeline.steps.length > 1;
       return `<button class="etl-step-tab${isActive ? " is-active" : ""}" type="button" data-step-index="${idx}">
         <span>${numStr} ${escapeHtml(step.name || "step")}</span>
-        ${canRemove ? `<span class="step-remove-btn" title="Remove step" data-remove-step="${idx}">×</span>` : ""}
+        ${canRemove ? `<span class="step-remove-btn" title="Remove step" data-remove-step="${idx}">Ã—</span>` : ""}
       </button>`;
     })
     .join("");
@@ -1476,7 +1564,7 @@ function renderDestinations() {
           `<div class="etl-dest-tab" data-dest-name="${escapeHtml(destName)}">
             <span class="dest-tab-dot"></span>
             <span>${escapeHtml(destName)}</span>
-            <button type="button" class="dest-remove-btn" data-remove-dest="${escapeHtml(destName)}" title="Remove destination">×</button>
+            <button type="button" class="dest-remove-btn" data-remove-dest="${escapeHtml(destName)}" title="Remove destination">Ã—</button>
           </div>`
       )
       .join("");
@@ -1693,12 +1781,21 @@ async function runPipeline() {
   if (!activePipeline) return;
   syncCurrentEditorToPipeline();
 
+  const pipelineName = activePipeline.name;
   etlRunBanner.hidden = false;
   etlRunBanner.className = "etl-run-banner is-running";
   etlRunStatusIndicator.className = "status-indicator is-running";
-  etlRunStatusTitle.textContent = "Executing pipeline via Apache DataFusion…";
-  etlRunStatusMeta.textContent = `Pipeline: ${activePipeline.name} · Started at: ${new Date().toLocaleTimeString()}`;
-  etlRunBannerBody.innerHTML = '<p class="loading-state">Running stages sequentially, executing SQL transforms and writers…</p>';
+  etlRunStatusTitle.textContent = "Executing pipeline via Apache DataFusionâ€¦";
+  etlRunStatusMeta.textContent = `Pipeline: ${pipelineName} Â· Started at: ${new Date().toLocaleTimeString()}`;
+  etlRunBannerBody.innerHTML = '<p class="loading-state">Running stages sequentially, executing SQL transforms and writersâ€¦</p>';
+
+  showBackgroundTask({
+    id: "pipeline-run",
+    title: `Running pipeline: ${pipelineName}...`,
+    status: "running",
+    actionLabel: "View in ETL",
+    onAction: () => switchToModule("ETL"),
+  });
 
   try {
     const runResult = await api("/api/pipelines/run", {
@@ -1707,12 +1804,42 @@ async function runPipeline() {
     });
     activeRunData = runResult;
     renderRunTelemetry(runResult, true);
+    const durationMs = ((runResult.total_duration_seconds || 0) * 1000).toFixed(0);
+    showBackgroundTask({
+      id: "pipeline-run",
+      title: `Pipeline '${pipelineName}' succeeded (${durationMs}ms)`,
+      status: "success",
+      actionLabel: "Monitoring",
+      onAction: () => {
+        if (activePipeline) {
+          selectedMonitoringPipeline = {
+            id: activePipeline.id,
+            name: activePipeline.name,
+            folder: activePipeline.folder,
+            key: `${activePipeline.folder}/${activePipeline.name}`,
+          };
+        }
+        if (runResult && runResult.run_id) {
+          selectedRunId = runResult.run_id;
+        }
+        switchToModule("Monitoring");
+      },
+      autoDismissMs: 6000,
+    });
   } catch (error) {
     etlRunBanner.className = "etl-run-banner is-failed";
     etlRunStatusIndicator.className = "status-indicator is-failed";
     etlRunStatusTitle.textContent = "Pipeline execution failed";
     etlRunStatusMeta.textContent = `Encountered error during execution`;
     etlRunBannerBody.innerHTML = `<div class="empty-state is-error"><strong>Execution Error</strong><p>${escapeHtml(error.message)}</p></div>`;
+    showBackgroundTask({
+      id: "pipeline-run",
+      title: `Pipeline '${pipelineName}' failed`,
+      status: "failed",
+      actionLabel: "Details",
+      onAction: () => switchToModule("ETL"),
+      autoDismissMs: 8000,
+    });
   }
 }
 
@@ -1726,7 +1853,7 @@ function renderRunTelemetry(run, scrollIntoView = false) {
 
   const durationMs = (run.total_duration_seconds * 1000).toFixed(1);
   const totalRows = (run.steps || []).reduce((acc, s) => acc + (s.rows_processed || 0), 0);
-  etlRunStatusMeta.textContent = `Run ID: ${escapeHtml(run.run_id ? run.run_id.slice(0, 8) : "—")} · Duration: ${durationMs}ms · ${totalRows.toLocaleString()} rows processed`;
+  etlRunStatusMeta.textContent = `Run ID: ${escapeHtml(run.run_id ? run.run_id.slice(0, 8) : "â€”")} Â· Duration: ${durationMs}ms Â· ${totalRows.toLocaleString()} rows processed`;
 
   let totalWrittenRows = 0;
   for (const s of run.steps || []) {
@@ -1774,9 +1901,13 @@ function renderRunTelemetry(run, scrollIntoView = false) {
 
   bodyHtml += `
     <div class="run-banner-footer">
-      <button class="secondary-button compact-btn" id="etl-see-detailed-log-btn" type="button" title="View execution breakdown and detailed logs in Monitoring">
+      <button class="primary-button compact-btn" id="etl-see-detailed-log-btn" type="button" title="View execution breakdown and detailed logs in Monitoring">
         <svg viewBox="0 0 24 24" aria-hidden="true" style="width:13px;height:13px;margin-right:6px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-        See detailed log
+        View in Monitoring
+      </button>
+      <button class="secondary-button compact-btn" id="etl-run-view-docs-btn" type="button" title="View documentation for this pipeline">
+        <svg viewBox="0 0 24 24" aria-hidden="true" style="width:13px;height:13px;margin-right:6px;"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        View Documentation
       </button>
     </div>
   `;
@@ -1798,6 +1929,15 @@ function renderRunTelemetry(run, scrollIntoView = false) {
         selectedRunId = run.run_id;
       }
       switchToModule("Monitoring");
+    });
+  }
+
+  const runViewDocsBtn = document.querySelector("#etl-run-view-docs-btn");
+  if (runViewDocsBtn) {
+    runViewDocsBtn.addEventListener("click", () => {
+      if (activePipeline) {
+        navigateToDocsForPipeline(activePipeline.folder, activePipeline.name);
+      }
     });
   }
 
@@ -1827,8 +1967,8 @@ async function validateEntirePipeline() {
   etlValidationBanner.hidden = false;
   etlValidationDetails.hidden = false;
   etlValidationIndicator.className = "status-indicator is-running";
-  etlValidationText.textContent = "Running DataFusion pre-flight validation…";
-  etlValidationDetails.innerHTML = "<p>Analyzing logical plans, schemas, and destination connections…</p>";
+  etlValidationText.textContent = "Running DataFusion pre-flight validationâ€¦";
+  etlValidationDetails.innerHTML = "<p>Analyzing logical plans, schemas, and destination connectionsâ€¦</p>";
 
   try {
     const res = await api("/api/pipelines/validate", {
@@ -1840,12 +1980,22 @@ async function validateEntirePipeline() {
       etlValidationBanner.className = "etl-validation-banner is-valid";
       etlValidationIndicator.className = "status-indicator is-valid";
       etlValidationText.textContent = `All ${res.steps.length} step(s) verified! DataFusion plans and schemas are valid.`;
-      etlValidationDetails.innerHTML = res.steps
+      const stepHtml = res.steps
         .map(
           (s) =>
-            `<div style="margin-bottom:6px;"><strong>✔ Step: ${escapeHtml(s.step_name)}</strong> — ${s.column_count} column(s) inferred.</div>`
+            `<div style="margin-bottom:6px;"><strong>âœ” Step: ${escapeHtml(s.step_name)}</strong> â€” ${s.column_count} column(s) inferred.</div>`
         )
         .join("");
+      etlValidationDetails.innerHTML = `${stepHtml}
+        <div style="margin-top:10px;">
+          <button class="primary-button compact-btn" id="etl-validation-run-now-btn" type="button">â–¶ Run Pipeline Now</button>
+        </div>`;
+      const runNowBtn = document.querySelector("#etl-validation-run-now-btn");
+      if (runNowBtn) {
+        runNowBtn.addEventListener("click", () => savePipeline(true));
+      }
+      etlRunButton.classList.add("btn-cta-ready");
+      setTimeout(() => etlRunButton.classList.remove("btn-cta-ready"), 4000);
     } else {
       etlValidationBanner.className = "etl-validation-banner is-invalid";
       etlValidationIndicator.className = "status-indicator is-invalid";
@@ -1969,7 +2119,7 @@ etlTree.addEventListener("click", async (event) => {
         await refreshETL();
       });
     } else if (action === "delete-etl-folder") {
-      if (!window.confirm(`Delete pipeline folder “${folderName}” and its pipelines?`)) return;
+      if (!window.confirm(`Delete pipeline folder â€œ${folderName}â€ and its pipelines?`)) return;
       await api(`/api/pipelines/folders/${encodeURIComponent(folderName)}`, { method: "DELETE" });
       await refreshETL();
     } else if (action === "duplicate-pipeline") {
@@ -1984,7 +2134,7 @@ etlTree.addEventListener("click", async (event) => {
         window.alert(`Duplicate failed: ${err.message}`);
       }
     } else if (action === "delete-pipeline") {
-      if (!window.confirm(`Delete pipeline “${pipelineKey}”?`)) return;
+      if (!window.confirm(`Delete pipeline â€œ${pipelineKey}â€?`)) return;
       await api(`/api/pipelines/item/${encodeURI(pipelineKey)}`, { method: "DELETE" });
       if (selectedPipelineKey === pipelineKey) selectedPipelineKey = null;
       await refreshETL();
@@ -1997,7 +2147,7 @@ etlStepTabs.addEventListener("click", (event) => {
   if (removeBtn) {
     const idx = parseInt(removeBtn.dataset.removeStep, 10);
     if (activePipeline.steps.length <= 1) return;
-    if (window.confirm(`Remove step “${activePipeline.steps[idx].name}”?`)) {
+    if (window.confirm(`Remove step â€œ${activePipeline.steps[idx].name}â€?`)) {
       syncCurrentEditorToPipeline();
       activePipeline.steps.splice(idx, 1);
       activeStepIndex = Math.min(activeStepIndex, activePipeline.steps.length - 1);
@@ -2626,11 +2776,11 @@ function renderMonitoringRunsTable(runs) {
   monitoringRunsTbody.innerHTML = runs.map((run) => {
     const isSelected = selectedRunId === run.run_id;
     const isSuccess = run.status === "SUCCESS";
-    const started = run.started_at ? new Date(run.started_at).toLocaleString() : "—";
+    const started = run.started_at ? new Date(run.started_at).toLocaleString() : "â€”";
     const durationMs = ((run.total_duration_seconds || 0) * 1000).toFixed(1);
     const stagesCount = (run.steps || []).length;
     const rowsProcessed = (run.steps || []).reduce((acc, s) => acc + (s.rows_processed || 0), 0);
-    const shortId = (run.run_id || "—").slice(0, 8);
+    const shortId = (run.run_id || "â€”").slice(0, 8);
 
     return `
       <tr class="${isSelected ? "is-selected" : ""}" data-run-id="${escapeHtml(run.run_id)}">
@@ -2641,7 +2791,7 @@ function renderMonitoringRunsTable(runs) {
           </span>
         </td>
         <td><strong>${escapeHtml(run.pipeline_name_at_run || "pipeline")}</strong></td>
-        <td>${escapeHtml(run.folder_at_run || "—")}</td>
+        <td>${escapeHtml(run.folder_at_run || "â€”")}</td>
         <td style="font-size:11px;color:var(--muted);">${escapeHtml(started)}</td>
         <td>${durationMs} ms</td>
         <td>${stagesCount} stage${stagesCount === 1 ? "" : "s"}</td>
@@ -2667,7 +2817,7 @@ function renderMonitoringRunDetail(run) {
 
   const isSuccess = run.status === "SUCCESS";
   const durationMs = ((run.total_duration_seconds || 0) * 1000).toFixed(1);
-  const started = run.started_at ? new Date(run.started_at).toLocaleString() : "—";
+  const started = run.started_at ? new Date(run.started_at).toLocaleString() : "â€”";
 
   if (monDetailIndicator) {
     monDetailIndicator.className = `status-indicator ${isSuccess ? "is-success" : "is-failed"}`;
@@ -2680,7 +2830,7 @@ function renderMonitoringRunDetail(run) {
     monDetailStatusBadge.innerHTML = `<span class="mon-dot ${isSuccess ? "is-success" : "is-failed"}"></span> ${escapeHtml(run.status || "UNKNOWN")}`;
   }
   if (monDetailMeta) {
-    monDetailMeta.textContent = `Run ID: ${run.run_id} · Folder: ${run.folder_at_run || "root"} · Started: ${started} · Duration: ${durationMs}ms`;
+    monDetailMeta.textContent = `Run ID: ${run.run_id} Â· Folder: ${run.folder_at_run || "root"} Â· Started: ${started} Â· Duration: ${durationMs}ms`;
   }
 
   renderInferredResultsSection(run);
@@ -2710,7 +2860,7 @@ function renderInferredResultsSection(run) {
         step_name: s.step_name,
         destination_name: d.destination_name,
         format: d.format || "file",
-        target: d.target || "—",
+        target: d.target || "â€”",
         rows_written: d.rows_written || 0,
         duration_ms: d.duration_ms || 0,
         status: d.status || "SUCCESS",
@@ -2781,7 +2931,7 @@ function renderInferredResultsSection(run) {
               ? `<tr><td colspan="4" class="empty-table">No external catalog sources scanned (internal CTEs / queries only).</td></tr>`
               : sources.map((s) => `
                 <tr>
-                  <td><strong>${escapeHtml(s.source_name || "—")}</strong></td>
+                  <td><strong>${escapeHtml(s.source_name || "â€”")}</strong></td>
                   <td><code class="mon-code-snippet">${escapeHtml(s.connector_type || "table")}</code></td>
                   <td>${(s.rows_read || 0).toLocaleString()}</td>
                   <td>${(s.duration_ms || 0).toFixed(1)} ms</td>
@@ -2829,7 +2979,7 @@ function renderInferredResultsSection(run) {
                     <td>${(s.duration_ms || 0).toFixed(1)} ms</td>
                     <td>${(s.rows_processed || 0).toLocaleString()}</td>
                     <td>${destCount > 0 ? `<span style="color:var(--accent);">${escapeHtml(destNames)}</span>` : "Temporary view"}</td>
-                    <td><code class="mon-code-snippet" title="${escapeHtml(s.sql || "")}">${escapeHtml(sqlSnippet.slice(0, 70))}${sqlSnippet.length > 70 ? "…" : ""}</code></td>
+                    <td><code class="mon-code-snippet" title="${escapeHtml(s.sql || "")}">${escapeHtml(sqlSnippet.slice(0, 70))}${sqlSnippet.length > 70 ? "â€¦" : ""}</code></td>
                   </tr>
                 `;
               }).join("")}
@@ -2926,7 +3076,7 @@ function renderLogEntriesSection(run) {
       ${filtered.length === 0
         ? `<div class="empty-table">No log entries found matching level "${escapeHtml(activeLogLevelFilter)}" and search.</div>`
         : filtered.map((e) => {
-          const timeStr = e.timestamp ? e.timestamp.split("T")[1]?.slice(0, 12) || e.timestamp : "—";
+          const timeStr = e.timestamp ? e.timestamp.split("T")[1]?.slice(0, 12) || e.timestamp : "â€”";
           const lvl = (e.level || "INFO").toLowerCase();
           return `
             <div class="mon-log-row">
@@ -3044,10 +3194,25 @@ function navigateToETLForPipeline(folder, name) {
   switchToModule("ETL");
 }
 
+function navigateToDocsForPipeline(folder, name) {
+  if (!name) return;
+  selectedDocPath = folder ? `${folder}/${name}.html` : `${name}.html`;
+  switchToModule("Documentation");
+}
+
 if (monDetailOpenEtlBtn) {
   monDetailOpenEtlBtn.addEventListener("click", () => {
     if (selectedRunData) {
       navigateToETLForPipeline(selectedRunData.folder_at_run, selectedRunData.pipeline_name_at_run);
+    }
+  });
+}
+
+const monDetailOpenDocsBtn = document.querySelector("#mon-detail-open-docs-btn");
+if (monDetailOpenDocsBtn) {
+  monDetailOpenDocsBtn.addEventListener("click", () => {
+    if (selectedRunData) {
+      navigateToDocsForPipeline(selectedRunData.folder_at_run, selectedRunData.pipeline_name_at_run);
     }
   });
 }
@@ -3177,6 +3342,37 @@ const docsActionDeleteBtn = document.querySelector("#docs-action-delete-btn");
 
 const docsHtmlWrap = document.querySelector("#docs-html-wrap");
 const docsHtmlFrame = document.querySelector("#docs-html-frame");
+if (docsHtmlFrame) {
+  docsHtmlFrame.addEventListener("load", () => {
+    try {
+      const frameDoc = docsHtmlFrame.contentDocument || docsHtmlFrame.contentWindow?.document;
+      if (!frameDoc) return;
+
+      const frameHref = docsHtmlFrame.contentWindow?.location?.pathname || "";
+      if (frameHref === "/" || frameHref.endsWith("index.html")) {
+        console.warn("Blocked recursive app load inside doc iframe");
+        if (selectedDocData && selectedDocData.content) {
+          docsHtmlFrame.srcdoc = selectedDocData.content;
+          return;
+        }
+      }
+
+      frameDoc.addEventListener("click", (evt) => {
+        const anchor = evt.target.closest("a");
+        if (!anchor) return;
+        const href = anchor.getAttribute("href") || "";
+        if (href.startsWith("#")) {
+          evt.preventDefault();
+          const target = frameDoc.querySelector(href);
+          if (target) target.scrollIntoView({ behavior: "smooth" });
+        } else if (href && !href.startsWith("javascript:")) {
+          evt.preventDefault();
+          window.open(anchor.href, "_blank", "noopener,noreferrer");
+        }
+      }, true);
+    } catch (_) {}
+  });
+}
 const docsMdWrap = document.querySelector("#docs-md-wrap");
 const docsMdTabPreview = document.querySelector("#docs-md-tab-preview");
 const docsMdTabRaw = document.querySelector("#docs-md-tab-raw");
@@ -3499,7 +3695,7 @@ function renderDocItemRow(doc) {
   const staleInfo = staleDocsMap.get(doc.rel_path);
   const isStale = Boolean(staleInfo && staleInfo.is_stale);
   const staleBadge = isStale
-    ? `<span class="doc-stale-badge" title="${escapeHtml(staleInfo.reason || 'Documentation is out of sync with pipeline definition')}">⚠️</span>`
+    ? `<span class="doc-stale-badge" title="${escapeHtml(staleInfo.reason || 'Documentation is out of sync with pipeline definition')}">âš ï¸</span>`
     : "";
 
   return `
@@ -3543,8 +3739,8 @@ async function selectDoc(rel_path) {
       docsHeaderFormatPill.className = `docs-format-pill is-${data.format}`;
     }
     if (docsHeaderMeta) {
-      const modDate = data.modified_at ? new Date(data.modified_at).toLocaleString() : "—";
-      docsHeaderMeta.textContent = `documentation/${data.rel_path} · ${formatBytes(data.size_bytes)} · Last modified: ${modDate}`;
+      const modDate = data.modified_at ? new Date(data.modified_at).toLocaleString() : "â€”";
+      docsHeaderMeta.textContent = `documentation/${data.rel_path} Â· ${formatBytes(data.size_bytes)} Â· Last modified: ${modDate}`;
     }
 
     // Sync / staleness state check
@@ -3715,6 +3911,18 @@ if (docsMdTabPreview) {
 }
 if (docsMdTabRaw) {
   docsMdTabRaw.addEventListener("click", () => setDocMdTab("raw"));
+}
+
+const docsActionOpenEtlBtn = document.querySelector("#docs-action-open-etl-btn");
+if (docsActionOpenEtlBtn) {
+  docsActionOpenEtlBtn.addEventListener("click", () => {
+    if (!selectedDocPath) return;
+    const clean = selectedDocPath.replace(/\.(html|md)$/, "");
+    const parts = clean.split("/");
+    const folder = parts.length > 1 ? parts[0] : "default";
+    const name = parts.length > 1 ? parts[1] : parts[0];
+    navigateToETLForPipeline(folder, name);
+  });
 }
 
 if (docsActionVerifyBtn) {
@@ -3953,7 +4161,7 @@ function renderHelpTree() {
     if (query) {
       helpTopicsCount.textContent = `Showing ${visibleTopicsCount} of ${allTopics.length} articles`;
     } else {
-      helpTopicsCount.textContent = `${allTopics.length} articles · ${categories.length} sections`;
+      helpTopicsCount.textContent = `${allTopics.length} articles Â· ${categories.length} sections`;
     }
   }
 }
@@ -3968,7 +4176,7 @@ function selectHelpTopic(topicId) {
   if (helpBcCategory) helpBcCategory.textContent = category.title;
   if (helpBcTitle) helpBcTitle.textContent = topic.title;
   if (helpArticleTitle) helpArticleTitle.textContent = topic.title;
-  if (helpReadTime) helpReadTime.textContent = `⏱️ ${topic.readTime || "3 min read"}`;
+  if (helpReadTime) helpReadTime.textContent = `â±ï¸ ${topic.readTime || "3 min read"}`;
 
   if (helpArticleContent) {
     helpArticleContent.innerHTML = topic.content;
@@ -4184,426 +4392,9 @@ Promise.all([api("/api/state"), api("/api/connectors")])
     } else if (state.module === "Help") {
       await refreshHelp();
     }
-    initGuidedDemoController();
   })
   .catch((error) => {
     console.error(error);
     moduleDescription.textContent = `The workspace could not be loaded: ${error.message}`;
   });
 
-/* ==========================================================================
-   Automated Guided Demo Walkthrough Controller
-   ========================================================================== */
-function initGuidedDemoController() {
-  // Small circular floating icon button in bottom-right corner
-  const triggerBtn = document.createElement("button");
-  triggerBtn.id = "guided-demo-btn";
-  triggerBtn.className = "guided-demo-floating-btn";
-  triggerBtn.type = "button";
-  triggerBtn.title = "Run Guided Demo Walkthrough (5s countdown)";
-  triggerBtn.innerHTML = `<svg viewBox="0 0 24 24"><polygon points="6 4 20 12 6 20 6 4"/></svg>`;
-  document.body.appendChild(triggerBtn);
-
-  // Virtual animated cursor element
-  const cursorEl = document.createElement("div");
-  cursorEl.id = "virtual-demo-cursor";
-  cursorEl.className = "virtual-cursor-pointer";
-  cursorEl.innerHTML = `
-    <svg viewBox="0 0 24 24">
-      <path d="M4 3l15 9.5-6.5 1.5 4 8-3 1.5-4-8-5.5 4V3z" fill="#0f172a" stroke="#38bdf8" stroke-width="1.6" stroke-linejoin="round"/>
-    </svg>
-    <div class="virtual-cursor-ripple"></div>
-  `;
-  document.body.appendChild(cursorEl);
-
-  let hudEl = null;
-  function showHud(tag, title) {
-    if (!hudEl) {
-      hudEl = document.createElement("div");
-      hudEl.className = "guided-demo-hud";
-      document.body.appendChild(hudEl);
-    }
-    hudEl.innerHTML = `<span class="guided-demo-hud-tag">${tag}</span><span class="guided-demo-hud-title">${title}</span>`;
-  }
-  function removeHud() {
-    if (hudEl) {
-      hudEl.remove();
-      hudEl = null;
-    }
-  }
-
-  const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
-  async function moveCursorTo(target, click = true, offset = { x: 0, y: 0 }, waitAfter = 350) {
-    let el = typeof target === "string" ? document.querySelector(target) : target;
-    if (!el) return null;
-
-    el.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    await delay(180);
-
-    const rect = el.getBoundingClientRect();
-    const targetX = Math.round(rect.left + rect.width / 2 + offset.x);
-    const targetY = Math.round(rect.top + rect.height / 2 + offset.y);
-
-    cursorEl.classList.add("is-active");
-    cursorEl.style.transform = `translate(${targetX}px, ${targetY}px)`;
-    await delay(650); // Natural gliding ease
-
-    if (click) {
-      cursorEl.classList.add("is-clicking");
-      await delay(120);
-      el.focus();
-      el.click();
-      el.dispatchEvent(new Event("input", { bubbles: true }));
-      el.dispatchEvent(new Event("change", { bubbles: true }));
-      await delay(180);
-      cursorEl.classList.remove("is-clicking");
-    }
-
-    if (waitAfter > 0) await delay(waitAfter);
-    return el;
-  }
-
-  async function typeTextInto(el, text, speedMs = 12) {
-    if (!el) return;
-    el.focus();
-    el.value = "";
-    for (let i = 0; i < text.length; i++) {
-      el.value += text[i];
-      el.dispatchEvent(new Event("input", { bubbles: true }));
-      if (i % 2 === 0) await delay(speedMs);
-    }
-    el.dispatchEvent(new Event("change", { bubbles: true }));
-    await delay(300);
-  }
-
-  triggerBtn.addEventListener("click", async () => {
-    triggerBtn.disabled = true;
-
-    // 5-second countdown inside the small circle
-    for (let c = 5; c > 0; c--) {
-      triggerBtn.innerHTML = `<span class="countdown-num">${c}</span>`;
-      await delay(1000);
-    }
-    triggerBtn.innerHTML = `<span style="font-size:12px;">⏺</span>`;
-
-    // Position cursor at center initially
-    cursorEl.style.transform = `translate(${window.innerWidth / 2}px, ${window.innerHeight / 2}px)`;
-    cursorEl.classList.add("is-active");
-    await delay(400);
-
-    try {
-      // =============================================================
-      // 1. Catalog: Adding Parquet Source with Description
-      // =============================================================
-      showHud("1. Catalog", "Adding Parquet source connection with schema & description...");
-      const folderRow = document.querySelector(".folder-row");
-      if (folderRow) await moveCursorTo(folderRow, false, { x: 50, y: 0 });
-
-      const addBtn = document.querySelector("button.tree-action[data-action='add-connection']");
-      if (addBtn) {
-        await moveCursorTo(addBtn, true);
-        await delay(500);
-
-        // Type Name
-        const nameInput = document.querySelector("#editor-form input[name='name']");
-        if (nameInput) {
-          await moveCursorTo(nameInput, true);
-          await typeTextInto(nameInput, "lakehouse_orders", 20);
-        }
-
-        // Select Parquet
-        const connSelect = document.querySelector("#editor-form select[name='connector']");
-        if (connSelect) {
-          await moveCursorTo(connSelect, true);
-          for (const opt of connSelect.options) {
-            if (opt.text.toLowerCase().includes("parquet")) {
-              connSelect.value = opt.value;
-              connSelect.dispatchEvent(new Event("change", { bubbles: true }));
-              break;
-            }
-          }
-          await delay(400);
-        }
-
-        // Type Description
-        const descInput = document.querySelector("#editor-form textarea[name='description']");
-        if (descInput) {
-          await moveCursorTo(descInput, true);
-          await typeTextInto(descInput, "Partitioned Parquet sales orders lakehouse from S3 object storage", 10);
-        }
-
-        await delay(800);
-        const cancelBtn = document.querySelector("#dialog-cancel");
-        if (cancelBtn) await moveCursorTo(cancelBtn, true);
-        const dlg = document.querySelector("#editor-dialog");
-        if (dlg && dlg.open) dlg.close();
-        await delay(400);
-      }
-
-      // =============================================================
-      // 2. Auto Schema Discovery for Parquet
-      // =============================================================
-      showHud("2. Schema Discovery", "Auto-discovered Arrow column types for Parquet lakehouse...");
-      const orderConn = Array.from(document.querySelectorAll(".connection-select")).find((el) => el.textContent.includes("raw_orders")) || document.querySelector(".connection-select");
-      if (orderConn) {
-        await moveCursorTo(orderConn, true);
-        await delay(600);
-
-        const schemaTab = Array.from(document.querySelectorAll(".detail-tab")).find((el) => el.textContent.trim() === "Schema");
-        if (schemaTab) {
-          await moveCursorTo(schemaTab, true);
-          await delay(2200);
-        }
-      }
-
-      // =============================================================
-      // 3. Tabular Data Preview
-      // =============================================================
-      showHud("3. Data Preview", "Instant lazy tabular preview of real Parquet records...");
-      const previewTab = Array.from(document.querySelectorAll(".detail-tab")).find((el) => el.textContent.trim() === "Preview");
-      if (previewTab) {
-        await moveCursorTo(previewTab, true);
-        await delay(2400);
-      }
-
-      // =============================================================
-      // 4. CSV Source Inspection & Preview
-      // =============================================================
-      showHud("4. CSV Source", "Customer master CSV table inspection and row preview...");
-      const custConn = Array.from(document.querySelectorAll(".connection-select")).find((el) => el.textContent.includes("raw_customers"));
-      if (custConn) {
-        await moveCursorTo(custConn, true);
-        await delay(600);
-
-        const pTab2 = Array.from(document.querySelectorAll(".detail-tab")).find((el) => el.textContent.trim() === "Preview");
-        if (pTab2) {
-          await moveCursorTo(pTab2, true);
-          await delay(2000);
-        }
-      }
-
-      // =============================================================
-      // 5. ETL: Create Pipeline & Add Description
-      // =============================================================
-      showHud("5. ETL Module", "Create multi-step pipeline 'sales_performance_analysis'...");
-      const etlTab = document.querySelector("button.module-tab[data-module='ETL']");
-      if (etlTab) {
-        await moveCursorTo(etlTab, true);
-        await delay(800);
-      }
-
-      const pipeNameInput = document.querySelector("#etl-pipeline-name-input");
-      if (pipeNameInput) {
-        await moveCursorTo(pipeNameInput, true);
-        await typeTextInto(pipeNameInput, "sales_performance_analysis", 16);
-      }
-
-      const overviewAcc = document.querySelector("#etl-overview-details");
-      if (overviewAcc) {
-        const sumEl = overviewAcc.querySelector("summary");
-        if (sumEl && !overviewAcc.open) await moveCursorTo(sumEl, true);
-        await delay(300);
-
-        const pipeDesc = document.querySelector("#etl-pipeline-description");
-        if (pipeDesc) {
-          await moveCursorTo(pipeDesc, true);
-          await typeTextInto(pipeDesc, "End-to-end customer sales pipeline: joins Parquet lakehouse orders with CSV demographics, computes regional KPIs, and publishes curated summaries.", 8);
-        }
-      }
-
-      // =============================================================
-      // 6. Step 1: Pure ANSI SQL (Zero Jinja) & Notes
-      // =============================================================
-      showHud("6. Pure ANSI SQL", "Step 1: Joining Parquet Lakehouse + CSV Master with Zero Jinja...");
-      const step1Name = document.querySelector("#etl-step-name-input");
-      if (step1Name) {
-        await moveCursorTo(step1Name, true);
-        await typeTextInto(step1Name, "joined_orders_customers", 18);
-      }
-
-      const multiSourceSql = `-- Step 1: Direct JOIN of Parquet Lakehouse + CSV Demographics
--- Pure ANSI SQL • Zero Jinja • Evaluated by Apache DataFusion
-SELECT 
-    o.order_id, 
-    o.customer_id, 
-    c.first_name || ' ' || c.last_name AS customer_name,
-    c.city,
-    c.region,
-    o.net_amount,
-    o.order_date
-FROM raw_orders o                  -- Parquet lakehouse
-JOIN raw_customers c               -- CSV customer master
-  ON o.customer_id = c.customer_id
-WHERE o.order_status = 'Completed';`;
-
-      const sqlText = document.querySelector("#etl-sql-textarea");
-      if (sqlText) {
-        await moveCursorTo(sqlText, true);
-        await typeTextInto(sqlText, multiSourceSql, 6);
-      }
-      await delay(1200);
-
-      // Notes for Step 1
-      const notesTab = document.querySelector("#etl-tab-notes");
-      const notesContainer = document.querySelector("#notes-editor-container");
-      if (notesContainer && notesContainer.hidden && notesTab) {
-        await moveCursorTo(notesTab, true);
-        await delay(400);
-      }
-
-      const notesInput = document.querySelector("#etl-step-desc-input");
-      if (notesInput && notesInput.offsetParent !== null) {
-        await moveCursorTo(notesInput, true);
-        await typeTextInto(notesInput, "Join raw Parquet orders with CSV customer demographics into an in-engine virtual view.", 10);
-      }
-      await delay(1200);
-
-      // =============================================================
-      // 7. Step 2: Regional Aggregates, Destination & Notes
-      // =============================================================
-      showHud("7. Step 2 & Destination", "Step 2: Aggregate sales by region and route to Parquet & CSV...");
-      const addStepBtn = document.querySelector("#etl-add-step-button");
-      if (addStepBtn) {
-        await moveCursorTo(addStepBtn, true);
-        await delay(700);
-      }
-
-      const step2Name = document.querySelector("#etl-step-name-input");
-      if (step2Name) {
-        await moveCursorTo(step2Name, true);
-        await typeTextInto(step2Name, "regional_sales_summary", 18);
-      }
-
-      const aggSql = `-- Step 2: Regional aggregations referencing prior step
-SELECT 
-    region,
-    COUNT(order_id) AS total_orders,
-    ROUND(SUM(net_amount), 2) AS regional_revenue,
-    ROUND(AVG(net_amount), 2) AS avg_order_value
-FROM joined_orders_customers
-GROUP BY region
-ORDER BY regional_revenue DESC;`;
-
-      if (sqlText) {
-        await moveCursorTo(sqlText, true);
-        await typeTextInto(sqlText, aggSql, 8);
-      }
-
-      // Add destinations
-      if (window.activePipeline && window.activePipeline.steps && window.activePipeline.steps[1]) {
-        window.activePipeline.steps[1].destinations = ['dw_rfm_segments_csv', 'curated_lakehouse_parquet'];
-        window.activePipeline.steps[1].keep_temporary = false;
-        if (typeof renderDestinations === 'function') renderDestinations();
-      }
-      await delay(800);
-
-      // Step 2 Notes
-      if (notesContainer && notesContainer.hidden && notesTab) {
-        await moveCursorTo(notesTab, true);
-        await delay(400);
-      }
-      if (notesInput && notesInput.offsetParent !== null) {
-        await moveCursorTo(notesInput, true);
-        await typeTextInto(notesInput, "Aggregate lifetime metrics by region and publish directly to curated Parquet and CSV destinations.", 10);
-      }
-      await delay(1200);
-
-      // =============================================================
-      // 8. Validate Pipeline
-      // =============================================================
-      showHud("8. Validate Plan", "Pre-flight DataFusion logical plan validation passes...");
-      const valBtn = document.querySelector("#etl-validate-button");
-      if (valBtn) {
-        await moveCursorTo(valBtn, true);
-        await delay(2000);
-      }
-
-      // =============================================================
-      // 9. Save & Run Twice
-      // =============================================================
-      showHud("9. Vectorized Run", "Executing in DataFusion engine: sub-second duration (38ms)...");
-      const runBtn = document.querySelector("#etl-run-button");
-      if (runBtn) {
-        await moveCursorTo(runBtn, true);
-        await delay(2200);
-
-        showHud("9. Vectorized Run (2nd)", "Running pipeline a 2nd time with real-time audit telemetry...");
-        await moveCursorTo(runBtn, true);
-        await delay(2200);
-      }
-
-      // =============================================================
-      // 10. Monitoring: Detailed Latencies
-      // =============================================================
-      showHud("10. Monitoring", "Execution audit logs, 100% health rate, and ms stage breakdown...");
-      const monTab = document.querySelector("button.module-tab[data-module='Monitoring']");
-      if (monTab) {
-        await moveCursorTo(monTab, true);
-        await delay(1200);
-
-        const runRow = document.querySelector("#monitoring-runs-tbody tr[data-run-id]");
-        if (runRow) {
-          await moveCursorTo(runRow, true);
-          await delay(2400);
-        }
-      }
-
-      // =============================================================
-      // 11. Living HTML Docs with Lineage DAG
-      // =============================================================
-      showHud("11. Living Docs", "Generated single-file HTML documentation with interactive lineage DAG...");
-      if (etlTab) {
-        await moveCursorTo(etlTab, true);
-        await delay(800);
-
-        const docsBtn = document.querySelector("#etl-docs-button");
-        if (docsBtn) {
-          await moveCursorTo(docsBtn, true);
-          await delay(1600);
-        }
-      }
-
-      const docsTab = document.querySelector("button.module-tab[data-module='Documentation']");
-      if (docsTab) {
-        await moveCursorTo(docsTab, true);
-        await delay(1200);
-
-        const docItem = document.querySelector("#docs-tree [data-doc-path]");
-        if (docItem) {
-          await moveCursorTo(docItem, true);
-          await delay(1500);
-
-          // Scroll through living HTML viewer smoothly
-          const viewerEl = document.querySelector("#docs-viewer-container");
-          if (viewerEl) {
-            viewerEl.scrollBy({ top: 350, behavior: "smooth" });
-            await delay(1500);
-            viewerEl.scrollBy({ top: -350, behavior: "smooth" });
-          }
-          await delay(2000);
-        }
-      }
-
-      // Outro
-      showHud("🎉 Complete!", "Walkthrough complete! Hit STOP on your Windows Snipping Tool.");
-      cursorEl.style.transform = `translate(${window.innerWidth - 60}px, ${window.innerHeight - 60}px)`;
-      await delay(6000);
-      removeHud();
-    } catch (err) {
-      console.error("Walkthrough error:", err);
-      showHud("⚠️ Error", err.message);
-      await delay(4000);
-      removeHud();
-    } finally {
-      cursorEl.classList.remove("is-active");
-      triggerBtn.disabled = false;
-      triggerBtn.innerHTML = `<svg viewBox="0 0 24 24"><polygon points="6 4 20 12 6 20 6 4"/></svg>`;
-    }
-  });
-
-  // Auto-start if URL has ?autoplay=1
-  if (window.location.search.includes("autoplay")) {
-    setTimeout(() => triggerBtn.click(), 1000);
-  }
-}

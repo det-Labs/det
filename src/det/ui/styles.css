@@ -1,21 +1,21 @@
 :root {
   color-scheme: light;
-  --page: #f6f5f0;
-  --surface: #fffefa;
+  --page: #f8fafc;
+  --surface: #ffffff;
   --surface-raised: #ffffff;
-  --surface-muted: #f2f1eb;
-  --header: #f6e4d8;
-  --header-line: #ebd5c8;
-  --text: #202722;
-  --muted: #777c73;
-  --quiet: #999c93;
-  --line: #e8e7df;
-  --accent: #236f5b;
-  --accent-strong: #175743;
-  --accent-soft: #e6f0e9;
-  --accent-pale: #f0f6ef;
-  --shadow: 0 20px 55px rgb(61 53 41 / 7%);
-  font-family: "Segoe UI", system-ui, sans-serif;
+  --surface-muted: #f1f5f9;
+  --header: #ffffff;
+  --header-line: #e2e8f0;
+  --text: #0f172a;
+  --muted: #64748b;
+  --quiet: #94a3b8;
+  --line: #e2e8f0;
+  --accent: #0284c7;
+  --accent-strong: #0369a1;
+  --accent-soft: #e0f2fe;
+  --accent-pale: #f0f9ff;
+  --shadow: 0 4px 18px rgba(15, 23, 42, 0.05);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   background: var(--page);
   color: var(--text);
   font-synthesis: none;
@@ -24,21 +24,21 @@
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --page: #151a18;
-  --surface: #1b211e;
-  --surface-raised: #202824;
-  --surface-muted: #252d29;
-  --header: #29231f;
-  --header-line: #3d332d;
-  --text: #edf1ec;
-  --muted: #b2bbb2;
-  --quiet: #89958b;
-  --line: #313a35;
-  --accent: #79c3a0;
-  --accent-strong: #a1d9bb;
-  --accent-soft: #273d33;
-  --accent-pale: #202d26;
-  --shadow: 0 20px 55px rgb(0 0 0 / 20%);
+  --page: #090d16;
+  --surface: #0f172a;
+  --surface-raised: #1e293b;
+  --surface-muted: #131d31;
+  --header: #0b1120;
+  --header-line: rgba(255, 255, 255, 0.08);
+  --text: #f8fafc;
+  --muted: #94a3b8;
+  --quiet: #64748b;
+  --line: rgba(255, 255, 255, 0.08);
+  --accent: #38bdf8;
+  --accent-strong: #0ea5e9;
+  --accent-soft: rgba(56, 189, 248, 0.12);
+  --accent-pale: rgba(56, 189, 248, 0.05);
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 }
 
 * {
@@ -49,11 +49,9 @@ body {
   min-width: 320px;
   min-height: 100vh;
   margin: 0;
-  background:
-    radial-gradient(ellipse at 84% 92%, color-mix(in srgb, var(--accent-soft) 55%, transparent), transparent 37%),
-    var(--page);
+  background: var(--page);
   color: var(--text);
-  transition: background-color 180ms ease, color 180ms ease;
+  transition: background-color 150ms ease, color 150ms ease;
 }
 
 button,
@@ -71,12 +69,12 @@ button {
 
 .topbar {
   position: relative;
-  z-index: 1;
+  z-index: 10;
   display: flex;
-  height: 76px;
+  height: 52px;
   align-items: center;
-  gap: 18px;
-  padding: 0 34px;
+  gap: 16px;
+  padding: 0 20px;
   border-bottom: 1px solid var(--header-line);
   background: var(--header);
 }
@@ -84,39 +82,40 @@ button {
 .brand {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   color: var(--text);
   text-decoration: none;
 }
 
 .brand-mark {
   display: grid;
-  width: 36px;
-  height: 36px;
+  width: 28px;
+  height: 28px;
   place-items: center;
-  border-radius: 11px;
-  background: var(--accent-strong);
-  box-shadow: 0 4px 10px rgb(23 87 67 / 15%);
+  border-radius: 7px;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-strong) 100%);
+  box-shadow: 0 2px 8px rgba(14, 165, 233, 0.3);
 }
 
 .brand-mark svg {
-  width: 24px;
+  width: 18px;
   stroke: #fff;
   stroke-linecap: round;
   stroke-linejoin: round;
-  stroke-width: 1.25;
+  stroke-width: 1.5;
 }
 
 .brand-name {
-  font-family: "Segoe UI", system-ui, sans-serif;
-  font-size: 24px;
-  font-weight: 800;
-  letter-spacing: -1.5px;
+  font-family: inherit;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: var(--text);
 }
 
 .brand-divider {
   width: 1px;
-  height: 31px;
+  height: 20px;
   margin-left: 2px;
   background: var(--header-line);
 }
@@ -125,7 +124,7 @@ button {
   display: flex;
   min-width: 0;
   align-items: center;
-  gap: 3px;
+  gap: 4px;
   overflow-x: auto;
   scrollbar-width: none;
 }
@@ -137,24 +136,25 @@ button {
 .module-tab {
   position: relative;
   display: inline-flex;
-  min-height: 39px;
+  min-height: 32px;
   flex: 0 0 auto;
   align-items: center;
   justify-content: center;
-  padding: 0 13px;
+  padding: 0 12px;
   border: 1px solid transparent;
-  border-radius: 9px;
+  border-radius: 6px;
   background: transparent;
   color: var(--muted);
   cursor: pointer;
-  font-size: 12px;
-  font-weight: 600;
-  transition: color 150ms ease, background-color 150ms ease, border-color 150ms ease;
+  font-size: 13px;
+  font-weight: 500;
+  gap: 6px;
+  transition: all 120ms ease;
 }
 
 .module-tab svg {
-  width: 16px;
-  height: 16px;
+  width: 15px;
+  height: 15px;
   flex: 0 0 auto;
   fill: none;
   stroke: currentColor;
@@ -165,16 +165,16 @@ button {
 
 .module-tab:hover,
 .module-tab:focus-visible {
-  border-color: var(--header-line);
-  outline: none;
-  background: color-mix(in srgb, var(--surface) 58%, transparent);
   color: var(--text);
+  background: var(--surface-muted);
+  outline: none;
 }
 
 .module-tab[aria-pressed="true"] {
-  border-color: color-mix(in srgb, var(--accent) 16%, transparent);
-  background: var(--accent-soft);
-  color: var(--accent-strong);
+  border-color: var(--line);
+  background: var(--surface-muted);
+  color: var(--text);
+  font-weight: 600;
 }
 
 .topbar-spacer {
@@ -4620,123 +4620,184 @@ details[open] > .etl-accordion-summary .accordion-chevron {
   pointer-events: none;
 }
 
-/* ==========================================================================
-   Automated Guided Demo Floating Icon & Animated Mouse Cursor
-   ========================================================================== */
-.guided-demo-floating-btn {
+/* ==========================================
+   Non-Blocking Background Task Notification Dock
+   ========================================== */
+.bg-task-dock {
   position: fixed;
-  bottom: 22px;
-  right: 22px;
+  bottom: 24px;
+  right: 28px;
   z-index: 99999;
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #0284c7, #2563eb);
-  color: #ffffff;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  box-shadow: 0 4px 18px rgba(37, 99, 235, 0.45);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.bg-task-pill {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+  background: rgba(15, 23, 42, 0.94);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #f1f5f9;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), 0 2px 6px rgba(0, 0, 0, 0.2);
+  animation: bgTaskSlideIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+  max-width: 420px;
+}
+
+.bg-task-pill.is-dismissing {
+  opacity: 0;
+  transform: translateY(8px) scale(0.96);
+}
+
+@keyframes bgTaskSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.bg-task-pill.is-running {
+  border-color: rgba(56, 189, 248, 0.45);
+}
+
+.bg-task-pill.is-running .bg-task-icon {
+  color: #38bdf8;
+}
+
+.bg-task-pill.is-success {
+  border-color: rgba(52, 211, 153, 0.45);
+}
+
+.bg-task-pill.is-success .bg-task-icon {
+  color: #34d399;
+}
+
+.bg-task-pill.is-failed {
+  border-color: rgba(248, 113, 113, 0.45);
+}
+
+.bg-task-pill.is-failed .bg-task-icon {
+  color: #f87171;
+}
+
+.bg-task-icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  padding: 0;
-  outline: none;
-}
-.guided-demo-floating-btn:hover {
-  transform: scale(1.08) translateY(-2px);
-  box-shadow: 0 8px 24px rgba(37, 99, 235, 0.6);
-  background: linear-gradient(135deg, #0369a1, #1d4ed8);
-}
-.guided-demo-floating-btn svg {
   width: 18px;
   height: 18px;
-  fill: currentColor;
-  margin-left: 2px;
-}
-.guided-demo-floating-btn .countdown-num {
-  font-size: 16px;
-  font-weight: 700;
-  color: #ffffff;
+  flex-shrink: 0;
 }
 
-/* Virtual Animated Mouse Pointer */
-.virtual-cursor-pointer {
-  position: fixed;
-  top: 0;
-  left: 0;
-  pointer-events: none;
-  z-index: 100001;
-  transition: transform 0.65s cubic-bezier(0.25, 1, 0.5, 1);
-  transform: translate(50vw, 50vh);
-  display: none;
-  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.45));
-}
-.virtual-cursor-pointer.is-active {
-  display: block;
-}
-.virtual-cursor-pointer svg {
-  display: block;
-  width: 22px;
-  height: 22px;
-}
-.virtual-cursor-ripple {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  border: 2px solid #38bdf8;
-  transform: translate(-16px, -16px) scale(0);
-  opacity: 0;
-  pointer-events: none;
-}
-.virtual-cursor-pointer.is-clicking .virtual-cursor-ripple {
-  animation: cursorRippleAnim 0.35s ease-out;
-}
-@keyframes cursorRippleAnim {
-  0% { transform: translate(-16px, -16px) scale(0.2); opacity: 0.9; }
-  100% { transform: translate(-16px, -16px) scale(1.6); opacity: 0; }
+.bg-task-icon svg {
+  width: 16px;
+  height: 16px;
 }
 
-.guided-demo-hud {
-  position: fixed;
-  bottom: 24px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 10000;
-  background: rgba(15, 23, 42, 0.94);
-  backdrop-filter: blur(12px);
+.bg-task-spinner {
+  animation: bgTaskSpin 0.9s linear infinite;
+  transform-origin: center;
+}
+
+@keyframes bgTaskSpin {
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.bg-task-text {
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bg-task-action {
+  background: rgba(56, 189, 248, 0.16);
   border: 1px solid rgba(56, 189, 248, 0.4);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 20px rgba(56, 189, 248, 0.2);
-  border-radius: 12px;
-  padding: 10px 20px;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  color: #f8fafc;
-  font-family: inherit;
-  animation: hudSlideUp 0.3s ease-out;
-}
-@keyframes hudSlideUp {
-  from { transform: translate(-50%, 20px); opacity: 0; }
-  to { transform: translate(-50%, 0); opacity: 1; }
-}
-.guided-demo-hud-tag {
-  background: rgba(56, 189, 248, 0.15);
-  border: 1px solid #38bdf8;
   color: #38bdf8;
+  font-size: 11px;
+  font-weight: 600;
   padding: 2px 8px;
   border-radius: 6px;
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
 }
-.guided-demo-hud-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: #f8fafc;
+
+.bg-task-action:hover {
+  background: rgba(56, 189, 248, 0.28);
+  border-color: #38bdf8;
+}
+
+.bg-task-close {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  font-size: 16px;
+  line-height: 1;
+  padding: 0 2px;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.bg-task-close:hover {
+  color: #f1f5f9;
+}
+
+/* ==========================================
+   Next-Step Visual Affordances (Progressive Guidance)
+   ========================================== */
+.btn-cta-ready {
+  position: relative;
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.5), 0 0 16px rgba(56, 189, 248, 0.35) !important;
+  animation: pulseCtaGlow 2s ease-in-out infinite;
+}
+
+@keyframes pulseCtaGlow {
+  0%, 100% {
+    box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.5), 0 0 14px rgba(56, 189, 248, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.8), 0 0 24px rgba(56, 189, 248, 0.5);
+  }
+}
+
+.detail-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.preview-footer-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 10px;
+  padding: 8px 12px;
+  background: var(--surface-muted);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.preview-footer-bar .preview-caption {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
 }
 

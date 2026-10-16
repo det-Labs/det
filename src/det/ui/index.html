@@ -1,11 +1,11 @@
 <!doctype html>
-<html lang="en" data-theme="light">
+<html lang="en" data-theme="dark">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="color-scheme" content="light dark">
     <title>det | SQL ETL workspace</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles.css?v=2.2.0">
   </head>
   <body>
     <div class="app-shell">
@@ -339,29 +339,29 @@
                 </div>
               </div>
 
-              <!-- Pipeline Action Buttons Toolbar (in one row just above details section) -->
+              <!-- Pipeline Action Buttons Toolbar (Logical workflow: Validate Plan -> Run Pipeline -> Save Draft -> Docs) -->
               <div class="etl-toolbar-row">
                 <div class="etl-header-actions">
-                  <button class="secondary-button" id="etl-save-button" type="button" title="Save pipeline to disk">
-                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-                    Save
-                  </button>
-                  <button class="primary-button etl-run-btn" id="etl-run-button" type="button" title="The pipeline will be saved and then run">
-                    <svg viewBox="0 0 24 24" aria-hidden="true"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-                    Save/ Run
-                  </button>
                   <button class="secondary-button" id="etl-validate-button" type="button" title="Pre-flight logical plan validation">
-                    <svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-                    Validate
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                    Validate Plan
                   </button>
-                  <div class="etl-docs-group" title="Generate dbt-style single-file documentation with lineage diagrams">
+                  <button class="primary-button etl-run-btn" id="etl-run-button" type="button" title="Save and execute pipeline via DataFusion">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                    Run Pipeline
+                  </button>
+                  <button class="secondary-button" id="etl-save-button" type="button" title="Save pipeline without running">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                    Save Draft
+                  </button>
+                  <div class="etl-docs-group" title="Generate living documentation">
                     <select id="etl-doc-format-select" class="etl-doc-select" aria-label="Documentation format">
                       <option value="html" selected>HTML</option>
                       <option value="markdown">Markdown</option>
                     </select>
                     <button class="secondary-button" id="etl-docs-button" type="button">
-                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/><path d="M6 6h10M6 10h10"/></svg>
-                      Generate docs
+                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/><path d="M6 6h10M6 10h10"/></svg>
+                      Docs
                     </button>
                   </div>
                 </div>
@@ -740,11 +740,14 @@
                     </div>
                   </div>
                   <div class="mon-detail-header-actions">
+                    <button class="primary-button compact-btn" id="mon-detail-open-etl-btn" type="button" title="Open this pipeline in ETL editor">
+                      Open in ETL
+                    </button>
+                    <button class="secondary-button compact-btn" id="mon-detail-open-docs-btn" type="button" title="Open documentation for this pipeline">
+                      View Docs
+                    </button>
                     <button class="secondary-button compact-btn" id="mon-detail-copy-id-btn" type="button" title="Copy full Run ID to clipboard">
                       Copy Run ID
-                    </button>
-                    <button class="secondary-button compact-btn" id="mon-detail-open-etl-btn" type="button" title="Open this pipeline in ETL editor">
-                      Open in ETL
                     </button>
                     <button class="icon-button" id="mon-detail-close-btn" type="button" title="Close run details">
                       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
@@ -833,6 +836,10 @@
                 <!-- Documentation Actions Toolbar (in one row just above rendering area) -->
                 <div class="docs-toolbar-row">
                   <div class="docs-viewer-actions">
+                    <button class="primary-button compact-btn" id="docs-action-open-etl-btn" type="button" title="Open corresponding pipeline in ETL editor">
+                      <svg viewBox="0 0 24 24" aria-hidden="true" style="width:13px;height:13px;"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                      Open in Pipeline
+                    </button>
                     <button class="secondary-button compact-btn" id="docs-action-verify-btn" type="button" title="Verify if documentation is in sync with pipeline definition">
                       <svg viewBox="0 0 24 24" aria-hidden="true" style="width:13px;height:13px;"><path d="M9 12l2 2 4-4m6 2a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"/></svg>
                       Verify sync
@@ -947,6 +954,9 @@
         </section>
       </main>
     </div>
+    <!-- Floating Non-Blocking Background Task Dock -->
+    <div id="bg-task-dock" class="bg-task-dock" aria-live="polite"></div>
+
     <dialog id="editor-dialog" class="editor-dialog">
       <form id="editor-form" method="dialog">
         <div class="dialog-heading">
@@ -963,8 +973,8 @@
         </div>
       </form>
     </dialog>
-    <script src="help-data.js" defer></script>
-    <script src="demo-data.js" defer></script>
-    <script src="app.js" defer></script>
+    <script src="help-data.js?v=2.2.0" defer></script>
+    <script src="demo-data.js?v=2.2.0" defer></script>
+    <script src="app.js?v=2.2.0" defer></script>
   </body>
 </html>
