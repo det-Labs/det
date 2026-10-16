@@ -789,9 +789,9 @@ function connectionEditor(connection = null, folderId = null) {
     const wasDestination = dialogForm.elements.namedItem("is_destination")?.checked ?? Boolean(connection?.is_destination);
     const descriptor = (field) => renderConnectorField(field, connection?.options || {});
 
-    // Mandatory connector fields appear on General tab; all non-mandatory move under Options tab
-    const mandatoryFields = selected.fields.filter((field) => field.required);
-    const optionalFields = selected.fields.filter((field) => !field.required);
+    // Core credentials and mandatory connector fields appear on General tab; advanced settings move under Options tab
+    const mandatoryFields = selected.fields.filter((field) => field.required || (field.section === "connection" && !field.advanced));
+    const optionalFields = selected.fields.filter((field) => !field.required && !(field.section === "connection" && !field.advanced));
 
     const fileMatchingFields = optionalFields.filter((field) => field.section === "connection");
     const readFields = optionalFields.filter((field) => field.section === "read");
