@@ -793,12 +793,7 @@ function connectionEditor(connection = null, folderId = null) {
 
     const fileMatchingFields = optionalFields.filter((field) => field.section === "connection");
     const readFields = optionalFields.filter((field) => field.section === "read");
-    const coreReadFields = readFields.filter((field) => !field.advanced);
-    const advReadFields = readFields.filter((field) => field.advanced);
-
     const writeFields = optionalFields.filter((field) => field.section === "write");
-    const coreWriteFields = writeFields.filter((field) => !field.advanced);
-    const advWriteFields = writeFields.filter((field) => field.advanced);
 
     const isFieldConfigured = (field) => {
       const val = previousValues[`option:${field.name}`] ?? connection?.options?.[field.name];
@@ -807,9 +802,7 @@ function connectionEditor(connection = null, folderId = null) {
 
     const fileMatchConfiguredCount = fileMatchingFields.filter(isFieldConfigured).length;
     const readConfiguredCount = readFields.filter(isFieldConfigured).length;
-    const advReadConfiguredCount = advReadFields.filter(isFieldConfigured).length;
     const writeConfiguredCount = writeFields.filter(isFieldConfigured).length;
-    const advWriteConfiguredCount = advWriteFields.filter(isFieldConfigured).length;
     const schemaCount = (connection?.columns || []).length;
 
     const totalOptionsConfiguredCount = fileMatchConfiguredCount + (wasSource ? readConfiguredCount : 0) + (wasDestination ? writeConfiguredCount : 0);
@@ -900,24 +893,7 @@ function connectionEditor(connection = null, folderId = null) {
               </span>
               ${readConfiguredCount > 0 ? `<span class="advanced-badge">${readConfiguredCount} customized</span>` : `<span class="advanced-hint">Optional</span>`}
             </summary>
-            <div class="form-grid advanced-grid">
-              ${coreReadFields.length ? coreReadFields.map(descriptor).join("") : ""}
-              ${advReadFields.length ? (
-                coreReadFields.length === 0
-                  ? advReadFields.map(descriptor).join("")
-                  : `
-                  <details class="connector-advanced-inner"${advReadConfiguredCount > 0 ? " open" : ""}>
-                    <summary class="advanced-summary-inner">
-                      <span class="advanced-title">
-                        <svg class="advanced-chevron" viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3l5 5-5 5"/></svg>
-                        Advanced read settings
-                      </span>
-                      ${advReadConfiguredCount > 0 ? `<span class="advanced-badge">${advReadConfiguredCount} customized</span>` : `<span class="advanced-hint">Optional</span>`}
-                    </summary>
-                    <div class="form-grid advanced-grid" style="margin-top: 8px;">${advReadFields.map(descriptor).join("")}</div>
-                  </details>`
-              ) : ""}
-            </div>
+            <div class="form-grid advanced-grid">${readFields.map(descriptor).join("")}</div>
           </details>` : ""}
 
         ${wasDestination && writeFields.length ? `
@@ -929,24 +905,7 @@ function connectionEditor(connection = null, folderId = null) {
               </span>
               ${writeConfiguredCount > 0 ? `<span class="advanced-badge">${writeConfiguredCount} customized</span>` : `<span class="advanced-hint">Optional</span>`}
             </summary>
-            <div class="form-grid advanced-grid">
-              ${coreWriteFields.length ? coreWriteFields.map(descriptor).join("") : ""}
-              ${advWriteFields.length ? (
-                coreWriteFields.length === 0
-                  ? advWriteFields.map(descriptor).join("")
-                  : `
-                  <details class="connector-advanced-inner"${advWriteConfiguredCount > 0 ? " open" : ""}>
-                    <summary class="advanced-summary-inner">
-                      <span class="advanced-title">
-                        <svg class="advanced-chevron" viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3l5 5-5 5"/></svg>
-                        Advanced write &amp; encoding settings (${advWriteFields.length} options)
-                      </span>
-                      ${advWriteConfiguredCount > 0 ? `<span class="advanced-badge">${advWriteConfiguredCount} customized</span>` : `<span class="advanced-hint">Optional</span>`}
-                    </summary>
-                    <div class="form-grid advanced-grid" style="margin-top: 8px;">${advWriteFields.map(descriptor).join("")}</div>
-                  </details>`
-              ) : ""}
-            </div>
+            <div class="form-grid advanced-grid">${writeFields.map(descriptor).join("")}</div>
           </details>` : ""}
 
         ${!wasSource && !wasDestination ? `
