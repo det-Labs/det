@@ -1310,7 +1310,7 @@ p {
 }
 
 .editor-dialog {
-  width: min(720px, calc(100vw - 30px));
+  width: min(780px, calc(100vw - 30px));
   max-width: none;
   max-height: min(88vh, 880px);
   padding: 0;
@@ -1443,9 +1443,160 @@ p {
 }
 
 .schema-editor {
-  min-height: 100px;
+  width: 100%;
+  min-height: 190px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font-family: Consolas, "Cascadia Code", "Liberation Mono", Menlo, monospace;
+  font-size: 11.5px;
+  line-height: 1.6;
   resize: vertical;
-  font-family: Consolas, "Cascadia Code", monospace;
+  tab-size: 2;
+  box-sizing: border-box;
+}
+
+.schema-editor:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 25%, transparent);
+}
+
+/* Connection Editor Segmented Tabs */
+.conn-dialog-tabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--surface-muted);
+  padding: 4px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  margin-bottom: 16px;
+  user-select: none;
+}
+
+.conn-dialog-tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 7px 10px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 11.5px;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: all 120ms ease;
+}
+
+.conn-dialog-tab:hover {
+  color: var(--text);
+  background: color-mix(in srgb, var(--text) 5%, transparent);
+}
+
+.conn-dialog-tab:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--accent);
+}
+
+.conn-dialog-tab.active,
+.conn-dialog-tab[aria-selected="true"] {
+  background: var(--surface-raised);
+  color: var(--text);
+  font-weight: 600;
+  border-color: var(--line);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.conn-tab-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 6px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 700;
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+  color: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  line-height: 1.2;
+}
+
+.conn-dialog-tab-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  animation: fadeInTab 0.15s ease-out;
+}
+
+.conn-dialog-tab-panel[hidden] {
+  display: none !important;
+}
+
+@keyframes fadeInTab {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.conn-tab-intro {
+  padding: 9px 13px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 18%, transparent);
+  color: var(--muted);
+  font-size: 11.5px;
+  line-height: 1.5;
+}
+
+.conn-tab-intro strong {
+  color: var(--text);
+}
+
+.schema-helper-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.schema-hint-tag code {
+  color: var(--accent);
+  background: var(--surface-muted);
+  padding: 1px 5px;
+  border-radius: 4px;
+  border: 1px solid var(--line);
+  font-size: 11px;
+}
+
+.schema-hint-chips {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.schema-hint-chips code {
+  color: var(--muted);
+  background: var(--surface-muted);
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 10.5px;
 }
 
 /* Collapsible Advanced Connector Settings */

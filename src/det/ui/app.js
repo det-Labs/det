@@ -766,73 +766,214 @@ function renderConnectorField(field, values) {
 }
 
 function connectionEditor(connection = null, folderId = null) {
+  let activeConnectionTab = "general";
   const initialConnector = connectors.find((item) => item.id === connection?.connector) || connectors[0];
   const initialFolder = folderId || connection?.folder_id || activeCatalog.catalog.folders[0]?.id;
+
   const renderFields = (connector, previousValues = {}) => {
     const selected = connectors.find((item) => item.id === connector) || initialConnector;
     const wasSource = dialogForm.elements.namedItem("is_source")?.checked ?? connection?.is_source !== false;
     const wasDestination = dialogForm.elements.namedItem("is_destination")?.checked ?? Boolean(connection?.is_destination);
     const descriptor = (field) => renderConnectorField(field, connection?.options || {});
-    dialogFields.innerHTML = `<div class="form-grid">
-      ${textField("name", "Connection name", connection?.name || "", "e.g. DailySales_01", {
-        required: true,
-        maxlength: 30,
-        pattern: "[A-Za-z][A-Za-z0-9_]{0,29}",
-        title: "Start with a letter; use only letters, numbers, and underscores (maximum 30 characters).",
-        help: "SQL identifier: starts with a letter; only letters, numbers, and underscores; maximum 30 characters.",
-      })}
-      <label class="form-field"><span>Folder *</span><select name="folder_id">${activeCatalog.catalog.folders.map((folder) => `<option value="${escapeHtml(folder.id)}" ${folder.id === initialFolder ? "selected" : ""}>${escapeHtml(folder.name)}</option>`).join("")}</select></label>
-      <label class="form-field"><span>Connector *</span><select name="connector">${connectors.map((item) => `<option value="${escapeHtml(item.id)}" ${item.id === selected.id ? "selected" : ""}>${escapeHtml(item.label)}</option>`).join("")}</select></label>
-      <div class="form-field role-fields"><span>Use as</span><div class="checkbox-options">
-        <label><input name="is_source" type="checkbox" ${connection?.is_source !== false ? "checked" : ""}> Source</label>
-        <label><input name="is_destination" type="checkbox" ${connection?.is_destination ? "checked" : ""}> Destination</label>
-      </div></div>
-      ${textField("description", "Description", connection?.description || "", "What data does this connection represent?", { multiline: true })}
-    </div>
-    ${["connection", "read", "write"].map((section) => {
-      if (section === "read" && !wasSource) return "";
-      if (section === "write" && !wasDestination) return "";
-      const sectionFields = selected.fields.filter((field) => field.section === section);
-      if (!sectionFields.length) return "";
-      const coreFields = sectionFields.filter((field) => !field.advanced);
-      const advancedFields = sectionFields.filter((field) => field.advanced);
-      const configuredCount = advancedFields.filter((field) => {
-        const val = previousValues[`option:${field.name}`] ?? connection?.options?.[field.name];
-        return val !== undefined && val !== null && val !== "" && val !== field.default;
-      }).length;
-      const sectionTitle = section === "connection" ? "Connection options" : section === "read" ? "Read options" : "Write options";
-      return `<fieldset class="connector-fieldset">
-        <legend>${sectionTitle}</legend>
-        ${coreFields.length ? `<div class="form-grid">${coreFields.map(descriptor).join("")}</div>` : ""}
-        ${advancedFields.length ? `
-          <details class="connector-advanced"${configuredCount > 0 ? " open" : ""}>
+
+    // Categorize fields by section
+    const connFields = selected.fields.filter((field) => field.section === "connection");
+    const coreConnFields = connFields.filter((field) => !field.advanced);
+    const advConnFields = connFields.filter((field) => field.advanced);
+
+    const readFields = selected.fields.filter((field) => field.section === "read");
+    const coreReadFields = readFields.filter((field) => !field.advanced);
+    const advReadFields = readFields.filter((field) => field.advanced);
+
+    const writeFields = selected.fields.filter((field) => field.section === "write");
+    const coreWriteFields = writeFields.filter((field) => !field.advanced);
+    const advWriteFields = writeFields.filter((field) => field.advanced);
+
+    const isFieldConfigured = (field) => {
+      const val = previousValues[`option:${field.name}`] ?? connection?.options?.[field.name];
+      return val !== undefined && val !== null && val !== "" && val !== field.default;
+    };
+
+    const advConnConfiguredCount = advConnFields.filter(isFieldConfigured).length;
+    const readConfiguredCount = readFields.filter(isFieldConfigured).length;
+    const writeConfiguredCount = writeFields.filter(isFieldConfigured).length;
+    const schemaCount = (connection?.columns || []).length;
+
+    // Validate active tab
+    if (activeConnectionTab === "read" && !wasSource) activeConnectionTab = "general";
+    if (activeConnectionTab === "write" && !wasDestination) activeConnectionTab = "general";
+
+    // 1. Tab Bar
+    const tabsHtml = `
+      <div class="conn-dialog-tabs" role="tablist" aria-label="Connection sections">
+        <button type="button" class="conn-dialog-tab ${activeConnectionTab === "general" ? "active" : ""}" data-tab="general" role="tab" aria-selected="${activeConnectionTab === "general"}">
+          <span>General</span>
+        </button>
+        ${wasSource ? `
+          <button type="button" class="conn-dialog-tab ${activeConnectionTab === "read" ? "active" : ""}" data-tab="read" role="tab" aria-selected="${activeConnectionTab === "read"}">
+            <span>Read Options (${escapeHtml(selected.label)})</span>
+            ${readConfiguredCount > 0 ? `<span class="conn-tab-badge">${readConfiguredCount}</span>` : ""}
+          </button>
+        ` : ""}
+        <button type="button" class="conn-dialog-tab ${activeConnectionTab === "schema" ? "active" : ""}" data-tab="schema" role="tab" aria-selected="${activeConnectionTab === "schema"}">
+          <span>Schema &amp; Types</span>
+          ${schemaCount > 0 ? `<span class="conn-tab-badge">${schemaCount} cols</span>` : ""}
+        </button>
+        ${wasDestination ? `
+          <button type="button" class="conn-dialog-tab ${activeConnectionTab === "write" ? "active" : ""}" data-tab="write" role="tab" aria-selected="${activeConnectionTab === "write"}">
+            <span>Write Options (${escapeHtml(selected.label)})</span>
+            ${writeConfiguredCount > 0 ? `<span class="conn-tab-badge">${writeConfiguredCount}</span>` : ""}
+          </button>
+        ` : ""}
+      </div>
+    `;
+
+    // 2. General Panel
+    const generalPanelHtml = `
+      <div class="conn-dialog-tab-panel" data-panel="general" role="tabpanel" ${activeConnectionTab === "general" ? "" : "hidden"}>
+        <div class="form-grid">
+          ${textField("name", "Connection name", connection?.name || "", "e.g. DailySales_01", {
+            required: true,
+            maxlength: 30,
+            pattern: "[A-Za-z][A-Za-z0-9_]{0,29}",
+            title: "Start with a letter; use only letters, numbers, and underscores (maximum 30 characters).",
+            help: "SQL identifier: starts with a letter; only letters, numbers, and underscores; maximum 30 characters.",
+          })}
+          <label class="form-field"><span>Folder *</span><select name="folder_id">${activeCatalog.catalog.folders.map((folder) => `<option value="${escapeHtml(folder.id)}" ${folder.id === initialFolder ? "selected" : ""}>${escapeHtml(folder.name)}</option>`).join("")}</select></label>
+          <label class="form-field"><span>Connector *</span><select name="connector">${connectors.map((item) => `<option value="${escapeHtml(item.id)}" ${item.id === selected.id ? "selected" : ""}>${escapeHtml(item.label)}</option>`).join("")}</select></label>
+          <div class="form-field role-fields"><span>Use as</span><div class="checkbox-options">
+            <label><input name="is_source" type="checkbox" ${connection?.is_source !== false ? "checked" : ""}> Source</label>
+            <label><input name="is_destination" type="checkbox" ${connection?.is_destination ? "checked" : ""}> Destination</label>
+          </div></div>
+          ${coreConnFields.map(descriptor).join("")}
+          ${textField("description", "Description", connection?.description || "", "What data does this connection represent?", { multiline: true })}
+        </div>
+        ${advConnFields.length ? `
+          <details class="connector-advanced"${advConnConfiguredCount > 0 ? " open" : ""}>
             <summary class="advanced-summary">
               <span class="advanced-title">
                 <svg class="advanced-chevron" viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3l5 5-5 5"/></svg>
-                Advanced ${section === "connection" ? "connection" : section === "read" ? "read" : "write"} settings
+                Advanced connection &amp; file matching settings
               </span>
-              ${configuredCount > 0 ? `<span class="advanced-badge">${configuredCount} customized</span>` : `<span class="advanced-hint">Optional</span>`}
+              ${advConnConfiguredCount > 0 ? `<span class="advanced-badge">${advConnConfiguredCount} customized</span>` : `<span class="advanced-hint">Optional</span>`}
             </summary>
-            <div class="form-grid advanced-grid">${advancedFields.map(descriptor).join("")}</div>
+            <div class="form-grid advanced-grid">${advConnFields.map(descriptor).join("")}</div>
           </details>` : ""}
-      </fieldset>`;
-    }).join("")}
-    ${connection ? `<fieldset class="connector-fieldset">
-      <legend>Saved schema</legend>
-      <details class="connector-advanced"${(connection.columns || []).length ? " open" : ""}>
-        <summary class="advanced-summary">
-          <span class="advanced-title">
-            <svg class="advanced-chevron" viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3l5 5-5 5"/></svg>
-            Explicit column overrides &amp; types
-          </span>
-          ${(connection.columns || []).length ? `<span class="advanced-badge">${connection.columns.length} columns</span>` : `<span class="advanced-hint">Optional</span>`}
-        </summary>
-        <div class="advanced-grid">
-          <p class="field-help">One column per line as <code>name:type</code>. Inferred column descriptions are preserved.</p>
-          <textarea name="columns" class="schema-editor" placeholder="customer_id:int64&#10;region:utf8">${escapeHtml((connection.columns || []).map((column) => `${column.name}:${column.data_type}`).join("\n"))}</textarea>
+      </div>
+    `;
+
+    // 3. Read Panel
+    const readAdvConfiguredCount = advReadFields.filter(isFieldConfigured).length;
+    const readPanelHtml = wasSource ? `
+      <div class="conn-dialog-tab-panel" data-panel="read" role="tabpanel" ${activeConnectionTab === "read" ? "" : "hidden"}>
+        <div class="conn-tab-intro">
+          Configure how <strong>${escapeHtml(selected.label)}</strong> files are scanned and parsed by the execution engine.
         </div>
-      </details>
-    </fieldset>` : ""}`;
+        ${coreReadFields.length ? `<div class="form-grid">${coreReadFields.map(descriptor).join("")}</div>` : ""}
+        ${advReadFields.length ? (
+          coreReadFields.length === 0
+            ? `<div class="form-grid">${advReadFields.map(descriptor).join("")}</div>`
+            : `
+            <details class="connector-advanced"${readAdvConfiguredCount > 0 ? " open" : ""}>
+              <summary class="advanced-summary">
+                <span class="advanced-title">
+                  <svg class="advanced-chevron" viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3l5 5-5 5"/></svg>
+                  Advanced ${escapeHtml(selected.label)} read settings
+                </span>
+                ${readAdvConfiguredCount > 0 ? `<span class="advanced-badge">${readAdvConfiguredCount} customized</span>` : `<span class="advanced-hint">Optional</span>`}
+              </summary>
+              <div class="form-grid advanced-grid">${advReadFields.map(descriptor).join("")}</div>
+            </details>`
+        ) : ""}
+        ${!readFields.length ? `<p class="field-help">No additional read settings required for ${escapeHtml(selected.label)}.</p>` : ""}
+      </div>
+    ` : "";
+
+    // 4. Schema Panel
+    const schemaPanelHtml = `
+      <div class="conn-dialog-tab-panel" data-panel="schema" role="tabpanel" ${activeConnectionTab === "schema" ? "" : "hidden"}>
+        <div class="conn-tab-intro">
+          Define explicit column data types. Inferred types from raw files are automatically applied to any unlisted columns.
+        </div>
+        <div class="schema-helper-bar">
+          <span class="schema-hint-tag">Syntax: <code>column_name:data_type</code></span>
+          <span class="schema-hint-chips">
+            <span>Common types:</span>
+            <code>int64</code> <code>float64</code> <code>utf8</code> <code>boolean</code> <code>date32</code> <code>timestamp(ms, None)</code>
+          </span>
+        </div>
+        <textarea name="columns" class="schema-editor" rows="10" placeholder="customer_id:int64&#10;region:utf8&#10;total_spend:float64&#10;signup_date:date32&#10;is_active:boolean">${escapeHtml((connection?.columns || []).map((column) => `${column.name}:${column.data_type}`).join("\n"))}</textarea>
+        <p class="field-help">One column per line. Existing column descriptions and schema inference metadata are preserved on save.</p>
+      </div>
+    `;
+
+    // 5. Write Panel
+    const writeAdvConfiguredCount = advWriteFields.filter(isFieldConfigured).length;
+    const writePanelHtml = wasDestination ? `
+      <div class="conn-dialog-tab-panel" data-panel="write" role="tabpanel" ${activeConnectionTab === "write" ? "" : "hidden"}>
+        <div class="conn-tab-intro">
+          Configure destination output location, write mode, compression, and partitioning when exporting to <strong>${escapeHtml(selected.label)}</strong>.
+        </div>
+        ${coreWriteFields.length ? `<div class="form-grid">${coreWriteFields.map(descriptor).join("")}</div>` : ""}
+        ${advWriteFields.length ? (
+          coreWriteFields.length === 0
+            ? `<div class="form-grid">${advWriteFields.map(descriptor).join("")}</div>`
+            : `
+            <details class="connector-advanced"${writeAdvConfiguredCount > 0 ? " open" : ""}>
+              <summary class="advanced-summary">
+                <span class="advanced-title">
+                  <svg class="advanced-chevron" viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3l5 5-5 5"/></svg>
+                  Advanced ${escapeHtml(selected.label)} write settings
+                </span>
+                ${writeAdvConfiguredCount > 0 ? `<span class="advanced-badge">${writeAdvConfiguredCount} customized</span>` : `<span class="advanced-hint">Optional</span>`}
+              </summary>
+              <div class="form-grid advanced-grid">${advWriteFields.map(descriptor).join("")}</div>
+            </details>`
+        ) : ""}
+        ${!writeFields.length ? `<p class="field-help">No additional write settings required for ${escapeHtml(selected.label)}.</p>` : ""}
+      </div>
+    ` : "";
+
+    // Inject HTML
+    dialogFields.innerHTML = `${tabsHtml}${generalPanelHtml}${readPanelHtml}${schemaPanelHtml}${writePanelHtml}`;
+
+    // Wire Tab Click Handlers
+    const tabButtons = dialogFields.querySelectorAll(".conn-dialog-tab");
+    const panels = dialogFields.querySelectorAll(".conn-dialog-tab-panel");
+    tabButtons.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        activeConnectionTab = btn.dataset.tab;
+        tabButtons.forEach((b) => {
+          const isSelected = b.dataset.tab === activeConnectionTab;
+          b.classList.toggle("active", isSelected);
+          b.setAttribute("aria-selected", String(isSelected));
+        });
+        panels.forEach((p) => {
+          p.hidden = p.dataset.panel !== activeConnectionTab;
+        });
+      });
+    });
+
+    // Keyboard Arrow navigation between tabs
+    dialogFields.querySelector(".conn-dialog-tabs")?.addEventListener("keydown", (event) => {
+      if (event.target.classList.contains("conn-dialog-tab")) {
+        const tabsArr = [...tabButtons];
+        const idx = tabsArr.indexOf(event.target);
+        if (event.key === "ArrowRight") {
+          event.preventDefault();
+          const next = tabsArr[(idx + 1) % tabsArr.length];
+          next.focus();
+          next.click();
+        } else if (event.key === "ArrowLeft") {
+          event.preventDefault();
+          const prev = tabsArr[(idx - 1 + tabsArr.length) % tabsArr.length];
+          prev.focus();
+          prev.click();
+        }
+      }
+    });
+
+    // Restore previous field values
     for (const [name, value] of Object.entries(previousValues)) {
       if (name === "connector") continue;
       const control = dialogForm.elements.namedItem(name);
@@ -841,6 +982,7 @@ function connectionEditor(connection = null, folderId = null) {
       else control.value = value;
     }
   };
+
   openEditor({
     title: connection ? "Edit connection" : "Add connection",
     fields: "",
@@ -880,19 +1022,17 @@ function connectionEditor(connection = null, folderId = null) {
         description: String(formData.get("description") || "").trim(),
         options,
       };
-      if (connection) {
-        const rawColumns = String(formData.get("columns") || "").trim();
-        if (rawColumns) {
-          body.columns = rawColumns.split(/\r?\n/).map((line) => {
-            const [name, ...typeParts] = line.split(":");
-            const data_type = typeParts.join(":").trim();
-            if (!name.trim() || !data_type) throw new Error(`Invalid schema column: ${line}`);
-            const existing = connection.columns.find((column) => column.name === name.trim());
-            return { ...(existing || {}), name: name.trim(), data_type, nullable: existing?.nullable ?? true };
-          });
-        } else {
-          body.columns = [];
-        }
+      const rawColumns = String(formData.get("columns") || "").trim();
+      if (rawColumns) {
+        body.columns = rawColumns.split(/\r?\n/).map((line) => {
+          const [name, ...typeParts] = line.split(":");
+          const data_type = typeParts.join(":").trim();
+          if (!name.trim() || !data_type) throw new Error(`Invalid schema column: ${line}`);
+          const existing = connection?.columns?.find((column) => column.name === name.trim());
+          return { ...(existing || {}), name: name.trim(), data_type, nullable: existing?.nullable ?? true };
+        });
+      } else if (connection) {
+        body.columns = [];
       }
       const endpoint = connection
         ? `/api/catalog/connections/${encodeURIComponent(connection.id)}`
@@ -984,6 +1124,29 @@ function formatCell(value) {
 }
 
 function activateEditor() {
+  dialogForm.addEventListener(
+    "invalid",
+    (event) => {
+      const panel = event.target.closest(".conn-dialog-tab-panel");
+      if (panel && panel.hidden) {
+        const targetTab = panel.dataset.panel;
+        if (targetTab) {
+          const tabs = dialogFields.querySelectorAll(".conn-dialog-tab");
+          const panels = dialogFields.querySelectorAll(".conn-dialog-tab-panel");
+          tabs.forEach((btn) => {
+            const isSelected = btn.dataset.tab === targetTab;
+            btn.classList.toggle("active", isSelected);
+            btn.setAttribute("aria-selected", String(isSelected));
+          });
+          panels.forEach((p) => {
+            p.hidden = p.dataset.panel !== targetTab;
+          });
+        }
+      }
+    },
+    true
+  );
+
   dialogForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     if (!editorHandler) return;
