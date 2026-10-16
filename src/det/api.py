@@ -160,6 +160,12 @@ def preview_adhoc_connection(
     workspace = get_ui_state()["workspace"]
     context = create_session_context()
     try:
+        from det.connectors import connector_definitions
+        for c_def in connector_definitions():
+            if connector in (c_def.key, c_def.guid):
+                connector = c_def.guid
+                break
+
         dataframe = scan_builtin(
             context,
             connector,
