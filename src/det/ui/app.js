@@ -4648,7 +4648,7 @@ function selectHelpTopic(topicId) {
   if (helpBcCategory) helpBcCategory.textContent = category.title;
   if (helpBcTitle) helpBcTitle.textContent = topic.title;
   if (helpArticleTitle) helpArticleTitle.textContent = topic.title;
-  if (helpReadTime) helpReadTime.textContent = ⏱️ ;
+  if (helpReadTime) helpReadTime.textContent = `⏱️ ${topic.readTime || "3 min read"}`;
 
   if (helpArticleContent) {
     helpArticleContent.innerHTML = topic.content;
