@@ -727,12 +727,44 @@ function connectionEditor(connection = null, folderId = null) {
       if (section === "write" && !wasDestination) return "";
       const sectionFields = selected.fields.filter((field) => field.section === section);
       if (!sectionFields.length) return "";
-      return `<fieldset class="connector-fieldset"><legend>${section === "connection" ? "Connection options" : section === "read" ? "Read options" : "Write options"}</legend>
-        <div class="form-grid">${sectionFields.map(descriptor).join("")}</div></fieldset>`;
+      const coreFields = sectionFields.filter((field) => !field.advanced);
+      const advancedFields = sectionFields.filter((field) => field.advanced);
+      const configuredCount = advancedFields.filter((field) => {
+        const val = previousValues[`option:${field.name}`] ?? connection?.options?.[field.name];
+        return val !== undefined && val !== null && val !== "" && val !== field.default;
+      }).length;
+      const sectionTitle = section === "connection" ? "Connection options" : section === "read" ? "Read options" : "Write options";
+      return `<fieldset class="connector-fieldset">
+        <legend>${sectionTitle}</legend>
+        ${coreFields.length ? `<div class="form-grid">${coreFields.map(descriptor).join("")}</div>` : ""}
+        ${advancedFields.length ? `
+          <details class="connector-advanced"${configuredCount > 0 ? " open" : ""}>
+            <summary class="advanced-summary">
+              <span class="advanced-title">
+                <svg class="advanced-chevron" viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3l5 5-5 5"/></svg>
+                Advanced ${section === "connection" ? "connection" : section === "read" ? "read" : "write"} settings
+              </span>
+              ${configuredCount > 0 ? `<span class="advanced-badge">${configuredCount} customized</span>` : `<span class="advanced-hint">Optional</span>`}
+            </summary>
+            <div class="form-grid advanced-grid">${advancedFields.map(descriptor).join("")}</div>
+          </details>` : ""}
+      </fieldset>`;
     }).join("")}
-    ${connection ? `<fieldset class="connector-fieldset"><legend>Saved schema (optional)</legend>
-      <p class="field-help">One column per line as <code>name:type</code>. Inferred column descriptions are preserved.</p>
-      <textarea name="columns" class="schema-editor" placeholder="customer_id:int64&#10;region:utf8">${escapeHtml((connection.columns || []).map((column) => `${column.name}:${column.data_type}`).join("\n"))}</textarea>
+    ${connection ? `<fieldset class="connector-fieldset">
+      <legend>Saved schema</legend>
+      <details class="connector-advanced"${(connection.columns || []).length ? " open" : ""}>
+        <summary class="advanced-summary">
+          <span class="advanced-title">
+            <svg class="advanced-chevron" viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3l5 5-5 5"/></svg>
+            Explicit column overrides &amp; types
+          </span>
+          ${(connection.columns || []).length ? `<span class="advanced-badge">${connection.columns.length} columns</span>` : `<span class="advanced-hint">Optional</span>`}
+        </summary>
+        <div class="advanced-grid">
+          <p class="field-help">One column per line as <code>name:type</code>. Inferred column descriptions are preserved.</p>
+          <textarea name="columns" class="schema-editor" placeholder="customer_id:int64&#10;region:utf8">${escapeHtml((connection.columns || []).map((column) => `${column.name}:${column.data_type}`).join("\n"))}</textarea>
+        </div>
+      </details>
     </fieldset>` : ""}`;
     for (const [name, value] of Object.entries(previousValues)) {
       if (name === "connector") continue;

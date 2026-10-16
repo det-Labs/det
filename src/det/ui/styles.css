@@ -1448,6 +1448,90 @@ p {
   font-family: Consolas, "Cascadia Code", monospace;
 }
 
+/* Collapsible Advanced Connector Settings */
+.connector-advanced {
+  margin-top: 12px;
+  border-top: 1px dashed var(--line);
+  padding-top: 10px;
+}
+
+.connector-advanced summary.advanced-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  user-select: none;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid transparent;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  list-style: none;
+}
+
+.connector-advanced summary.advanced-summary::-webkit-details-marker {
+  display: none;
+}
+
+.connector-advanced summary.advanced-summary:hover {
+  background: var(--surface-hover, rgba(255, 255, 255, 0.05));
+  border-color: var(--line);
+  color: var(--foreground);
+}
+
+.connector-advanced .advanced-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.connector-advanced .advanced-chevron {
+  transition: transform 0.2s ease, color 0.2s ease;
+  color: var(--muted);
+}
+
+.connector-advanced[open] .advanced-chevron {
+  transform: rotate(90deg);
+  color: var(--primary, #38bdf8);
+}
+
+.connector-advanced .advanced-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  background: rgba(56, 189, 248, 0.12);
+  color: var(--primary, #38bdf8);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+}
+
+.connector-advanced .advanced-hint {
+  font-size: 11px;
+  color: var(--muted);
+  opacity: 0.7;
+}
+
+.connector-advanced .advanced-grid {
+  margin-top: 12px;
+  padding: 4px 2px 2px;
+  animation: fadeInAdvanced 0.2s ease-out;
+}
+
+@keyframes fadeInAdvanced {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .dialog-actions {
   display: flex;
   justify-content: flex-end;
