@@ -227,6 +227,89 @@ class TestETLAndMonitoring(unittest.TestCase):
         self.assertIn("WARN", levels)
         self.assertIn("SUCCESS", levels)
 
+    def test_csv_destination_with_header_option(self):
+        """Verify CSV destination honors 'with_header' option over 'has_header' and handles append."""
+        import pyarrow as pa
+        from det.connectors import CSV_CONNECTOR
+        from det.engine import create_session_context
+
+        ctx = create_session_context()
+        t = pa.table({"col_a": [1, 2], "col_b": ["x", "y"]})
+        ctx.register_record_batches("src", [t.to_batches()])
+        df = ctx.table("src")
+
+        out_file = self.workspace / "test_hdr.csv"
+
+        # 1. with_header: True, has_header: False
+        dest_conn = {
+            "name": "csv_dest_with_hdr",
+            "connector": CSV_CONNECTOR.guid,
+            "options": {
+                "path": str(out_file),
+                "has_header": False,
+                "with_header": True,
+                "write_mode": "overwrite",
+            },
+        }
+        self.runner._write_to_destination(dest_conn, df, t)
+        content = out_file.read_text(encoding="utf-8")
+        self.assertTrue(content.startswith("col_a,col_b"), f"Expected header row, got:\n{content}")
+
+        # 2. Append mode should not duplicate header
+        t2 = pa.table({"col_a": [3], "col_b": ["z"]})
+        dest_conn["options"]["write_mode"] = "append"
+        self.runner._write_to_destination(dest_conn, df, t2)
+        content_appended = out_file.read_text(encoding="utf-8")
+        self.assertEqual(content_appended.count("col_a,col_b"), 1, "Header row was duplicated on append")
+
+        # 3. with_header: False should omit header
+        dest_conn_no_hdr = {
+            "name": "csv_dest_no_hdr",
+            "connector": CSV_CONNECTOR.guid,
+            "options": {
+                "path": str(out_file),
+                "with_header": False,
+                "write_mode": "overwrite",
+            },
+        }
+        self.runner._write_to_destination(dest_conn_no_hdr, df, t)
+        content_no_hdr = out_file.read_text(encoding="utf-8")
+        self.assertFalse(content_no_hdr.startswith("col_a,col_b"))
+
+    def test_validate_step_sql_with_profile(self):
+        """Verify validate_step_sql resolves connection options and profiles accurately."""
+        from det.api import validate_step_sql
+        from det.catalog import CatalogStore
+        from det.connectors import CSV_CONNECTOR
+
+        cs = CatalogStore(self.workspace)
+        catalog = cs.read()
+        f_id = catalog["catalog"]["folders"][0]["id"]
+
+        # Add a source with saved columns (simulating a profile-backed database table)
+        cs.add_connection(
+            f_id,
+            {
+                "name": "profile_backed_tbl",
+                "connector": CSV_CONNECTOR.guid,
+                "is_source": True,
+                "options": {},
+                "columns": [
+                    {"name": "id", "data_type": "int64", "nullable": False},
+                    {"name": "status", "data_type": "string", "nullable": True},
+                ],
+            },
+        )
+
+        res = validate_step_sql(
+            "SELECT id, status FROM profile_backed_tbl WHERE id > 0",
+            catalog_file="default.yaml",
+        )
+        self.assertTrue(res["valid"], f"Validation failed with: {res.get('error')}")
+        self.assertEqual(len(res["schema"]), 2)
+        self.assertEqual(res["schema"][0]["name"], "id")
+        self.assertEqual(res["schema"][1]["name"], "status")
+
 
 if __name__ == "__main__":
     unittest.main()

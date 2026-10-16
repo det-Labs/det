@@ -7,8 +7,10 @@ import re
 from pathlib import Path
 from typing import Any
 
+import pyarrow as pa
+
 from det.catalog import CatalogStore, resolve_connection_options
-from det.connectors import scan_builtin
+from det.connectors import _build_arrow_schema, scan_builtin
 from det.engine import create_session_context, run_sql
 from det.pipeline import Pipeline, PipelineStep
 
@@ -55,6 +57,7 @@ class PipelineValidator:
         all_connections: dict[str, dict[str, Any]] = {}
         available_tables: list[str] = []
 
+        all_sql = " ".join(step.sql for step in pipeline.steps)
         for folder in catalog_doc.get("folders", []):
             for conn in folder.get("connections", []):
                 all_connections[conn["id"]] = conn
@@ -63,15 +66,9 @@ class PipelineValidator:
                 if conn.get("is_source"):
                     available_tables.append(conn["name"])
                     try:
-                        resolved_options = resolve_connection_options(conn, catalog_doc)
-                        df = scan_builtin(
-                            context,
-                            conn["connector"],
-                            resolved_options,
-                            self.workspace,
-                            saved_columns=conn.get("columns") or None,
+                        self._register_source_connection(
+                            context, conn, catalog_doc, relevant_sql=all_sql
                         )
-                        context.register_view(conn["name"], df)
                     except Exception as scan_err:
                         return {
                             "valid": False,
@@ -114,6 +111,39 @@ class PipelineValidator:
             "available_tables": available_tables + registered_step_views,
         }
 
+    def _register_source_connection(
+        self,
+        context: Any,
+        conn: dict[str, Any],
+        catalog_doc: dict[str, Any],
+        *,
+        relevant_sql: str | None = None,
+    ) -> None:
+        """Register a source table/view into the DataFusion context for logical planning.
+
+        Uses pre-saved schema if present to construct an instant empty Arrow table
+        without network round-trips or disk I/O. Otherwise resolves options (including
+        profiles) and falls back to scan_builtin with limit_rows=0.
+        """
+        arrow_schema = _build_arrow_schema(conn.get("columns"))
+        if arrow_schema is not None and len(arrow_schema) > 0:
+            empty_table = pa.Table.from_batches([], schema=arrow_schema)
+            df = context.from_arrow(empty_table)
+            context.register_view(conn["name"], df)
+        else:
+            if relevant_sql is not None and conn["name"].lower() not in relevant_sql.lower():
+                return
+            resolved_options = resolve_connection_options(conn, catalog_doc)
+            df = scan_builtin(
+                context,
+                conn["connector"],
+                resolved_options,
+                self.workspace,
+                saved_columns=conn.get("columns") or None,
+                limit_rows=0,
+            )
+            context.register_view(conn["name"], df)
+
     def validate_step_sql(
         self,
         sql: str,
@@ -143,14 +173,9 @@ class PipelineValidator:
                 if conn.get("is_source"):
                     available_tables.append(conn["name"])
                     try:
-                        df = scan_builtin(
-                            context,
-                            conn["connector"],
-                            conn["options"],
-                            self.workspace,
-                            saved_columns=conn.get("columns") or None,
+                        self._register_source_connection(
+                            context, conn, catalog_doc, relevant_sql=sql
                         )
-                        context.register_view(conn["name"], df)
                     except Exception:
                         pass
 

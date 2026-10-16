@@ -1047,6 +1047,7 @@ def _scan_postgresql_adbc(
     context: SessionContext,
     options: dict[str, Any],
     schema: pa.Schema | None,
+    limit_rows: int | None = None,
 ) -> DataFrame:
     """Execute query or table scan on PostgreSQL via Apache Arrow ADBC."""
     try:
@@ -1070,6 +1071,9 @@ def _scan_postgresql_adbc(
         else:
             sql_to_run = f'SELECT * FROM "{schema_name}"."{table_name}"'
 
+    if limit_rows is not None:
+        sql_to_run = f"SELECT * FROM ({sql_to_run}) AS _det_subq LIMIT {int(limit_rows)}"
+
     uri = build_postgres_uri(options)
     with pg_dbapi.connect(uri) as conn, conn.cursor() as cursor:
         cursor.execute(sql_to_run)
@@ -1085,6 +1089,7 @@ def scan_builtin(
     options: dict[str, Any],
     workspace: str | Path,
     saved_columns: list[dict[str, Any]] | None = None,
+    limit_rows: int | None = None,
 ) -> DataFrame:
     """Build a lazy DataFusion scan using the saved built-in connector options."""
     resolved_workspace = Path(workspace).expanduser().resolve()
@@ -1097,7 +1102,7 @@ def scan_builtin(
     schema = _build_arrow_schema(saved_columns)
 
     if connector.key == "postgresql":
-        return _scan_postgresql_adbc(context, resolved_options, schema)
+        return _scan_postgresql_adbc(context, resolved_options, schema, limit_rows=limit_rows)
 
     if connector.key in {"delta", "iceberg"}:
         table_dir = _resolve_table_directory(resolved_options, resolved_workspace)

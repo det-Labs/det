@@ -123,6 +123,9 @@ class PipelineRunner:
                     continue
                 if conn.get("is_source"):
                     registered_source_names.add(conn_name)
+                    connector_guid = conn.get("connector", "")
+                    if connector_guid in (POSTGRESQL_CONNECTOR.guid, POSTGRESQL_CONNECTOR.key) and conn_name not in referenced_sources:
+                        continue
                     try:
                         resolved_options = resolve_connection_options(conn, catalog_doc)
                         df = scan_builtin(
@@ -247,7 +250,7 @@ class PipelineRunner:
                 dest_conn, arrow_table, options, start_write, write_started_iso
             )
 
-        raw_path = options.get("path", "")
+        raw_path = options.get("output_path") or options.get("path", "")
         if not raw_path:
             raise ValueError(f"Destination connection '{dest_conn['name']}' has no output path configured.")
 
@@ -261,13 +264,27 @@ class PipelineRunner:
         # 1. CSV Destination
         if connector_guid == CSV_CONNECTOR.guid:
             format_name = "csv"
-            has_header = options.get("has_header", True)
-            if target_path.suffix.lower() == ".csv":
-                df.write_csv(str(target_path), with_header=has_header)
+            # In CSV_CONNECTOR fields:
+            # write field is 'with_header' ("Write column headers")
+            # read field is 'has_header' ("First row contains column names")
+            hdr_val = options.get("with_header")
+            if hdr_val is None:
+                hdr_val = options.get("has_header", True)
+            if isinstance(hdr_val, str):
+                with_header = hdr_val.strip().lower() in ("true", "1", "yes", "on")
             else:
-                out_file = target_path / f"{dest_conn['name']}.csv"
-                df.write_csv(str(out_file), with_header=has_header)
-                target_path = out_file
+                with_header = bool(hdr_val)
+
+            out_file = target_path if target_path.suffix.lower() == ".csv" else target_path / f"{dest_conn['name']}.csv"
+            target_path = out_file
+            write_mode = str(options.get("write_mode", "overwrite")).strip().lower()
+
+            if write_mode == "append" and out_file.exists() and out_file.stat().st_size > 0:
+                import pyarrow.csv as pacsv
+                with open(out_file, "ab") as f:
+                    pacsv.write_csv(arrow_table, f, write_options=pacsv.WriteOptions(include_header=False))
+            else:
+                df.write_csv(str(out_file), with_header=with_header)
 
         # 2. Parquet Destination
         elif connector_guid == PARQUET_CONNECTOR.guid:

@@ -3056,6 +3056,21 @@ async function validateEntirePipeline() {
       etlValidationBanner.className = "etl-validation-banner is-valid";
       etlValidationIndicator.className = "status-indicator is-valid";
       etlValidationText.textContent = `All ${res.steps.length} step(s) verified! DataFusion plans and schemas are valid.`;
+      if (res.steps && res.steps[activeStepIndex]) {
+        const stepRes = res.steps[activeStepIndex];
+        etlSqlStatusIndicator.className = "status-indicator is-valid";
+        etlSqlStatusLabel.textContent = "Plan validated successfully . End result schema as evaluated by the plan is given below";
+        etlSqlHints.hidden = true;
+        etlSqlHints.innerHTML = "";
+        if (stepRes.schema && stepRes.schema.length > 0) {
+          etlSqlSchemaTbody.innerHTML = stepRes.schema
+            .map(
+              (col) =>
+                `<tr><td><strong>${escapeHtml(col.name)}</strong></td><td><code>${escapeHtml(col.data_type)}</code></td><td>${col.nullable ? "Nullable" : "Required"}</td></tr>`
+            )
+            .join("");
+        }
+      }
       const stepHtml = res.steps
         .map(
           (s) =>
