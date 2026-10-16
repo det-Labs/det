@@ -162,6 +162,40 @@ class TestApiEndpoints(unittest.TestCase):
         self.assertEqual(data["catalog"], "sample_warehouse.yaml")
         self.assertEqual(data["active_catalog"], "sample_warehouse.yaml")
 
+    def test_discover_tables_endpoint_with_mock(self):
+        from unittest.mock import MagicMock, patch
+        import pyarrow as pa
+
+        mock_table = pa.Table.from_arrays(
+            [pa.array(["public", "rnacen"]), pa.array(["users", "rna"])],
+            names=["table_schema", "table_name"],
+        )
+        mock_cursor = MagicMock()
+        mock_cursor.fetch_arrow_table.return_value = mock_table
+        mock_conn = MagicMock()
+        mock_conn.cursor.return_value.__enter__.return_value = mock_cursor
+        mock_conn.__enter__.return_value = mock_conn
+
+        with patch("adbc_driver_postgresql.dbapi.connect", return_value=mock_conn):
+            payload = json.dumps({
+                "connector": "postgresql",
+                "options": {
+                    "host": "localhost",
+                    "database": "mydb",
+                    "user": "postgres",
+                },
+            }).encode("utf-8")
+            handler = DummyHandler("POST", "/api/catalog/discover-tables", body=payload)
+            handler.do_POST()
+            self.assertEqual(handler.response_status, 200)
+            data = handler.get_json_response()
+            self.assertTrue(data["success"])
+            self.assertEqual(data["count"], 2)
+            self.assertEqual(data["tables"], [
+                {"schema": "public", "name": "users"},
+                {"schema": "rnacen", "name": "rna"},
+            ])
+
 
 if __name__ == "__main__":
     unittest.main()

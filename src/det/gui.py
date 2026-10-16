@@ -9,6 +9,7 @@ from urllib.parse import parse_qs, unquote, urlsplit
 from det.api import (
     configure_ui,
     delete_pipeline,
+    discover_database_tables,
     get_catalog_store,
     get_connector_metadata,
     get_monitoring_store,
@@ -210,6 +211,11 @@ class DetRequestHandler(BaseHTTPRequestHandler):
                     options=payload.get("options", {}),
                     columns=payload.get("columns"),
                     limit=int(payload.get("limit", 25)),
+                )
+            elif path == "/api/catalog/discover-tables":
+                result = discover_database_tables(
+                    connector=payload.get("connector", ""),
+                    options=payload.get("options", {}),
                 )
 
             # --- Pipeline CRUD & Execution ---

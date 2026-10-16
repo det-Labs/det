@@ -895,7 +895,29 @@ function connectionEditor(connection = null, folderId = null) {
               </span>
               ${readConfiguredCount > 0 ? `<span class="advanced-badge">${readConfiguredCount} customized</span>` : `<span class="advanced-hint">Optional</span>`}
             </summary>
-            <div class="form-grid advanced-grid">${readFields.map(descriptor).join("")}</div>
+            <div class="form-grid advanced-grid">
+              ${selected.key === "postgresql" ? `
+                <div class="db-discover-toolbar" style="grid-column: 1 / -1; margin-bottom: 4px; padding: 10px; background: var(--color-surface, rgba(255,255,255,0.03)); border: 1px solid var(--color-border, rgba(255,255,255,0.08)); border-radius: 6px;">
+                  <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                    <button type="button" class="secondary-button" id="discover-tables-btn" style="display: inline-flex; align-items: center; gap: 6px; font-weight: 500;">
+                      <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="7" cy="7" r="5"/><path d="m11 11 4 4"/></svg>
+                      <span>Discover Tables from Database</span>
+                    </button>
+                    <span id="discover-status-msg" style="font-size: 12px; color: var(--color-muted);">Browse live schemas &amp; tables via ADBC</span>
+                  </div>
+                  <div id="discover-select-container" hidden style="margin-top: 10px;">
+                    <label class="form-field" style="margin: 0;">
+                      <span id="discover-select-label" style="font-weight: 500; font-size: 13px;">Select Table from Database</span>
+                      <select id="discovered-tables-dropdown" class="form-control" style="width: 100%; margin-top: 4px;">
+                        <option value="">-- Choose a discovered table to auto-fill schema &amp; table --</option>
+                      </select>
+                      <small style="margin-top: 4px;">Selecting a table auto-fills the Schema name and Table name below.</small>
+                    </label>
+                  </div>
+                </div>
+              ` : ""}
+              ${readFields.map(descriptor).join("")}
+            </div>
           </details>` : ""}
 
         ${wasDestination && writeFields.length ? `
@@ -1223,6 +1245,100 @@ function connectionEditor(connection = null, folderId = null) {
     if (dialogPreviewBtn) {
       dialogPreviewBtn.onclick = executeAdhocPreview;
       updatePreviewButtonState();
+    }
+
+    // Wire Database Table Discovery
+    const discoverBtn = dialogFields.querySelector("#discover-tables-btn");
+    if (discoverBtn) {
+      discoverBtn.addEventListener("click", async () => {
+        const form = dialogForm;
+        const host = form.elements.namedItem("option:host")?.value?.trim();
+        const db = form.elements.namedItem("option:database")?.value?.trim();
+        const uri = form.elements.namedItem("option:uri")?.value?.trim();
+        const statusEl = dialogFields.querySelector("#discover-status-msg");
+        const container = dialogFields.querySelector("#discover-select-container");
+        const dropdown = dialogFields.querySelector("#discovered-tables-dropdown");
+        const label = dialogFields.querySelector("#discover-select-label");
+
+        if (!uri && (!host || !db)) {
+          showNotification("Please specify Host and Database on the General tab first.");
+          switchTab("general");
+          form.elements.namedItem("option:database")?.focus();
+          return;
+        }
+
+        discoverBtn.disabled = true;
+        discoverBtn.innerHTML = `<span class="spinner" aria-hidden="true" style="width:14px;height:14px;"></span> <span>Connecting to database...</span>`;
+        if (statusEl) statusEl.textContent = "Connecting via Apache ADBC...";
+
+        try {
+          const res = await api("/api/catalog/discover-tables", {
+            method: "POST",
+            body: JSON.stringify({
+              connector: selected.id,
+              options: {
+                host,
+                port: form.elements.namedItem("option:port")?.value,
+                database: db,
+                user: form.elements.namedItem("option:user")?.value,
+                password: form.elements.namedItem("option:password")?.value,
+                sslmode: form.elements.namedItem("option:sslmode")?.value,
+                uri,
+              },
+            }),
+          });
+
+          if (res.success && res.tables?.length) {
+            discoverBtn.disabled = false;
+            discoverBtn.innerHTML = `<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="7" cy="7" r="5"/><path d="m11 11 4 4"/></svg> <span>Re-scan Tables</span>`;
+            if (statusEl) {
+              statusEl.innerHTML = `<span style="color: #22c55e; font-weight: 500;">✓ Discovered ${res.count} tables in ${res.elapsed_ms}ms</span>`;
+            }
+
+            const bySchema = {};
+            for (const t of res.tables) {
+              if (!bySchema[t.schema]) bySchema[t.schema] = [];
+              bySchema[t.schema].push(t.name);
+            }
+
+            let optHtml = '<option value="">-- Choose a discovered table to auto-fill schema &amp; table --</option>';
+            for (const sch of Object.keys(bySchema).sort()) {
+              optHtml += `<optgroup label="Schema: ${escapeHtml(sch)}">`;
+              for (const tbl of bySchema[sch]) {
+                optHtml += `<option value="${escapeHtml(sch)}.${escapeHtml(tbl)}">${escapeHtml(sch)}.${escapeHtml(tbl)}</option>`;
+              }
+              optHtml += "</optgroup>";
+            }
+
+            dropdown.innerHTML = optHtml;
+            container.hidden = false;
+            if (label) label.textContent = `Select Table from Database (${res.count} available across ${Object.keys(bySchema).length} schemas)`;
+
+            dropdown.onchange = () => {
+              const val = dropdown.value;
+              if (!val) return;
+              const [sch, tbl] = val.split(".");
+              const schemaInput = form.elements.namedItem("option:schema");
+              const tableInput = form.elements.namedItem("option:table");
+              if (schemaInput) schemaInput.value = sch;
+              if (tableInput) tableInput.value = tbl;
+              showNotification(`Selected table ${val}`);
+            };
+          } else {
+            discoverBtn.disabled = false;
+            discoverBtn.innerHTML = `<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="7" cy="7" r="5"/><path d="m11 11 4 4"/></svg> <span>Discover Tables from Database</span>`;
+            if (statusEl) {
+              statusEl.innerHTML = `<span style="color: #ef4444; font-size: 11px;">✗ ${escapeHtml(res.error || "No tables found")}</span>`;
+            }
+          }
+        } catch (err) {
+          discoverBtn.disabled = false;
+          discoverBtn.innerHTML = `<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="7" cy="7" r="5"/><path d="m11 11 4 4"/></svg> <span>Discover Tables from Database</span>`;
+          if (statusEl) {
+            statusEl.innerHTML = `<span style="color: #ef4444; font-size: 11px;">✗ ${escapeHtml(err.message)}</span>`;
+          }
+        }
+      });
     }
 
     dialogForm.addEventListener("input", (e) => {

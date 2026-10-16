@@ -207,6 +207,66 @@ def preview_adhoc_connection(
         }
 
 
+def discover_database_tables(
+    connector: str,
+    options: dict[str, Any],
+) -> dict[str, Any]:
+    """Discover available schemas and tables from a database connection."""
+    import time
+
+    start_time = time.perf_counter()
+    workspace = get_ui_state()["workspace"]
+    try:
+        from det.connectors import build_postgres_uri, connector_definitions, resolve_env_vars
+
+        connector_key = connector
+        for c_def in connector_definitions():
+            if connector in (c_def.key, c_def.guid):
+                connector_key = c_def.key
+                break
+
+        resolved_options = resolve_env_vars(options, workspace)
+
+        if connector_key == "postgresql":
+            import adbc_driver_postgresql.dbapi as pg_dbapi
+
+            uri = build_postgres_uri(resolved_options)
+            with pg_dbapi.connect(uri) as conn, conn.cursor() as cursor:
+                cursor.execute(
+                    "SELECT table_schema, table_name "
+                    "FROM information_schema.tables "
+                    "WHERE table_schema NOT IN ('information_schema', 'pg_catalog') "
+                    "ORDER BY table_schema, table_name;"
+                )
+                table = cursor.fetch_arrow_table()
+                rows = table.to_pylist() if table else []
+                tables = [
+                    {"schema": r["table_schema"], "name": r["table_name"]}
+                    for r in rows
+                ]
+                elapsed_ms = round((time.perf_counter() - start_time) * 1000, 1)
+                return {
+                    "success": True,
+                    "tables": tables,
+                    "count": len(tables),
+                    "elapsed_ms": elapsed_ms,
+                }
+
+        return {
+            "success": False,
+            "error": f"Connector '{connector_key}' does not support table discovery.",
+            "tables": [],
+        }
+    except Exception as exc:
+        elapsed_ms = round((time.perf_counter() - start_time) * 1000, 1)
+        return {
+            "success": False,
+            "error": str(exc),
+            "tables": [],
+            "elapsed_ms": elapsed_ms,
+        }
+
+
 def get_pipeline_store() -> PipelineStore:
     """Return the workspace pipeline store configured for this process."""
     if _pipeline_store is None:
