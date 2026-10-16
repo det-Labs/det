@@ -70,6 +70,10 @@ CSV_CONNECTOR = ConnectorDefinition(
             required=True, placeholder="data/sales",
         ),
         ConnectorField(
+            "delimiter", "Delimiter", "connection", "text",
+            "Single ASCII character delimiter.", default=",", required=True, placeholder=",",
+        ),
+        ConnectorField(
             "file_pattern", "File name filter", "connection", "text",
             "Glob pattern applied inside a folder. Use ** for nested folders.",
             default="*.csv", placeholder="sales-*.csv", advanced=True,
@@ -86,7 +90,6 @@ CSV_CONNECTOR = ConnectorDefinition(
             "has_header", "First row contains column names", "read", "boolean",
             "Treat the first record in each file as column headers.", True,
         ),
-        ConnectorField("delimiter", "Delimiter", "read", "text", "Single ASCII character.", ","),
         ConnectorField("quote", "Text qualifier", "read", "text", "Quote character for fields.", '"', advanced=True),
         ConnectorField("escape", "Escape character", "read", "text", "Optional escape character.", advanced=True),
         ConnectorField("terminator", "Line terminator", "read", "text", "Optional record terminator.", advanced=True),
@@ -222,6 +225,10 @@ EXCEL_CONNECTOR = ConnectorDefinition(
             "Absolute path or workspace-relative path. A folder scans matching files.",
             required=True, placeholder="data/sheets",
         ),
+        ConnectorField(
+            "sheet_name", "Sheet name", "connection", "text",
+            "Name of the sheet in the Excel workbook.", default="Sheet1", required=True, placeholder="Sheet1",
+        ),
         ConnectorField("file_pattern", "File name filter", "connection", "text",
                        "Glob pattern applied inside a folder. Use ** for nested folders.",
                        default="*.xlsx", placeholder="sales-*.xlsx", advanced=True),
@@ -231,8 +238,6 @@ EXCEL_CONNECTOR = ConnectorDefinition(
                        "Optional list of additional files with the same schema.", advanced=True),
         ConnectorField("exclude_patterns", "Exclude patterns", "connection", "list",
                        "Optional glob patterns to omit from the selected files.", advanced=True),
-        ConnectorField("sheet_name", "Sheet name", "read", "text",
-                       "Name of the sheet to read. Leave blank for the active or first sheet."),
         ConnectorField("has_header", "First row contains column names", "read", "boolean",
                        "Treat the first row of data as column headers.", True),
         ConnectorField("header_row", "Header row number", "read", "number",

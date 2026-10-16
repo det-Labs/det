@@ -787,16 +787,16 @@ function connectionEditor(connection = null, folderId = null) {
     const wasDestination = dialogForm.elements.namedItem("is_destination")?.checked ?? Boolean(connection?.is_destination);
     const descriptor = (field) => renderConnectorField(field, connection?.options || {});
 
-    // Categorize fields by section
-    const connFields = selected.fields.filter((field) => field.section === "connection");
-    const coreConnFields = connFields.filter((field) => !field.advanced);
-    const advConnFields = connFields.filter((field) => field.advanced);
+    // Mandatory connector fields appear on General tab; all non-mandatory move under Options tab
+    const mandatoryFields = selected.fields.filter((field) => field.required);
+    const optionalFields = selected.fields.filter((field) => !field.required);
 
-    const readFields = selected.fields.filter((field) => field.section === "read");
+    const fileMatchingFields = optionalFields.filter((field) => field.section === "connection");
+    const readFields = optionalFields.filter((field) => field.section === "read");
     const coreReadFields = readFields.filter((field) => !field.advanced);
     const advReadFields = readFields.filter((field) => field.advanced);
 
-    const writeFields = selected.fields.filter((field) => field.section === "write");
+    const writeFields = optionalFields.filter((field) => field.section === "write");
     const coreWriteFields = writeFields.filter((field) => !field.advanced);
     const advWriteFields = writeFields.filter((field) => field.advanced);
 
@@ -805,14 +805,22 @@ function connectionEditor(connection = null, folderId = null) {
       return val !== undefined && val !== null && val !== "" && val !== field.default;
     };
 
-    const advConnConfiguredCount = advConnFields.filter(isFieldConfigured).length;
+    const fileMatchConfiguredCount = fileMatchingFields.filter(isFieldConfigured).length;
     const readConfiguredCount = readFields.filter(isFieldConfigured).length;
+    const advReadConfiguredCount = advReadFields.filter(isFieldConfigured).length;
     const writeConfiguredCount = writeFields.filter(isFieldConfigured).length;
+    const advWriteConfiguredCount = advWriteFields.filter(isFieldConfigured).length;
     const schemaCount = (connection?.columns || []).length;
 
+    const totalOptionsConfiguredCount = fileMatchConfiguredCount + (wasSource ? readConfiguredCount : 0) + (wasDestination ? writeConfiguredCount : 0);
+
     // Validate active tab
-    if (activeConnectionTab === "read" && !wasSource) activeConnectionTab = "general";
-    if (activeConnectionTab === "write" && !wasDestination) activeConnectionTab = "general";
+    if (!["general", "options", "schema", "preview"].includes(activeConnectionTab)) {
+      activeConnectionTab = "general";
+    }
+    if (activeConnectionTab === "preview" && !wasSource && !wasDestination) {
+      activeConnectionTab = "general";
+    }
 
     // 1. Tab Bar
     const tabsHtml = `
@@ -820,22 +828,14 @@ function connectionEditor(connection = null, folderId = null) {
         <button type="button" class="conn-dialog-tab ${activeConnectionTab === "general" ? "active" : ""}" data-tab="general" role="tab" aria-selected="${activeConnectionTab === "general"}">
           <span>General</span>
         </button>
-        ${wasSource ? `
-          <button type="button" class="conn-dialog-tab ${activeConnectionTab === "read" ? "active" : ""}" data-tab="read" role="tab" aria-selected="${activeConnectionTab === "read"}">
-            <span>Read Options (${escapeHtml(selected.label)})</span>
-            ${readConfiguredCount > 0 ? `<span class="conn-tab-badge">${readConfiguredCount}</span>` : ""}
-          </button>
-        ` : ""}
+        <button type="button" class="conn-dialog-tab ${activeConnectionTab === "options" ? "active" : ""}" data-tab="options" role="tab" aria-selected="${activeConnectionTab === "options"}" title="Connector options and advanced settings">
+          <span>Options</span>
+          ${totalOptionsConfiguredCount > 0 ? `<span class="conn-tab-badge">${totalOptionsConfiguredCount}</span>` : ""}
+        </button>
         <button type="button" class="conn-dialog-tab ${activeConnectionTab === "schema" ? "active" : ""}" data-tab="schema" role="tab" aria-selected="${activeConnectionTab === "schema"}">
           <span>Schema &amp; Types</span>
           ${schemaCount > 0 ? `<span class="conn-tab-badge">${schemaCount} cols</span>` : ""}
         </button>
-        ${wasDestination ? `
-          <button type="button" class="conn-dialog-tab ${activeConnectionTab === "write" ? "active" : ""}" data-tab="write" role="tab" aria-selected="${activeConnectionTab === "write"}">
-            <span>Write Options (${escapeHtml(selected.label)})</span>
-            ${writeConfiguredCount > 0 ? `<span class="conn-tab-badge">${writeConfiguredCount}</span>` : ""}
-          </button>
-        ` : ""}
         ${wasSource ? `
           <button type="button" class="conn-dialog-tab ${activeConnectionTab === "preview" ? "active" : ""}" data-tab="preview" role="tab" aria-selected="${activeConnectionTab === "preview"}">
             <span>Data Preview</span>
@@ -849,7 +849,7 @@ function connectionEditor(connection = null, folderId = null) {
       </div>
     `;
 
-    // 2. General Panel
+    // 2. General Panel (Base fields + Connector mandatory fields + Description)
     const generalPanelHtml = `
       <div class="conn-dialog-tab-panel" data-panel="general" role="tabpanel" ${activeConnectionTab === "general" ? "" : "hidden"}>
         <div class="form-grid">
@@ -866,49 +866,101 @@ function connectionEditor(connection = null, folderId = null) {
             <label><input name="is_source" type="checkbox" ${connection?.is_source !== false ? "checked" : ""}> Source</label>
             <label><input name="is_destination" type="checkbox" ${connection?.is_destination ? "checked" : ""}> Destination</label>
           </div></div>
-          ${coreConnFields.map(descriptor).join("")}
+          ${mandatoryFields.map(descriptor).join("")}
           ${textField("description", "Description", connection?.description || "", "What data does this connection represent?", { multiline: true })}
         </div>
-        ${advConnFields.length ? `
-          <details class="connector-advanced"${advConnConfiguredCount > 0 ? " open" : ""}>
-            <summary class="advanced-summary">
-              <span class="advanced-title">
-                <svg class="advanced-chevron" viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3l5 5-5 5"/></svg>
-                Advanced connection &amp; file matching settings
-              </span>
-              ${advConnConfiguredCount > 0 ? `<span class="advanced-badge">${advConnConfiguredCount} customized</span>` : `<span class="advanced-hint">Optional</span>`}
-            </summary>
-            <div class="form-grid advanced-grid">${advConnFields.map(descriptor).join("")}</div>
-          </details>` : ""}
       </div>
     `;
 
-    // 3. Read Panel
-    const readAdvConfiguredCount = advReadFields.filter(isFieldConfigured).length;
-    const readPanelHtml = wasSource ? `
-      <div class="conn-dialog-tab-panel" data-panel="read" role="tabpanel" ${activeConnectionTab === "read" ? "" : "hidden"}>
+    // 3. Options Panel (All non-mandatory fields organized into collapsibles)
+    const optionsPanelHtml = `
+      <div class="conn-dialog-tab-panel" data-panel="options" role="tabpanel" ${activeConnectionTab === "options" ? "" : "hidden"}>
         <div class="conn-tab-intro">
-          Configure how <strong>${escapeHtml(selected.label)}</strong> files are scanned and parsed by the execution engine.
+          Optional connection, parsing, and destination settings for <strong>${escapeHtml(selected.label)}</strong>.
         </div>
-        ${coreReadFields.length ? `<div class="form-grid">${coreReadFields.map(descriptor).join("")}</div>` : ""}
-        ${advReadFields.length ? (
-          coreReadFields.length === 0
-            ? `<div class="form-grid">${advReadFields.map(descriptor).join("")}</div>`
-            : `
-            <details class="connector-advanced"${readAdvConfiguredCount > 0 ? " open" : ""}>
-              <summary class="advanced-summary">
-                <span class="advanced-title">
-                  <svg class="advanced-chevron" viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3l5 5-5 5"/></svg>
-                  Advanced ${escapeHtml(selected.label)} read settings
-                </span>
-                ${readAdvConfiguredCount > 0 ? `<span class="advanced-badge">${readAdvConfiguredCount} customized</span>` : `<span class="advanced-hint">Optional</span>`}
-              </summary>
-              <div class="form-grid advanced-grid">${advReadFields.map(descriptor).join("")}</div>
-            </details>`
-        ) : ""}
-        ${!readFields.length ? `<p class="field-help">No additional read settings required for ${escapeHtml(selected.label)}.</p>` : ""}
+
+        ${fileMatchingFields.length ? `
+          <details class="connector-advanced options-section"${fileMatchConfiguredCount > 0 ? " open" : ""}>
+            <summary class="advanced-summary">
+              <span class="advanced-title">
+                <svg class="advanced-chevron" viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3l5 5-5 5"/></svg>
+                File Discovery &amp; Matching
+              </span>
+              ${fileMatchConfiguredCount > 0 ? `<span class="advanced-badge">${fileMatchConfiguredCount} customized</span>` : `<span class="advanced-hint">Optional</span>`}
+            </summary>
+            <div class="form-grid advanced-grid">${fileMatchingFields.map(descriptor).join("")}</div>
+          </details>` : ""}
+
+        ${wasSource && readFields.length ? `
+          <details class="connector-advanced options-section"${(readConfiguredCount > 0 || wasSource) ? " open" : ""}>
+            <summary class="advanced-summary">
+              <span class="advanced-title">
+                <svg class="advanced-chevron" viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3l5 5-5 5"/></svg>
+                ${escapeHtml(selected.label)} Read &amp; Parsing Options
+              </span>
+              ${readConfiguredCount > 0 ? `<span class="advanced-badge">${readConfiguredCount} customized</span>` : `<span class="advanced-hint">Optional</span>`}
+            </summary>
+            <div class="form-grid advanced-grid">
+              ${coreReadFields.length ? coreReadFields.map(descriptor).join("") : ""}
+              ${advReadFields.length ? (
+                coreReadFields.length === 0
+                  ? advReadFields.map(descriptor).join("")
+                  : `
+                  <details class="connector-advanced-inner"${advReadConfiguredCount > 0 ? " open" : ""}>
+                    <summary class="advanced-summary-inner">
+                      <span class="advanced-title">
+                        <svg class="advanced-chevron" viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3l5 5-5 5"/></svg>
+                        Advanced read settings
+                      </span>
+                      ${advReadConfiguredCount > 0 ? `<span class="advanced-badge">${advReadConfiguredCount} customized</span>` : `<span class="advanced-hint">Optional</span>`}
+                    </summary>
+                    <div class="form-grid advanced-grid" style="margin-top: 8px;">${advReadFields.map(descriptor).join("")}</div>
+                  </details>`
+              ) : ""}
+            </div>
+          </details>` : ""}
+
+        ${wasDestination && writeFields.length ? `
+          <details class="connector-advanced options-section"${(writeConfiguredCount > 0 || (!wasSource && wasDestination)) ? " open" : ""}>
+            <summary class="advanced-summary">
+              <span class="advanced-title">
+                <svg class="advanced-chevron" viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3l5 5-5 5"/></svg>
+                ${escapeHtml(selected.label)} Write &amp; Output Options
+              </span>
+              ${writeConfiguredCount > 0 ? `<span class="advanced-badge">${writeConfiguredCount} customized</span>` : `<span class="advanced-hint">Optional</span>`}
+            </summary>
+            <div class="form-grid advanced-grid">
+              ${coreWriteFields.length ? coreWriteFields.map(descriptor).join("") : ""}
+              ${advWriteFields.length ? (
+                coreWriteFields.length === 0
+                  ? advWriteFields.map(descriptor).join("")
+                  : `
+                  <details class="connector-advanced-inner"${advWriteConfiguredCount > 0 ? " open" : ""}>
+                    <summary class="advanced-summary-inner">
+                      <span class="advanced-title">
+                        <svg class="advanced-chevron" viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3l5 5-5 5"/></svg>
+                        Advanced write &amp; encoding settings (${advWriteFields.length} options)
+                      </span>
+                      ${advWriteConfiguredCount > 0 ? `<span class="advanced-badge">${advWriteConfiguredCount} customized</span>` : `<span class="advanced-hint">Optional</span>`}
+                    </summary>
+                    <div class="form-grid advanced-grid" style="margin-top: 8px;">${advWriteFields.map(descriptor).join("")}</div>
+                  </details>`
+              ) : ""}
+            </div>
+          </details>` : ""}
+
+        ${!wasSource && !wasDestination ? `
+          <div class="empty-state" style="padding: 20px; text-align: center;">
+            <strong>Select a role</strong>
+            <p>Enable 'Source' or 'Destination' on the General tab to configure read and write options.</p>
+          </div>
+        ` : ""}
+
+        ${(wasSource || wasDestination) && !fileMatchingFields.length && (!wasSource || !readFields.length) && (!wasDestination || !writeFields.length) ? `
+          <p class="field-help">No additional options required for ${escapeHtml(selected.label)}.</p>
+        ` : ""}
       </div>
-    ` : "";
+    `;
 
     // 4. Schema Panel
     const schemaPanelHtml = `
@@ -928,41 +980,14 @@ function connectionEditor(connection = null, folderId = null) {
       </div>
     `;
 
-    // 5. Write Panel
-    const writeAdvConfiguredCount = advWriteFields.filter(isFieldConfigured).length;
-    const writePanelHtml = wasDestination ? `
-      <div class="conn-dialog-tab-panel" data-panel="write" role="tabpanel" ${activeConnectionTab === "write" ? "" : "hidden"}>
-        <div class="conn-tab-intro">
-          Configure destination output location, write mode, compression, and partitioning when exporting to <strong>${escapeHtml(selected.label)}</strong>.
-        </div>
-        ${coreWriteFields.length ? `<div class="form-grid">${coreWriteFields.map(descriptor).join("")}</div>` : ""}
-        ${advWriteFields.length ? (
-          coreWriteFields.length === 0
-            ? `<div class="form-grid">${advWriteFields.map(descriptor).join("")}</div>`
-            : `
-            <details class="connector-advanced"${writeAdvConfiguredCount > 0 ? " open" : ""}>
-              <summary class="advanced-summary">
-                <span class="advanced-title">
-                  <svg class="advanced-chevron" viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3l5 5-5 5"/></svg>
-                  Advanced ${escapeHtml(selected.label)} write settings
-                </span>
-                ${writeAdvConfiguredCount > 0 ? `<span class="advanced-badge">${writeAdvConfiguredCount} customized</span>` : `<span class="advanced-hint">Optional</span>`}
-              </summary>
-              <div class="form-grid advanced-grid">${advWriteFields.map(descriptor).join("")}</div>
-            </details>`
-        ) : ""}
-        ${!writeFields.length ? `<p class="field-help">No additional write settings required for ${escapeHtml(selected.label)}.</p>` : ""}
-      </div>
-    ` : "";
-
-    // 6. Preview Panel (Data Preview or Target Specs)
+    // 5. Preview Panel (Data Preview or Target Specs)
     const previewPanelHtml = `
       <div class="conn-dialog-tab-panel" data-panel="preview" role="tabpanel" ${activeConnectionTab === "preview" ? "" : "hidden"}>
       </div>
     `;
 
     // Inject HTML
-    dialogFields.innerHTML = `${tabsHtml}${generalPanelHtml}${readPanelHtml}${schemaPanelHtml}${writePanelHtml}${previewPanelHtml}`;
+    dialogFields.innerHTML = `${tabsHtml}${generalPanelHtml}${optionsPanelHtml}${schemaPanelHtml}${previewPanelHtml}`;
 
     const renderPreviewPanelContent = () => {
       const panelEl = dialogFields.querySelector('.conn-dialog-tab-panel[data-panel="preview"]');
