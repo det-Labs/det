@@ -727,8 +727,22 @@ function connectionEditor(connection = null, folderId = null) {
       if (section === "write" && !wasDestination) return "";
       const sectionFields = selected.fields.filter((field) => field.section === section);
       if (!sectionFields.length) return "";
-      return `<fieldset class="connector-fieldset"><legend>${section === "connection" ? "Connection options" : section === "read" ? "Read options" : "Write options"}</legend>
-        <div class="form-grid">${sectionFields.map(descriptor).join("")}</div></fieldset>`;
+
+      const basicFields = sectionFields.filter((f) => !f.advanced);
+      const advancedFields = sectionFields.filter((f) => f.advanced);
+
+      let html = `<fieldset class="connector-fieldset"><legend>${section === "connection" ? "Connection options" : section === "read" ? "Read options" : "Write options"}</legend>`;
+      if (basicFields.length > 0) {
+        html += `<div class="form-grid">${basicFields.map(descriptor).join("")}</div>`;
+      }
+      if (advancedFields.length > 0) {
+        html += `<details class="advanced-options">
+          <summary>Advanced options</summary>
+          <div class="form-grid">${advancedFields.map(descriptor).join("")}</div>
+        </details>`;
+      }
+      html += `</fieldset>`;
+      return html;
     }).join("")}
     ${connection ? `<fieldset class="connector-fieldset"><legend>Saved schema (optional)</legend>
       <p class="field-help">One column per line as <code>name:type</code>. Inferred column descriptions are preserved.</p>

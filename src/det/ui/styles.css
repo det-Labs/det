@@ -4656,3 +4656,51 @@ details[open] > .etl-accordion-summary .accordion-chevron {
   color: #f8fafc;
 }
 
+
+/* Advanced Options Collapsible */
+.advanced-options {
+  margin-top: 14px;
+}
+
+.advanced-options summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  user-select: none;
+  list-style: none;
+  padding: 4px 0;
+  transition: color 150ms ease;
+}
+
+.advanced-options summary::-webkit-details-marker {
+  display: none;
+}
+
+.advanced-options summary::before {
+  content: "";
+  display: inline-block;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 4px 0 4px 6px;
+  border-color: transparent transparent transparent currentColor;
+  transition: transform 150ms ease;
+}
+
+.advanced-options[open] summary::before {
+  transform: rotate(90deg);
+}
+
+.advanced-options summary:hover {
+  color: var(--text);
+}
+
+.advanced-options > .form-grid {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--line);
+}
