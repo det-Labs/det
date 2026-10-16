@@ -2032,6 +2032,12 @@ p {
   opacity: 0.65;
 }
 
+.preview-action-btn:disabled,
+.preview-action-btn.is-disabled {
+  cursor: not-allowed !important;
+  opacity: 0.45 !important;
+}
+
 /* --- ETL & Monitoring Module Styles --- */
 
 .content-inner:has(.etl-module:not([hidden])),

@@ -1079,6 +1079,26 @@ function connectionEditor(connection = null, folderId = null) {
 
     renderPreviewPanelContent();
 
+    const updatePreviewButtonState = () => {
+      if (!dialogPreviewBtn) return;
+      const form = dialogForm;
+      const isSource = Boolean(form.elements.namedItem("is_source")?.checked ?? wasSource);
+      if (!isSource || activeConnectionTab === "preview") {
+        dialogPreviewBtn.hidden = true;
+      } else {
+        dialogPreviewBtn.hidden = false;
+      }
+
+      const pathVal = String(form.elements.namedItem("option:path")?.value || "").trim();
+      const hasPath = Boolean(pathVal);
+      dialogPreviewBtn.disabled = !hasPath;
+      if (!hasPath) {
+        dialogPreviewBtn.title = "Specify a file path in the General tab to preview data";
+      } else {
+        dialogPreviewBtn.title = "Preview up to 25 sample rows";
+      }
+    };
+
     const switchTab = (targetTab) => {
       activeConnectionTab = targetTab;
       const tabButtons = dialogFields.querySelectorAll(".conn-dialog-tab");
@@ -1092,14 +1112,7 @@ function connectionEditor(connection = null, folderId = null) {
         p.hidden = p.dataset.panel !== activeConnectionTab;
       });
 
-      // Update footer preview button visibility (hide when on preview tab)
-      if (dialogPreviewBtn) {
-        if (!wasSource || activeConnectionTab === "preview") {
-          dialogPreviewBtn.hidden = true;
-        } else {
-          dialogPreviewBtn.hidden = false;
-        }
-      }
+      updatePreviewButtonState();
     };
 
     async function executeAdhocPreview() {
@@ -1201,9 +1214,21 @@ function connectionEditor(connection = null, folderId = null) {
 
     // Wire footer preview button
     if (dialogPreviewBtn) {
-      dialogPreviewBtn.hidden = !wasSource || activeConnectionTab === "preview";
       dialogPreviewBtn.onclick = executeAdhocPreview;
+      updatePreviewButtonState();
     }
+
+    dialogForm.addEventListener("input", (e) => {
+      if (e.target.name === "option:path" || e.target.name === "is_source") {
+        updatePreviewButtonState();
+      }
+    });
+
+    dialogForm.addEventListener("change", (e) => {
+      if (e.target.name === "option:path" || e.target.name === "is_source") {
+        updatePreviewButtonState();
+      }
+    });
 
     // Keyboard Arrow navigation between tabs
     dialogFields.querySelector(".conn-dialog-tabs")?.addEventListener("keydown", (event) => {
@@ -1232,6 +1257,9 @@ function connectionEditor(connection = null, folderId = null) {
       if (control.type === "checkbox") control.checked = Boolean(value);
       else control.value = value;
     }
+
+    // Refresh button state after values are restored
+    updatePreviewButtonState();
   };
 
   openEditor({
