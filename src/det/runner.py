@@ -13,7 +13,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from det.catalog import CatalogStore
+from det.catalog import CatalogStore, resolve_connection_options
 from det.connectors import (
     CSV_CONNECTOR,
     DELTA_CONNECTOR,
@@ -124,10 +124,11 @@ class PipelineRunner:
                 if conn.get("is_source"):
                     registered_source_names.add(conn_name)
                     try:
+                        resolved_options = resolve_connection_options(conn, catalog_doc)
                         df = scan_builtin(
                             context,
                             conn["connector"],
-                            conn["options"],
+                            resolved_options,
                             self.workspace,
                             saved_columns=conn.get("columns") or None,
                         )
@@ -181,6 +182,7 @@ class PipelineRunner:
                             dest_conn,
                             step_df,
                             arrow_table,
+                            catalog_doc,
                         )
                         step_record.destinations.append(dest_metric)
 
@@ -229,12 +231,14 @@ class PipelineRunner:
         dest_conn: dict[str, Any],
         df: Any,
         arrow_table: Any,
+        catalog_doc: dict[str, Any] | None = None,
     ) -> DestinationWriteMetric:
         """Write DataFrame/Arrow Table to destination with minimal overhead."""
         start_write = time.perf_counter()
         write_started_iso = _utcnow_iso()
 
-        options = resolve_env_vars(dest_conn.get("options", {}), self.workspace)
+        resolved = resolve_connection_options(dest_conn, catalog_doc)
+        options = resolve_env_vars(resolved, self.workspace)
         connector_guid = dest_conn.get("connector", "")
 
         # 0. PostgreSQL Destination via Apache Arrow ADBC

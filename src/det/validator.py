@@ -7,7 +7,7 @@ import re
 from pathlib import Path
 from typing import Any
 
-from det.catalog import CatalogStore
+from det.catalog import CatalogStore, resolve_connection_options
 from det.connectors import scan_builtin
 from det.engine import create_session_context, run_sql
 from det.pipeline import Pipeline, PipelineStep
@@ -63,10 +63,11 @@ class PipelineValidator:
                 if conn.get("is_source"):
                     available_tables.append(conn["name"])
                     try:
+                        resolved_options = resolve_connection_options(conn, catalog_doc)
                         df = scan_builtin(
                             context,
                             conn["connector"],
-                            conn["options"],
+                            resolved_options,
                             self.workspace,
                             saved_columns=conn.get("columns") or None,
                         )

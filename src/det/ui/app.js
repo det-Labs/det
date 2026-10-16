@@ -573,10 +573,11 @@ function renderConnectionRow(connection) {
   const connector = connectors.find((item) => item.id === connection.connector);
   const selected = selectedConnectionId === connection.id;
   const roles = [connection.is_source && "Source", connection.is_destination && "Destination"].filter(Boolean).join(" · ");
+  const profileLabel = connection.profile ? ` · 🏷️ ${escapeHtml(connection.profile)}` : "";
   return `<div class="tree-row connection-row${selected ? " is-selected" : ""}" role="treeitem">
     <span class="tree-item-icon">${svg.connection}</span>
     <button class="tree-label connection-select" type="button" data-connection-id="${escapeHtml(connection.id)}" aria-pressed="${selected}">
-      <span>${escapeHtml(connection.name)}</span><small>${escapeHtml(connector?.label || "Connector")} · ${roles}</small>
+      <span>${escapeHtml(connection.name)}</span><small>${escapeHtml(connector?.label || "Connector")} · ${roles}${profileLabel}</small>
     </button>
     <span class="tree-actions">
       <button class="icon-button tree-action" type="button" title="Edit connection" aria-label="Edit connection ${escapeHtml(connection.name)}" data-action="edit-connection" data-connection-id="${escapeHtml(connection.id)}">${svg.edit}</button>
@@ -593,11 +594,13 @@ function renderCatalogSummary() {
   })));
   const sources = connections.filter((connection) => connection.is_source).length;
   const destinations = connections.filter((connection) => connection.is_destination).length;
+  const profilesCount = (activeCatalog.catalog.profiles || []).length;
   catalogSummary.innerHTML = `
     <div class="summary-card"><span class="summary-label">FOLDERS</span><strong>${folders.length}</strong><span class="summary-caption">Organized in this catalog</span></div>
     <div class="summary-card"><span class="summary-label">CONNECTIONS</span><strong>${connections.length}</strong><span class="summary-caption">Reusable data locations</span></div>
     <div class="summary-card"><span class="summary-label">SOURCES</span><strong>${sources}</strong><span class="summary-caption">Available to read</span></div>
     <div class="summary-card"><span class="summary-label">DESTINATIONS</span><strong>${destinations}</strong><span class="summary-caption">Available to write</span></div>
+    ${profilesCount > 0 ? `<div class="summary-card"><span class="summary-label">PROFILES</span><strong>${profilesCount}</strong><span class="summary-caption">Reusable credentials</span></div>` : ""}
     ${renderConnectionTable(connections, true)}`;
 }
 
@@ -844,16 +847,104 @@ function connectionEditor(connection = null, folderId = null) {
       </div>
     `;
 
+    const isDbConnector = selected.key === "postgresql";
+    const availableProfiles = (activeCatalog.catalog.profiles || []).filter(
+      (p) => p.connector === selected.id || p.connector === selected.key
+    );
+
+    const profileHeaderHtml = isDbConnector ? (connection?.profile ? `
+      <div class="profile-badge-box" style="grid-column: 1 / -1; padding: 10px 14px; background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 6px; margin-bottom: 4px;">
+        <span style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: #38bdf8; font-weight: 600;">Connection Profile</span>
+        <div style="font-weight: 600; font-size: 14px; color: #f1f5f9; margin-top: 2px;">🏷️ ${escapeHtml(connection.profile)}</div>
+        <small style="color: var(--color-muted);">Database host, port, credentials, and SSL settings are inherited from this profile.</small>
+      </div>
+    ` : `
+      <div class="profile-selector-box" style="grid-column: 1 / -1; margin-bottom: 4px;">
+        <label class="form-field" style="margin: 0;">
+          <span>Connection Profile (Credentials)</span>
+          <select name="profile_selector" id="profile-selector">
+            <option value="">-- [Standalone / Enter credentials manually] --</option>
+            ${availableProfiles.map((p) => `<option value="${escapeHtml(p.id)}" data-name="${escapeHtml(p.name)}">${escapeHtml(p.name)} (${escapeHtml(p.options.database || p.options.host || "Profile")})</option>`).join("")}
+            <option value="__new__">+ Create new reusable profile...</option>
+          </select>
+          <small style="margin-top: 3px;">Save or reuse database credentials across multiple tables.</small>
+        </label>
+        <div id="new-profile-name-container" hidden style="margin-top: 8px;">
+          <label class="form-field" style="margin: 0;">
+            <span>New Profile Name *</span>
+            <input type="text" id="new-profile-name-input" name="new_profile_name" placeholder="e.g. rnacentral_db" class="form-control" pattern="[A-Za-z][A-Za-z0-9_]{0,99}">
+            <small>Credentials entered below will be saved under this profile for reuse by other tables.</small>
+          </label>
+        </div>
+      </div>
+    `) : "";
+
+    const dbTestActionHtml = isDbConnector ? `
+      <div class="db-test-action-bar" style="grid-column: 1 / -1; display: flex; gap: 12px; align-items: center; margin-top: 2px; margin-bottom: 6px; padding: 6px 0;">
+        <button type="button" class="secondary-button" id="test-connection-btn" style="display: inline-flex; align-items: center; gap: 6px; font-weight: 500;">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+          <span>Test Connection</span>
+        </button>
+        <span id="test-connection-status" style="font-size: 12px; color: var(--color-muted);">Check if database host is reachable</span>
+      </div>
+    ` : "";
+
+    const bulkImportSectionHtml = isDbConnector && !connection ? `
+      <details class="connector-advanced options-section" style="grid-column: 1 / -1;" open>
+        <summary class="advanced-summary">
+          <span class="advanced-title">
+            <svg class="advanced-chevron" viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3l5 5-5 5"/></svg>
+            Bulk Import Tables &amp; Destination Sinks
+          </span>
+          <span class="advanced-hint">Select multiple tables at once</span>
+        </summary>
+        <div style="padding: 12px; display: flex; flex-direction: column; gap: 12px;">
+          <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+            <button type="button" class="secondary-button" id="bulk-discover-btn" style="display: inline-flex; align-items: center; gap: 6px; font-weight: 500;">
+              <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="7" cy="7" r="5"/><path d="m11 11 4 4"/></svg>
+              <span>Discover Tables from Database</span>
+            </button>
+            <span id="bulk-discover-status" style="font-size: 12px; color: var(--color-muted);">Scan schemas &amp; tables via ADBC</span>
+          </div>
+
+          <div id="bulk-tables-container" hidden style="display: flex; flex-direction: column; gap: 10px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;">
+              <input type="text" id="bulk-table-filter" placeholder="Filter tables (e.g. rna)..." class="form-control" style="max-width: 260px; font-size: 12px; padding: 5px 8px;">
+              <div style="display: flex; gap: 8px;">
+                <button type="button" class="compact-btn" id="bulk-select-all-src">Select All Sources</button>
+                <button type="button" class="compact-btn" id="bulk-clear-all">Clear All</button>
+              </div>
+            </div>
+
+            <div id="bulk-tables-list" style="max-height: 220px; overflow-y: auto; border: 1px solid var(--color-border, rgba(255,255,255,0.1)); border-radius: 6px; background: rgba(0,0,0,0.15);">
+            </div>
+
+            <details style="margin-top: 4px; border: 1px dashed var(--color-border, rgba(255,255,255,0.15)); border-radius: 6px; padding: 10px;">
+              <summary style="cursor: pointer; font-size: 13px; font-weight: 500; color: #38bdf8;">
+                + Add Destinations that do not exist yet
+              </summary>
+              <div style="margin-top: 8px;">
+                <p style="font-size: 11px; color: var(--color-muted); margin-bottom: 8px;">Define target tables to write pipeline results back into this database.</p>
+                <div id="new-destinations-rows" style="display: flex; flex-direction: column; gap: 6px;"></div>
+                <button type="button" class="compact-btn" id="add-new-dest-row-btn" style="margin-top: 8px;">+ Add Destination Table</button>
+              </div>
+            </details>
+          </div>
+        </div>
+      </details>
+    ` : "";
+
     // 2. General Panel (Base fields + Connector mandatory fields + Description)
     const generalPanelHtml = `
       <div class="conn-dialog-tab-panel" data-panel="general" role="tabpanel" ${activeConnectionTab === "general" ? "" : "hidden"}>
         <div class="form-grid">
+          ${profileHeaderHtml}
           ${textField("name", "Connection name", connection?.name || "", "e.g. DailySales_01", {
             required: true,
-            maxlength: 30,
-            pattern: "[A-Za-z][A-Za-z0-9_]{0,29}",
-            title: "Start with a letter; use only letters, numbers, and underscores (maximum 30 characters).",
-            help: "SQL identifier: starts with a letter; only letters, numbers, and underscores; maximum 30 characters.",
+            maxlength: 100,
+            pattern: "[A-Za-z][A-Za-z0-9_]{0,99}",
+            title: "Start with a letter; use only letters, numbers, and underscores (maximum 100 characters).",
+            help: "SQL identifier: starts with a letter; only letters, numbers, and underscores; maximum 100 characters.",
           })}
           <label class="form-field"><span>Folder *</span><select name="folder_id">${activeCatalog.catalog.folders.map((folder) => `<option value="${escapeHtml(folder.id)}" ${folder.id === initialFolder ? "selected" : ""}>${escapeHtml(folder.name)}</option>`).join("")}</select></label>
           <label class="form-field"><span>Connector *</span><select name="connector">${connectors.map((item) => `<option value="${escapeHtml(item.id)}" ${item.id === selected.id ? "selected" : ""}>${escapeHtml(item.label)}</option>`).join("")}</select></label>
@@ -862,6 +953,8 @@ function connectionEditor(connection = null, folderId = null) {
             <label><input name="is_destination" type="checkbox" ${connection?.is_destination ? "checked" : ""}> Destination</label>
           </div></div>
           ${mandatoryFields.map(descriptor).join("")}
+          ${dbTestActionHtml}
+          ${bulkImportSectionHtml}
           ${textField("description", "Description", connection?.description || "", "What data does this connection represent?", { multiline: true })}
         </div>
       </div>
@@ -1247,7 +1340,250 @@ function connectionEditor(connection = null, folderId = null) {
       updatePreviewButtonState();
     }
 
-    // Wire Database Table Discovery
+    // Wire Profile Selector
+    const profileSel = dialogFields.querySelector("#profile-selector");
+    const newProfContainer = dialogFields.querySelector("#new-profile-name-container");
+    if (profileSel) {
+      profileSel.addEventListener("change", () => {
+        const val = profileSel.value;
+        if (val === "__new__") {
+          if (newProfContainer) newProfContainer.hidden = false;
+        } else {
+          if (newProfContainer) newProfContainer.hidden = true;
+          if (val) {
+            const prof = (activeCatalog.catalog.profiles || []).find((p) => p.id === val || p.name === val);
+            if (prof?.options) {
+              const form = dialogForm;
+              for (const [k, v] of Object.entries(prof.options)) {
+                const inp = form.elements.namedItem(`option:${k}`);
+                if (inp) {
+                  if (inp.type === "checkbox") inp.checked = Boolean(v);
+                  else inp.value = v;
+                }
+              }
+              showNotification(`Loaded credentials from profile '${prof.name}'`);
+            }
+          }
+        }
+      });
+    }
+
+    // Wire Test Connection
+    const testConnBtn = dialogFields.querySelector("#test-connection-btn");
+    if (testConnBtn) {
+      testConnBtn.addEventListener("click", async () => {
+        const form = dialogForm;
+        const host = form.elements.namedItem("option:host")?.value?.trim();
+        const db = form.elements.namedItem("option:database")?.value?.trim();
+        const uri = form.elements.namedItem("option:uri")?.value?.trim();
+        const statusEl = dialogFields.querySelector("#test-connection-status");
+        if (!uri && (!host || !db)) {
+          showNotification("Please specify Host and Database first.");
+          return;
+        }
+        testConnBtn.disabled = true;
+        testConnBtn.innerHTML = `<span class="spinner" aria-hidden="true" style="width:14px;height:14px;"></span> <span>Testing...</span>`;
+        try {
+          const res = await api("/api/catalog/test-connection", {
+            method: "POST",
+            body: JSON.stringify({
+              connector: selected.id,
+              options: {
+                host,
+                port: form.elements.namedItem("option:port")?.value,
+                database: db,
+                user: form.elements.namedItem("option:user")?.value,
+                password: form.elements.namedItem("option:password")?.value,
+                sslmode: form.elements.namedItem("option:sslmode")?.value,
+                uri,
+              },
+            }),
+          });
+          testConnBtn.disabled = false;
+          testConnBtn.innerHTML = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg> <span>Test Connection</span>`;
+          if (res.success) {
+            statusEl.innerHTML = `<span style="color: #22c55e; font-weight: 500;">✓ ${escapeHtml(res.message || "Connected successfully!")} (${res.elapsed_ms}ms)</span>`;
+          } else {
+            statusEl.innerHTML = `<span style="color: #ef4444; font-size: 11px;">✗ ${escapeHtml(res.error || "Connection failed")}</span>`;
+          }
+        } catch (err) {
+          testConnBtn.disabled = false;
+          testConnBtn.innerHTML = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg> <span>Test Connection</span>`;
+          statusEl.innerHTML = `<span style="color: #ef4444; font-size: 11px;">✗ ${escapeHtml(err.message)}</span>`;
+        }
+      });
+    }
+
+    function updateBulkCount() {
+      const saveBtn = document.querySelector("#dialog-save");
+      if (!saveBtn) return;
+      const checkedSources = dialogFields.querySelectorAll(".bulk-src-check:checked").length;
+      const checkedDests = dialogFields.querySelectorAll(".bulk-dest-check:checked").length;
+      let validNewDests = 0;
+      dialogFields.querySelectorAll(".new-dest-row").forEach((row) => {
+        if (row.querySelector(".new-dest-table")?.value?.trim()) validNewDests++;
+      });
+      const total = checkedSources + checkedDests + validNewDests;
+      if (total > 0) {
+        saveBtn.textContent = `Import Selected (${total} tables)`;
+      } else {
+        saveBtn.textContent = connection ? "Save" : "Add connection";
+      }
+    }
+
+    // Wire Bulk Table Discovery
+    const bulkDiscoverBtn = dialogFields.querySelector("#bulk-discover-btn");
+    if (bulkDiscoverBtn) {
+      bulkDiscoverBtn.addEventListener("click", async () => {
+        const form = dialogForm;
+        const host = form.elements.namedItem("option:host")?.value?.trim();
+        const db = form.elements.namedItem("option:database")?.value?.trim();
+        const uri = form.elements.namedItem("option:uri")?.value?.trim();
+        const statusEl = dialogFields.querySelector("#bulk-discover-status");
+        const container = dialogFields.querySelector("#bulk-tables-container");
+        const listEl = dialogFields.querySelector("#bulk-tables-list");
+
+        if (!uri && (!host || !db)) {
+          showNotification("Please specify Host and Database first.");
+          return;
+        }
+
+        bulkDiscoverBtn.disabled = true;
+        bulkDiscoverBtn.innerHTML = `<span class="spinner" aria-hidden="true" style="width:14px;height:14px;"></span> <span>Scanning tables...</span>`;
+        if (statusEl) statusEl.textContent = "Connecting via Apache ADBC...";
+
+        try {
+          const res = await api("/api/catalog/discover-tables", {
+            method: "POST",
+            body: JSON.stringify({
+              connector: selected.id,
+              options: {
+                host,
+                port: form.elements.namedItem("option:port")?.value,
+                database: db,
+                user: form.elements.namedItem("option:user")?.value,
+                password: form.elements.namedItem("option:password")?.value,
+                sslmode: form.elements.namedItem("option:sslmode")?.value,
+                uri,
+              },
+            }),
+          });
+
+          if (res.success && res.tables?.length) {
+            bulkDiscoverBtn.disabled = false;
+            bulkDiscoverBtn.innerHTML = `<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="7" cy="7" r="5"/><path d="m11 11 4 4"/></svg> <span>Re-scan Tables</span>`;
+            if (statusEl) {
+              statusEl.innerHTML = `<span style="color: #22c55e; font-weight: 500;">✓ Discovered ${res.count} tables in ${res.elapsed_ms}ms</span>`;
+            }
+
+            let rowsHtml = "";
+            for (const t of res.tables) {
+              rowsHtml += `
+                <div class="bulk-table-row" data-schema="${escapeHtml(t.schema)}" data-name="${escapeHtml(t.name)}" style="display: flex; align-items: center; justify-content: space-between; padding: 6px 10px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 13px;">
+                  <div style="flex: 1; font-family: monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                    <span style="color: var(--color-muted);">${escapeHtml(t.schema)}.</span><strong>${escapeHtml(t.name)}</strong>
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 14px;">
+                    <label style="display: flex; align-items: center; gap: 4px; cursor: pointer; font-size: 12px; margin: 0;">
+                      <input type="checkbox" class="bulk-src-check" data-schema="${escapeHtml(t.schema)}" data-name="${escapeHtml(t.name)}">
+                      <span>Source</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 4px; cursor: pointer; font-size: 12px; margin: 0;">
+                      <input type="checkbox" class="bulk-dest-check" data-schema="${escapeHtml(t.schema)}" data-name="${escapeHtml(t.name)}">
+                      <span>Destination</span>
+                    </label>
+                    <select class="bulk-mode-select" data-schema="${escapeHtml(t.schema)}" data-name="${escapeHtml(t.name)}" disabled style="font-size: 11px; padding: 2px 4px; background: var(--color-surface, #1e293b); color: var(--color-text, #fff); border: 1px solid var(--color-border, rgba(255,255,255,0.2)); border-radius: 4px;">
+                      <option value="append">append</option>
+                      <option value="overwrite">overwrite</option>
+                    </select>
+                  </div>
+                </div>
+              `;
+            }
+            listEl.innerHTML = rowsHtml;
+            container.hidden = false;
+
+            listEl.querySelectorAll(".bulk-dest-check").forEach((chk) => {
+              chk.addEventListener("change", () => {
+                const row = chk.closest(".bulk-table-row");
+                const modeSel = row?.querySelector(".bulk-mode-select");
+                if (modeSel) modeSel.disabled = !chk.checked;
+                updateBulkCount();
+              });
+            });
+            listEl.querySelectorAll(".bulk-src-check").forEach((chk) => {
+              chk.addEventListener("change", updateBulkCount);
+            });
+          } else {
+            bulkDiscoverBtn.disabled = false;
+            bulkDiscoverBtn.innerHTML = `<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="7" cy="7" r="5"/><path d="m11 11 4 4"/></svg> <span>Discover Tables from Database</span>`;
+            if (statusEl) {
+              statusEl.innerHTML = `<span style="color: #ef4444; font-size: 11px;">✗ ${escapeHtml(res.error || "No tables found")}</span>`;
+            }
+          }
+        } catch (err) {
+          bulkDiscoverBtn.disabled = false;
+          bulkDiscoverBtn.innerHTML = `<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="7" cy="7" r="5"/><path d="m11 11 4 4"/></svg> <span>Discover Tables from Database</span>`;
+          if (statusEl) {
+            statusEl.innerHTML = `<span style="color: #ef4444; font-size: 11px;">✗ ${escapeHtml(err.message)}</span>`;
+          }
+        }
+      });
+
+      dialogFields.querySelector("#bulk-table-filter")?.addEventListener("input", (e) => {
+        const query = e.target.value.trim().toLowerCase();
+        dialogFields.querySelectorAll(".bulk-table-row").forEach((row) => {
+          const name = `${row.dataset.schema}.${row.dataset.name}`.toLowerCase();
+          row.style.display = name.includes(query) ? "flex" : "none";
+        });
+      });
+
+      dialogFields.querySelector("#bulk-select-all-src")?.addEventListener("click", () => {
+        dialogFields.querySelectorAll(".bulk-table-row").forEach((row) => {
+          if (row.style.display !== "none") {
+            const chk = row.querySelector(".bulk-src-check");
+            if (chk) chk.checked = true;
+          }
+        });
+        updateBulkCount();
+      });
+
+      dialogFields.querySelector("#bulk-clear-all")?.addEventListener("click", () => {
+        dialogFields.querySelectorAll(".bulk-src-check, .bulk-dest-check").forEach((chk) => {
+          chk.checked = false;
+        });
+        dialogFields.querySelectorAll(".bulk-mode-select").forEach((sel) => {
+          sel.disabled = true;
+        });
+        updateBulkCount();
+      });
+
+      dialogFields.querySelector("#add-new-dest-row-btn")?.addEventListener("click", () => {
+        const rowsContainer = dialogFields.querySelector("#new-destinations-rows");
+        if (!rowsContainer) return;
+        const rowDiv = document.createElement("div");
+        rowDiv.className = "new-dest-row";
+        rowDiv.style = "display: flex; gap: 8px; align-items: center;";
+        rowDiv.innerHTML = `
+          <input type="text" placeholder="schema" value="public" class="form-control new-dest-schema" style="flex: 1; font-size: 12px; padding: 4px 8px;">
+          <input type="text" placeholder="table name" class="form-control new-dest-table" style="flex: 1.5; font-size: 12px; padding: 4px 8px;">
+          <select class="form-control new-dest-mode" style="flex: 1; font-size: 12px; padding: 4px 8px; background: var(--color-surface, #1e293b); color: var(--color-text, #fff); border: 1px solid var(--color-border, rgba(255,255,255,0.2)); border-radius: 4px;">
+            <option value="append">append</option>
+            <option value="overwrite">overwrite</option>
+          </select>
+          <button type="button" class="icon-button remove-dest-row" title="Remove" style="padding: 4px; cursor: pointer;">✕</button>
+        `;
+        rowDiv.querySelector(".remove-dest-row")?.addEventListener("click", () => {
+          rowDiv.remove();
+          updateBulkCount();
+        });
+        rowDiv.querySelector(".new-dest-table")?.addEventListener("input", updateBulkCount);
+        rowsContainer.appendChild(rowDiv);
+        updateBulkCount();
+      });
+    }
+
+    // Wire Database Single Table Discovery (on Options Tab)
     const discoverBtn = dialogFields.querySelector("#discover-tables-btn");
     if (discoverBtn) {
       discoverBtn.addEventListener("click", async () => {
@@ -1415,10 +1751,141 @@ function connectionEditor(connection = null, folderId = null) {
         }
         if (value !== "" && value !== null) options[field.name] = value;
       }
+
+      // 1. Check if bulk tables or new destinations were selected
+      const selectedSources = [];
+      const selectedDests = [];
+      dialogFields.querySelectorAll(".bulk-src-check:checked").forEach((chk) => {
+        selectedSources.push({
+          schema: chk.dataset.schema,
+          name: chk.dataset.name,
+        });
+      });
+      dialogFields.querySelectorAll(".bulk-dest-check:checked").forEach((chk) => {
+        const row = chk.closest(".bulk-table-row");
+        const mode = row?.querySelector(".bulk-mode-select")?.value || "append";
+        selectedDests.push({
+          schema: chk.dataset.schema,
+          name: chk.dataset.name,
+          write_mode: mode,
+        });
+      });
+
+      const newDestRows = [];
+      dialogFields.querySelectorAll(".new-dest-row").forEach((row) => {
+        const sch = row.querySelector(".new-dest-schema")?.value?.trim() || "public";
+        const tbl = row.querySelector(".new-dest-table")?.value?.trim();
+        const mode = row.querySelector(".new-dest-mode")?.value || "append";
+        if (tbl) {
+          newDestRows.push({ schema: sch, name: tbl, write_mode: mode });
+        }
+      });
+
+      const hasBulk = selectedSources.length > 0 || selectedDests.length > 0 || newDestRows.length > 0;
+
+      // 2. Resolve Profile (if creating new or selecting existing)
+      let profileToUse = connection?.profile || null;
+      const profileSelector = dialogFields.querySelector("#profile-selector");
+      const profileVal = profileSelector?.value;
+      if (profileVal === "__new__") {
+        const newProfName = dialogFields.querySelector("#new-profile-name-input")?.value?.trim();
+        if (!newProfName) {
+          throw new Error("Please enter a name for the new connection profile.");
+        }
+        await api("/api/catalog/profiles", {
+          method: "POST",
+          body: JSON.stringify({
+            name: newProfName,
+            connector: connectorGuid,
+            options: {
+              host: options.host,
+              port: options.port,
+              database: options.database,
+              user: options.user,
+              password: options.password,
+              sslmode: options.sslmode,
+              uri: options.uri,
+            },
+          }),
+        });
+        profileToUse = newProfName;
+      } else if (profileVal) {
+        const prof = (activeCatalog.catalog.profiles || []).find((p) => p.id === profileVal || p.name === profileVal);
+        profileToUse = prof?.name || profileVal;
+      }
+
+      if (hasBulk) {
+        const tableMap = new Map();
+        for (const s of selectedSources) {
+          const key = `${s.schema}.${s.name}`;
+          tableMap.set(key, { schema: s.schema, name: s.name, is_source: true, is_destination: false, write_mode: "append" });
+        }
+        for (const d of selectedDests) {
+          const key = `${d.schema}.${d.name}`;
+          if (tableMap.has(key)) {
+            const existing = tableMap.get(key);
+            existing.is_destination = true;
+            existing.write_mode = d.write_mode;
+          } else {
+            tableMap.set(key, { schema: d.schema, name: d.name, is_source: false, is_destination: true, write_mode: d.write_mode });
+          }
+        }
+        for (const nd of newDestRows) {
+          const key = `${nd.schema}.${nd.name}`;
+          if (tableMap.has(key)) {
+            const existing = tableMap.get(key);
+            existing.is_destination = true;
+            existing.write_mode = nd.write_mode;
+          } else {
+            tableMap.set(key, { schema: nd.schema, name: nd.name, is_source: false, is_destination: true, write_mode: nd.write_mode });
+          }
+        }
+
+        const basePrefix = String(formData.get("name") || "pg").trim().toLowerCase().replace(/[^a-z0-9_]/g, "_") || "pg";
+        const connectionsToAdd = [];
+        for (const item of tableMap.values()) {
+          const cleanSch = item.schema.toLowerCase().replace(/[^a-z0-9_]/g, "_");
+          const cleanTbl = item.name.toLowerCase().replace(/[^a-z0-9_]/g, "_");
+          const connName = (cleanSch === "public" || cleanSch === "dbo")
+            ? `${basePrefix}_${cleanTbl}`
+            : `${basePrefix}_${cleanSch}_${cleanTbl}`;
+
+          connectionsToAdd.push({
+            name: connName.slice(0, 99),
+            connector: connectorGuid,
+            profile: profileToUse,
+            is_source: item.is_source,
+            is_destination: item.is_destination,
+            description: `${item.is_source ? 'Source' : 'Destination'} table ${item.schema}.${item.name}`,
+            options: {
+              schema: item.schema,
+              table: item.name,
+              ...(item.is_destination ? { write_mode: item.write_mode } : {}),
+              ...(profileToUse ? {} : options),
+            },
+          });
+        }
+
+        const targetFolderId = String(formData.get("folder_id") || "");
+        await api("/api/catalog/bulk-add-connections", {
+          method: "POST",
+          body: JSON.stringify({
+            folder_id: targetFolderId,
+            connections: connectionsToAdd,
+          }),
+        });
+        showNotification(`✓ Successfully imported ${connectionsToAdd.length} table connection(s)!`);
+        closeEditor();
+        await refreshCatalog();
+        return;
+      }
+
+      // Single connection save
       const body = {
         name: String(formData.get("name") || "").trim(),
         folder_id: String(formData.get("folder_id") || ""),
         connector: connectorGuid,
+        profile: profileToUse,
         is_source: form.elements.namedItem("is_source").checked,
         is_destination: form.elements.namedItem("is_destination").checked,
         description: String(formData.get("description") || "").trim(),

@@ -147,7 +147,7 @@ class CatalogStoreTests(unittest.TestCase):
 
     def test_connection_names_must_be_valid_sql_identifiers(self) -> None:
         folder_id = self.store.read()["catalog"]["folders"][0]["id"]
-        for invalid_name in ("Sales data", "1Sales", "sales-name", "x" * 31):
+        for invalid_name in ("Sales data", "1Sales", "sales-name", "x" * 101):
             with self.subTest(name=invalid_name):
                 with self.assertRaises(ValueError):
                     self.store.add_connection(
@@ -157,6 +157,81 @@ class CatalogStoreTests(unittest.TestCase):
                             "connector": CSV_CONNECTOR.guid,
                         },
                     )
+
+    def test_profile_crud_and_bulk_add_connections(self) -> None:
+        from det.catalog import resolve_connection_options
+        from det.connectors import POSTGRESQL_CONNECTOR
+
+        # 1. Add Profile
+        doc = self.store.add_profile({
+            "name": "analytics_pg",
+            "connector": POSTGRESQL_CONNECTOR.guid,
+            "options": {
+                "host": "db.example.com",
+                "port": 5432,
+                "database": "analytics",
+                "user": "analyst",
+                "password": "secret_password",
+            },
+        })
+        profiles = doc["catalog"]["profiles"]
+        self.assertEqual(len(profiles), 1)
+        self.assertEqual(profiles[0]["name"], "analytics_pg")
+        profile_id = profiles[0]["id"]
+
+        # 2. Get Profile
+        fetched = self.store.get_profile(profile_id)
+        self.assertEqual(fetched["name"], "analytics_pg")
+        self.assertEqual(fetched["options"]["database"], "analytics")
+
+        # 3. Bulk Add Connections referencing profile
+        folder_id = doc["catalog"]["folders"][0]["id"]
+        bulk_doc = self.store.bulk_add_connections(folder_id, [
+            {
+                "name": "pg_users",
+                "connector": POSTGRESQL_CONNECTOR.guid,
+                "profile": "analytics_pg",
+                "is_source": True,
+                "options": {"schema": "public", "table": "users"},
+            },
+            {
+                "name": "pg_orders",
+                "connector": POSTGRESQL_CONNECTOR.guid,
+                "profile": "analytics_pg",
+                "is_source": True,
+                "options": {"schema": "public", "table": "orders"},
+            },
+            {
+                "name": "pg_daily_report",
+                "connector": POSTGRESQL_CONNECTOR.guid,
+                "profile": "analytics_pg",
+                "is_source": False,
+                "is_destination": True,
+                "options": {"schema": "public", "table": "daily_report", "write_mode": "overwrite"},
+            },
+        ])
+        connections = bulk_doc["catalog"]["folders"][0]["connections"]
+        self.assertEqual(len(connections), 3)
+
+        # 4. Resolve connection options (merging credentials from profile)
+        users_conn = connections[0]
+        resolved = resolve_connection_options(users_conn, bulk_doc["catalog"])
+        self.assertEqual(resolved["host"], "db.example.com")
+        self.assertEqual(resolved["database"], "analytics")
+        self.assertEqual(resolved["user"], "analyst")
+        self.assertEqual(resolved["password"], "secret_password")
+        self.assertEqual(resolved["schema"], "public")
+        self.assertEqual(resolved["table"], "users")
+
+        # 5. Delete profile in use should raise ValueError
+        with self.assertRaises(ValueError):
+            self.store.delete_profile(profile_id)
+
+        # 6. Delete connections, then delete profile should succeed
+        for conn in connections:
+            self.store.delete_connection(conn["id"])
+        del_doc = self.store.delete_profile(profile_id)
+        self.assertEqual(len(del_doc["catalog"]["profiles"]), 0)
 
     def test_connector_metadata_exposes_stable_guids_and_fields(self) -> None:
         metadata = {item["key"]: item for item in connector_metadata()}

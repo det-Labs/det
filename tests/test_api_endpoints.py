@@ -196,6 +196,88 @@ class TestApiEndpoints(unittest.TestCase):
                 {"schema": "rnacen", "name": "rna"},
             ])
 
+    def test_test_connection_endpoint_with_mock(self):
+        from unittest.mock import MagicMock, patch
+
+        mock_cursor = MagicMock()
+        mock_cursor.fetchone.return_value = (1,)
+        mock_conn = MagicMock()
+        mock_conn.cursor.return_value.__enter__.return_value = mock_cursor
+        mock_conn.__enter__.return_value = mock_conn
+
+        with patch("adbc_driver_postgresql.dbapi.connect", return_value=mock_conn):
+            payload = json.dumps({
+                "connector": "postgresql",
+                "options": {
+                    "host": "localhost",
+                    "database": "mydb",
+                    "user": "postgres",
+                },
+            }).encode("utf-8")
+            handler = DummyHandler("POST", "/api/catalog/test-connection", body=payload)
+            handler.do_POST()
+            self.assertEqual(handler.response_status, 200)
+            data = handler.get_json_response()
+            self.assertTrue(data["success"])
+            self.assertEqual(data["message"], "Connected successfully!")
+
+    def test_profiles_endpoints_and_bulk_add(self):
+        from det.connectors import POSTGRESQL_CONNECTOR
+
+        # 1. POST /api/catalog/profiles
+        profile_payload = json.dumps({
+            "name": "my_pg_profile",
+            "connector": POSTGRESQL_CONNECTOR.guid,
+            "options": {
+                "host": "localhost",
+                "database": "proddb",
+                "user": "appuser",
+            },
+        }).encode("utf-8")
+        handler = DummyHandler("POST", "/api/catalog/profiles", body=profile_payload)
+        handler.do_POST()
+        self.assertEqual(handler.response_status, 200)
+        data = handler.get_json_response()
+        initial_count = len(data["catalog"]["folders"][0]["connections"])
+        profile_id = data["catalog"]["profiles"][0]["id"]
+        folder_id = data["catalog"]["folders"][0]["id"]
+
+        # 2. POST /api/catalog/bulk-add-connections
+        bulk_payload = json.dumps({
+            "folder_id": folder_id,
+            "connections": [
+                {
+                    "name": "pg_users",
+                    "connector": POSTGRESQL_CONNECTOR.guid,
+                    "profile": "my_pg_profile",
+                    "is_source": True,
+                    "options": {"schema": "public", "table": "users"},
+                },
+                {
+                    "name": "pg_orders",
+                    "connector": POSTGRESQL_CONNECTOR.guid,
+                    "profile": "my_pg_profile",
+                    "is_source": True,
+                    "options": {"schema": "public", "table": "orders"},
+                },
+            ],
+        }).encode("utf-8")
+        handler = DummyHandler("POST", "/api/catalog/bulk-add-connections", body=bulk_payload)
+        handler.do_POST()
+        self.assertEqual(handler.response_status, 200)
+        data = handler.get_json_response()
+        folder_conns = data["catalog"]["folders"][0]["connections"]
+        self.assertEqual(len(folder_conns), initial_count + 2)
+        added_conns = [c for c in folder_conns if c.get("profile") == "my_pg_profile"]
+        self.assertEqual(len(added_conns), 2)
+        self.assertEqual({c["name"] for c in added_conns}, {"pg_users", "pg_orders"})
+
+        # 3. DELETE /api/catalog/profiles/{id}
+        # In use -> error
+        handler = DummyHandler("DELETE", f"/api/catalog/profiles/{profile_id}")
+        handler.do_DELETE()
+        self.assertEqual(handler.response_status, 400)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -26,6 +26,7 @@ from det.api import (
     preview_adhoc_connection,
     run_pipeline,
     save_pipeline,
+    test_database_connection,
     update_ui_state,
     validate_pipeline,
     validate_step_sql,
@@ -212,11 +213,24 @@ class DetRequestHandler(BaseHTTPRequestHandler):
                     columns=payload.get("columns"),
                     limit=int(payload.get("limit", 25)),
                 )
+            elif path == "/api/catalog/profiles":
+                result = get_catalog_store().add_profile(payload)
+            elif path == "/api/catalog/test-connection":
+                result = test_database_connection(
+                    connector=payload.get("connector", ""),
+                    options=payload.get("options", {}),
+                    profile_id=payload.get("profile_id"),
+                )
             elif path == "/api/catalog/discover-tables":
                 result = discover_database_tables(
                     connector=payload.get("connector", ""),
                     options=payload.get("options", {}),
+                    profile_id=payload.get("profile_id"),
                 )
+            elif path == "/api/catalog/bulk-add-connections":
+                folder_id = payload.get("folder_id")
+                tables = payload.get("connections", [])
+                result = get_catalog_store().bulk_add_connections(folder_id, tables)
 
             # --- Pipeline CRUD & Execution ---
             elif path == "/api/pipelines":
@@ -282,6 +296,9 @@ class DetRequestHandler(BaseHTTPRequestHandler):
             elif path.startswith("/api/catalog/folders/"):
                 folder_id = path.strip("/").split("/")[3]
                 result = get_catalog_store().update_folder(folder_id, payload.get("name", ""))
+            elif path.startswith("/api/catalog/profiles/"):
+                profile_id = path.strip("/").split("/")[3]
+                result = get_catalog_store().update_profile(profile_id, payload)
             elif path.startswith("/api/catalog/connections/"):
                 connection_id = path.strip("/").split("/")[3]
                 result = get_catalog_store().update_connection(connection_id, payload)
@@ -314,6 +331,9 @@ class DetRequestHandler(BaseHTTPRequestHandler):
             if path.startswith("/api/catalog/folders/"):
                 folder_id = path.strip("/").split("/")[3]
                 result = get_catalog_store().delete_folder(folder_id)
+            elif path.startswith("/api/catalog/profiles/"):
+                profile_id = path.strip("/").split("/")[3]
+                result = get_catalog_store().delete_profile(profile_id)
             elif path.startswith("/api/catalog/connections/"):
                 connection_id = path.strip("/").split("/")[3]
                 result = get_catalog_store().delete_connection(connection_id)

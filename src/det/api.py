@@ -6,7 +6,7 @@ from typing import Any
 from uuid import uuid4
 
 from det import __version__
-from det.catalog import CatalogStore
+from det.catalog import CatalogStore, resolve_connection_options
 from det.connectors import connector_metadata, scan_builtin
 from det.engine import create_session_context, run_sql
 from det.monitoring import MonitoringStore
@@ -91,11 +91,13 @@ def infer_connection_schema(connection_id: str) -> dict[str, Any]:
     if not connection["is_source"]:
         raise ValueError("Schema inference is available only for source connections.")
     workspace = get_ui_state()["workspace"]
+    catalog_doc = store.read()["catalog"]
+    options = resolve_connection_options(connection, catalog_doc)
     context = create_session_context()
     dataframe = scan_builtin(
         context,
         connection["connector"],
-        connection["options"],
+        options,
         workspace,
     )
     inferred = [
@@ -117,11 +119,13 @@ def preview_connection(connection_id: str) -> dict[str, Any]:
     if not connection["is_source"]:
         raise ValueError("Data preview is available only for source connections.")
     workspace = get_ui_state()["workspace"]
+    catalog_doc = store.read()["catalog"]
+    options = resolve_connection_options(connection, catalog_doc)
     context = create_session_context()
     dataframe = scan_builtin(
         context,
         connection["connector"],
-        connection["options"],
+        options,
         workspace,
         saved_columns=connection["columns"] or None,
     )
@@ -207,9 +211,64 @@ def preview_adhoc_connection(
         }
 
 
+def test_database_connection(
+    connector: str,
+    options: dict[str, Any],
+    profile_id: str | None = None,
+) -> dict[str, Any]:
+    """Test connectivity to a database without fetching tables."""
+    import time
+
+    start_time = time.perf_counter()
+    workspace = get_ui_state()["workspace"]
+    try:
+        from det.connectors import build_postgres_uri, connector_definitions, resolve_env_vars
+
+        if profile_id:
+            store = get_catalog_store()
+            profile = store.get_profile(profile_id)
+            connector = profile["connector"]
+            options = {**profile["options"], **options}
+
+        connector_key = connector
+        for c_def in connector_definitions():
+            if connector in (c_def.key, c_def.guid):
+                connector_key = c_def.key
+                break
+
+        resolved_options = resolve_env_vars(options, workspace)
+
+        if connector_key == "postgresql":
+            import adbc_driver_postgresql.dbapi as pg_dbapi
+
+            uri = build_postgres_uri(resolved_options)
+            with pg_dbapi.connect(uri) as conn, conn.cursor() as cursor:
+                cursor.execute("SELECT 1;")
+                cursor.fetchone()
+                elapsed_ms = round((time.perf_counter() - start_time) * 1000, 1)
+                return {
+                    "success": True,
+                    "message": "Connected successfully!",
+                    "elapsed_ms": elapsed_ms,
+                }
+
+        return {
+            "success": False,
+            "error": f"Connector '{connector_key}' does not support connection testing.",
+        }
+    except Exception as exc:
+        elapsed_ms = round((time.perf_counter() - start_time) * 1000, 1)
+        return {
+            "success": False,
+            "error": str(exc),
+            "elapsed_ms": elapsed_ms,
+        }
+
+
 def discover_database_tables(
     connector: str,
     options: dict[str, Any],
+    profile_id: str | None = None,
 ) -> dict[str, Any]:
     """Discover available schemas and tables from a database connection."""
     import time
@@ -218,6 +277,12 @@ def discover_database_tables(
     workspace = get_ui_state()["workspace"]
     try:
         from det.connectors import build_postgres_uri, connector_definitions, resolve_env_vars
+
+        if profile_id:
+            store = get_catalog_store()
+            profile = store.get_profile(profile_id)
+            connector = profile["connector"]
+            options = {**profile["options"], **options}
 
         connector_key = connector
         for c_def in connector_definitions():

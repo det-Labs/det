@@ -21,12 +21,46 @@ def _canonical_guid(value: Any) -> str:
         return str(uuid.uuid5(uuid.NAMESPACE_URL, f"det:legacy-id:{value}"))
 
 
+class CatalogProfile(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str = Field(min_length=1, max_length=100)
+    connector: str
+    description: str = Field(default="", max_length=2000)
+    options: dict[str, Any] = Field(default_factory=dict)
+
+    @field_validator("id", mode="before")
+    @classmethod
+    def canonicalize_id(cls, value: Any) -> str:
+        return _canonical_guid(value) if value is not None else str(uuid.uuid4())
+
+    @field_validator("connector")
+    @classmethod
+    def validate_connector_guid(cls, value: str) -> str:
+        try:
+            return str(uuid.UUID(value))
+        except ValueError as error:
+            raise ValueError("Connector type must be identified by a GUID.") from error
+
+    @field_validator("name")
+    @classmethod
+    def validate_profile_name(cls, value: str) -> str:
+        if not re.fullmatch(r"[A-Za-z][A-Za-z0-9_]{0,99}", value):
+            raise ValueError(
+                "Profile names must start with a letter, be at most 100 characters, "
+                "and contain only letters, numbers, and underscores."
+            )
+        return value
+
+
 class CatalogConnection(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    name: str = Field(min_length=1, max_length=30)
+    name: str = Field(min_length=1, max_length=100)
     connector: str
+    profile: str | None = None
     is_source: bool = True
     is_destination: bool = False
     description: str = Field(default="", max_length=2000)
@@ -49,9 +83,9 @@ class CatalogConnection(BaseModel):
     @field_validator("name")
     @classmethod
     def validate_sql_identifier(cls, value: str) -> str:
-        if not re.fullmatch(r"[A-Za-z][A-Za-z0-9_]{0,29}", value):
+        if not re.fullmatch(r"[A-Za-z][A-Za-z0-9_]{0,99}", value):
             raise ValueError(
-                "Connection names must start with a letter, be at most 30 characters, "
+                "Connection names must start with a letter, be at most 100 characters, "
                 "and contain only letters, numbers, and underscores."
             )
         return value
@@ -100,6 +134,7 @@ class CatalogDocument(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     version: int = 1
     name: str = Field(min_length=1, max_length=120)
+    profiles: list[CatalogProfile] = Field(default_factory=list)
     folders: list[CatalogFolder] = Field(default_factory=list)
 
     @field_validator("id", mode="before")
@@ -209,6 +244,14 @@ class CatalogStore:
                     needs_migration = True
                 if "id" not in raw:
                     raw["id"] = str(uuid.uuid4())
+                    needs_migration = True
+                if "profiles" not in raw or raw["profiles"] is None:
+                    raw["profiles"] = []
+                elif isinstance(raw["profiles"], dict):
+                    raw["profiles"] = [
+                        {"name": k, **v} if isinstance(v, dict) else v
+                        for k, v in raw["profiles"].items()
+                    ]
                     needs_migration = True
                 for folder in raw["folders"]:
                     for connection in folder.get("connections", []):
@@ -363,6 +406,78 @@ class CatalogStore:
                     }
         raise FileNotFoundError(f"Connection does not exist: {connection_id}")
 
+    def add_profile(self, values: dict[str, Any]) -> dict[str, Any]:
+        with self._lock:
+            catalog = self._read_document()
+            profile = CatalogProfile.model_validate(values)
+            if any(p.name.casefold() == profile.name.casefold() for p in catalog.profiles):
+                raise ValueError(f"Profile with name '{profile.name}' already exists.")
+            catalog.profiles.append(profile)
+            return self._save_document(catalog)
+
+    def update_profile(self, profile_id: str, values: dict[str, Any]) -> dict[str, Any]:
+        with self._lock:
+            catalog = self._read_document()
+            existing = None
+            for idx, p in enumerate(catalog.profiles):
+                if p.id == profile_id:
+                    existing = p
+                    updated = CatalogProfile.model_validate({
+                        **p.model_dump(),
+                        **values,
+                        "id": profile_id,
+                    })
+                    catalog.profiles[idx] = updated
+                    break
+            if not existing:
+                raise FileNotFoundError(f"Profile does not exist: {profile_id}")
+            return self._save_document(catalog)
+
+    def delete_profile(self, profile_id: str) -> dict[str, Any]:
+        with self._lock:
+            catalog = self._read_document()
+            profile = None
+            for p in catalog.profiles:
+                if p.id == profile_id:
+                    profile = p
+                    break
+            if not profile:
+                raise FileNotFoundError(f"Profile does not exist: {profile_id}")
+
+            in_use = [
+                conn.name
+                for folder in catalog.folders
+                for conn in folder.connections
+                if conn.profile in (profile.id, profile.name)
+            ]
+            if in_use:
+                raise ValueError(
+                    f"Cannot delete profile '{profile.name}' because it is in use by {len(in_use)} connection(s): {', '.join(in_use[:3])}"
+                )
+
+            catalog.profiles.remove(profile)
+            return self._save_document(catalog)
+
+    def get_profile(self, profile_id: str) -> dict[str, Any]:
+        catalog = self._read_document()
+        for p in catalog.profiles:
+            if p.id == profile_id or p.name == profile_id:
+                return p.model_dump(mode="json")
+        raise FileNotFoundError(f"Profile does not exist: {profile_id}")
+
+    def bulk_add_connections(
+        self, folder_id: str, connections_data: list[dict[str, Any]]
+    ) -> dict[str, Any]:
+        with self._lock:
+            catalog = self._read_document()
+            folder = self._folder(catalog, folder_id)
+            for values in connections_data:
+                connection_values = dict(values)
+                connection_values.pop("folder_id", None)
+                conn = CatalogConnection.model_validate(connection_values)
+                folder.connections.append(conn)
+            return self._save_document(catalog)
+
     def _read_document(self) -> CatalogDocument:
         return CatalogDocument.model_validate(self.read()["catalog"])
 
@@ -425,6 +540,8 @@ class CatalogStore:
     @staticmethod
     def _validate_ids(catalog: CatalogDocument) -> None:
         item_ids = [catalog.id]
+        if hasattr(catalog, "profiles"):
+            item_ids.extend(profile.id for profile in catalog.profiles)
         item_ids.extend(folder.id for folder in catalog.folders)
         item_ids.extend(
             item_id
@@ -444,3 +561,41 @@ class CatalogStore:
         if not normalized:
             raise ValueError(f"{item_type} name cannot be empty.")
         return normalized
+
+
+def resolve_connection_options(
+    connection: dict[str, Any] | CatalogConnection,
+    catalog_doc: dict[str, Any] | CatalogDocument | None = None,
+) -> dict[str, Any]:
+    """Merge options from referenced profile (if any) with connection options."""
+    if isinstance(connection, CatalogConnection):
+        conn_dict = connection.model_dump(mode="json")
+    else:
+        conn_dict = dict(connection)
+
+    options = dict(conn_dict.get("options") or {})
+    profile_ref = conn_dict.get("profile")
+    if not profile_ref or not catalog_doc:
+        return options
+
+    if isinstance(catalog_doc, CatalogDocument):
+        doc_dict = catalog_doc.model_dump(mode="json")
+    else:
+        doc_dict = dict(catalog_doc)
+
+    profiles = doc_dict.get("profiles") or []
+    profile = None
+    if isinstance(profiles, list):
+        for p in profiles:
+            if p.get("id") == profile_ref or p.get("name") == profile_ref:
+                profile = p
+                break
+    elif isinstance(profiles, dict):
+        profile = profiles.get(profile_ref)
+
+    if profile:
+        profile_opts = profile.get("options") or {}
+        # Profile options are base, connection options override
+        return {**profile_opts, **options}
+
+    return options
