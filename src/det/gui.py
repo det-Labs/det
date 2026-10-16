@@ -22,6 +22,7 @@ from det.api import (
     list_pipeline_runs,
     list_pipelines,
     preview_connection,
+    preview_adhoc_connection,
     run_pipeline,
     save_pipeline,
     update_ui_state,
@@ -202,6 +203,13 @@ class DetRequestHandler(BaseHTTPRequestHandler):
             elif path.startswith("/api/catalog/connections/") and path.endswith("/infer-schema"):
                 connection_id = path.strip("/").split("/")[3]
                 result = infer_connection_schema(connection_id)
+            elif path == "/api/catalog/preview-adhoc":
+                result = preview_adhoc_connection(
+                    connector=payload.get("connector", ""),
+                    options=payload.get("options", {}),
+                    columns=payload.get("columns"),
+                    limit=int(payload.get("limit", 25)),
+                )
 
             # --- Pipeline CRUD & Execution ---
             elif path == "/api/pipelines":

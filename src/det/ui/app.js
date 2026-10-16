@@ -45,6 +45,7 @@ const dialog = document.querySelector("#editor-dialog");
 const dialogForm = document.querySelector("#editor-form");
 const dialogFields = document.querySelector("#dialog-fields");
 const dialogStatus = document.querySelector("#dialog-status");
+const dialogPreviewBtn = document.querySelector("#dialog-preview-btn");
 const svg = {
   folder: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7.5h7l2 2h9v8.7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7.5Z"/><path d="M3 10h18"/></svg>',
   connection: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="12" r="3"/><circle cx="18" cy="6" r="3"/><circle cx="18" cy="18" r="3"/><path d="m8.6 10.5 6.8-3m-6.8 6 6.8 3"/></svg>',
@@ -733,6 +734,7 @@ function openEditor({ title, eyebrow = "CATALOG", fields, submitLabel = "Save", 
 
 function closeEditor() {
   editorHandler = null;
+  if (dialogPreviewBtn) dialogPreviewBtn.hidden = true;
   dialog.close();
 }
 
@@ -767,6 +769,8 @@ function renderConnectorField(field, values) {
 
 function connectionEditor(connection = null, folderId = null) {
   let activeConnectionTab = "general";
+  let previewData = null;
+  let isPreviewLoading = false;
   const initialConnector = connectors.find((item) => item.id === connection?.connector) || connectors[0];
   const initialFolder = folderId || connection?.folder_id || activeCatalog.catalog.folders[0]?.id;
 
@@ -823,6 +827,16 @@ function connectionEditor(connection = null, folderId = null) {
           <button type="button" class="conn-dialog-tab ${activeConnectionTab === "write" ? "active" : ""}" data-tab="write" role="tab" aria-selected="${activeConnectionTab === "write"}">
             <span>Write Options (${escapeHtml(selected.label)})</span>
             ${writeConfiguredCount > 0 ? `<span class="conn-tab-badge">${writeConfiguredCount}</span>` : ""}
+          </button>
+        ` : ""}
+        ${wasSource ? `
+          <button type="button" class="conn-dialog-tab ${activeConnectionTab === "preview" ? "active" : ""}" data-tab="preview" role="tab" aria-selected="${activeConnectionTab === "preview"}">
+            <span>Data Preview</span>
+            ${previewData?.success ? `<span class="conn-tab-badge">${previewData.row_count} rows</span>` : ""}
+          </button>
+        ` : wasDestination ? `
+          <button type="button" class="conn-dialog-tab ${activeConnectionTab === "preview" ? "active" : ""}" data-tab="preview" role="tab" aria-selected="${activeConnectionTab === "preview"}">
+            <span>Target Specs</span>
           </button>
         ` : ""}
       </div>
@@ -934,25 +948,255 @@ function connectionEditor(connection = null, folderId = null) {
       </div>
     ` : "";
 
+    // 6. Preview Panel (Data Preview or Target Specs)
+    const previewPanelHtml = `
+      <div class="conn-dialog-tab-panel" data-panel="preview" role="tabpanel" ${activeConnectionTab === "preview" ? "" : "hidden"}>
+      </div>
+    `;
+
     // Inject HTML
-    dialogFields.innerHTML = `${tabsHtml}${generalPanelHtml}${readPanelHtml}${schemaPanelHtml}${writePanelHtml}`;
+    dialogFields.innerHTML = `${tabsHtml}${generalPanelHtml}${readPanelHtml}${schemaPanelHtml}${writePanelHtml}${previewPanelHtml}`;
+
+    const renderPreviewPanelContent = () => {
+      const panelEl = dialogFields.querySelector('.conn-dialog-tab-panel[data-panel="preview"]');
+      if (!panelEl) return;
+
+      if (!wasSource) {
+        const outPath = dialogForm.elements.namedItem("option:output_path")?.value || "";
+        const writeMode = dialogForm.elements.namedItem("option:write_mode")?.value || "overwrite";
+        panelEl.innerHTML = `
+          <div class="conn-target-specs-card">
+            <div class="conn-target-specs-header">
+              <span class="conn-tab-badge">Destination Target</span>
+              <h3>${escapeHtml(selected.label)} Destination</h3>
+            </div>
+            <p class="conn-target-specs-desc">This connection is configured as a write-only target. The destination file or table will be created when an ETL pipeline step outputs to this connection.</p>
+            <div class="conn-target-specs-grid">
+              <div class="spec-item"><span class="spec-label">Target Format</span><strong>${escapeHtml(selected.label)}</strong></div>
+              <div class="spec-item"><span class="spec-label">Target Path</span><code>${escapeHtml(outPath || "(Specify in Write Options)")}</code></div>
+              <div class="spec-item"><span class="spec-label">Write Mode</span><strong>${escapeHtml(writeMode)}</strong></div>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      if (isPreviewLoading) {
+        panelEl.innerHTML = `
+          <div class="conn-preview-loading">
+            <span class="spinner" aria-hidden="true"></span>
+            <p>Scanning sample records with Apache DataFusion...</p>
+          </div>
+        `;
+        return;
+      }
+
+      if (!previewData) {
+        panelEl.innerHTML = `
+          <div class="conn-preview-idle">
+            <div class="conn-preview-empty-icon">📊</div>
+            <h3>Preview records before saving</h3>
+            <p>Apache DataFusion will scan up to 25 sample rows directly from your file path without registering or modifying your catalog.</p>
+            <button type="button" class="primary-button conn-run-preview-btn"><span>⚡ Scan &amp; Preview Rows</span></button>
+          </div>
+        `;
+        panelEl.querySelector(".conn-run-preview-btn")?.addEventListener("click", executeAdhocPreview);
+        return;
+      }
+
+      if (!previewData.success) {
+        const curPath = dialogForm.elements.namedItem("option:path")?.value || "";
+        panelEl.innerHTML = `
+          <div class="conn-diagnostic-card">
+            <div class="conn-diagnostic-title">
+              <svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor"><path d="M8 1a7 7 0 100 14A7 7 0 008 1zm0 3.5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 018 4.5zm0 7a.875.875 0 110-1.75.875.875 0 010 1.75z"/></svg>
+              <span>Could not read sample data</span>
+            </div>
+            <p class="conn-diagnostic-message">${escapeHtml(previewData.error || "Unknown error")}</p>
+            <div class="conn-diagnostic-tips">
+              <strong>Troubleshooting suggestions:</strong>
+              <ul>
+                <li>Verify that the file path exists in your workspace: <code>${escapeHtml(curPath || "(empty path)")}</code></li>
+                <li>For CSV files, check delimiter and header settings under <strong>Read Options</strong>.</li>
+                <li>For folders, check your file matching glob pattern under <strong>General &gt; Advanced</strong>.</li>
+              </ul>
+            </div>
+            <button type="button" class="secondary-button conn-preview-rescan-btn" style="align-self: flex-start; margin-top: 6px;">
+              <span>🔄 Try Again</span>
+            </button>
+          </div>
+        `;
+        panelEl.querySelector(".conn-preview-rescan-btn")?.addEventListener("click", executeAdhocPreview);
+        return;
+      }
+
+      // Success table preview
+      const cols = previewData.columns || [];
+      const rows = previewData.rows || [];
+      const elapsed = previewData.elapsed_ms || 0;
+      panelEl.innerHTML = `
+        <div class="conn-preview-header">
+          <div class="conn-preview-meta">
+            <span class="conn-preview-pill"><strong>${rows.length}</strong> rows sampled</span>
+            <span class="conn-preview-pill"><strong>${cols.length}</strong> columns</span>
+            <span class="conn-preview-pill">⚡ <strong>${elapsed}ms</strong> DataFusion</span>
+          </div>
+          <button type="button" class="conn-preview-rescan-btn"><span>🔄 Re-scan</span></button>
+        </div>
+        <div class="conn-preview-table-wrap">
+          <table class="conn-preview-table">
+            <thead>
+              <tr>
+                ${cols.map(c => `
+                  <th>
+                    <div class="th-content">
+                      <span class="col-name">${escapeHtml(c.name)}</span>
+                      <span class="col-type">${escapeHtml(c.data_type)}</span>
+                    </div>
+                  </th>
+                `).join("")}
+              </tr>
+            </thead>
+            <tbody>
+              ${rows.length ? rows.map(r => `
+                <tr>
+                  ${cols.map(c => `<td>${escapeHtml(formatCell(r[c.name]))}</td>`).join("")}
+                </tr>
+              `).join("") : `<tr><td colspan="${cols.length || 1}" style="text-align:center; padding: 20px; color: var(--muted);">File contains 0 records.</td></tr>`}
+            </tbody>
+          </table>
+        </div>
+      `;
+      panelEl.querySelector(".conn-preview-rescan-btn")?.addEventListener("click", executeAdhocPreview);
+    };
+
+    renderPreviewPanelContent();
+
+    const switchTab = (targetTab) => {
+      activeConnectionTab = targetTab;
+      const tabButtons = dialogFields.querySelectorAll(".conn-dialog-tab");
+      const panels = dialogFields.querySelectorAll(".conn-dialog-tab-panel");
+      tabButtons.forEach((b) => {
+        const isSelected = b.dataset.tab === activeConnectionTab;
+        b.classList.toggle("active", isSelected);
+        b.setAttribute("aria-selected", String(isSelected));
+      });
+      panels.forEach((p) => {
+        p.hidden = p.dataset.panel !== activeConnectionTab;
+      });
+
+      // Update footer preview button visibility (hide when on preview tab)
+      if (dialogPreviewBtn) {
+        if (!wasSource || activeConnectionTab === "preview") {
+          dialogPreviewBtn.hidden = true;
+        } else {
+          dialogPreviewBtn.hidden = false;
+        }
+      }
+    };
+
+    async function executeAdhocPreview() {
+      const form = dialogForm;
+      const connectorGuid = form.elements.namedItem("connector")?.value || selected.id;
+      const connectorDef = connectors.find((item) => item.id === connectorGuid) || selected;
+      const options = {};
+      for (const field of connectorDef.fields) {
+        const input = form.elements.namedItem(`option:${field.name}`);
+        if (field.kind === "boolean") {
+          options[field.name] = Boolean(input?.checked);
+          continue;
+        }
+        let val = input?.value ?? "";
+        if (typeof val === "string") val = val.trim();
+        if (field.kind === "number" && val !== "") val = Number(val);
+        if (field.kind === "list") val = val ? val.split(/\r?\n/).map((item) => item.trim()).filter(Boolean) : [];
+        if (val !== "" && val !== null) options[field.name] = val;
+      }
+
+      if (!options.path && wasSource) {
+        showNotification("Please specify a file or folder path in the General tab first.");
+        switchTab("general");
+        form.elements.namedItem("option:path")?.focus();
+        return;
+      }
+
+      switchTab("preview");
+      isPreviewLoading = true;
+      renderPreviewPanelContent();
+
+      const rawColumns = String(form.elements.namedItem("columns")?.value || "").trim();
+      let parsedColumns = null;
+      if (rawColumns) {
+        try {
+          parsedColumns = rawColumns.split(/\r?\n/).map((line) => {
+            const [cName, ...typeParts] = line.split(":");
+            return { name: cName.trim(), data_type: typeParts.join(":").trim() };
+          }).filter(c => c.name && c.data_type);
+        } catch {
+          parsedColumns = null;
+        }
+      }
+
+      try {
+        const res = await api("/api/catalog/preview-adhoc", {
+          method: "POST",
+          body: JSON.stringify({
+            connector: connectorGuid,
+            options,
+            columns: parsedColumns,
+            limit: 25,
+          }),
+        });
+        previewData = res;
+        if (res.success && res.inferred_columns?.length) {
+          // Auto-populate schema if empty
+          const colTextarea = form.elements.namedItem("columns");
+          if (colTextarea && !colTextarea.value.trim()) {
+            colTextarea.value = res.inferred_columns.map(c => `${c.name}:${c.data_type}`).join("\n");
+            const schemaTab = dialogFields.querySelector(".conn-dialog-tab[data-tab='schema']");
+            if (schemaTab) {
+              let b = schemaTab.querySelector(".conn-tab-badge");
+              if (!b) {
+                b = document.createElement("span");
+                b.className = "conn-tab-badge";
+                schemaTab.appendChild(b);
+              }
+              b.textContent = `${res.inferred_columns.length} cols`;
+            }
+          }
+          // Update Preview Tab badge
+          const previewTab = dialogFields.querySelector(".conn-dialog-tab[data-tab='preview']");
+          if (previewTab) {
+            let b = previewTab.querySelector(".conn-tab-badge");
+            if (!b) {
+              b = document.createElement("span");
+              b.className = "conn-tab-badge";
+              previewTab.appendChild(b);
+            }
+            b.textContent = `${res.row_count} rows`;
+          }
+        }
+      } catch (err) {
+        previewData = { success: false, error: err.message };
+      } finally {
+        isPreviewLoading = false;
+        renderPreviewPanelContent();
+      }
+    }
 
     // Wire Tab Click Handlers
     const tabButtons = dialogFields.querySelectorAll(".conn-dialog-tab");
-    const panels = dialogFields.querySelectorAll(".conn-dialog-tab-panel");
     tabButtons.forEach((btn) => {
       btn.addEventListener("click", () => {
-        activeConnectionTab = btn.dataset.tab;
-        tabButtons.forEach((b) => {
-          const isSelected = b.dataset.tab === activeConnectionTab;
-          b.classList.toggle("active", isSelected);
-          b.setAttribute("aria-selected", String(isSelected));
-        });
-        panels.forEach((p) => {
-          p.hidden = p.dataset.panel !== activeConnectionTab;
-        });
+        switchTab(btn.dataset.tab);
       });
     });
+
+    // Wire footer preview button
+    if (dialogPreviewBtn) {
+      dialogPreviewBtn.hidden = !wasSource || activeConnectionTab === "preview";
+      dialogPreviewBtn.onclick = executeAdhocPreview;
+    }
 
     // Keyboard Arrow navigation between tabs
     dialogFields.querySelector(".conn-dialog-tabs")?.addEventListener("keydown", (event) => {

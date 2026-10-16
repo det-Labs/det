@@ -3,6 +3,7 @@
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
+from uuid import uuid4
 
 from det import __version__
 from det.catalog import CatalogStore
@@ -144,6 +145,60 @@ def preview_connection(connection_id: str) -> dict[str, Any]:
         "rows": rows,
         "row_limit": 50,
     }
+
+
+def preview_adhoc_connection(
+    connector: str,
+    options: dict[str, Any],
+    columns: list[dict[str, Any]] | None = None,
+    limit: int = 25,
+) -> dict[str, Any]:
+    """Scan and preview up to limit rows directly from connection parameters without registration."""
+    import time
+
+    start_time = time.perf_counter()
+    workspace = get_ui_state()["workspace"]
+    context = create_session_context()
+    try:
+        dataframe = scan_builtin(
+            context,
+            connector,
+            options,
+            workspace,
+            saved_columns=columns or None,
+        )
+        view_name = f"det_adhoc_{uuid4().hex[:8]}"
+        context.register_view(view_name, dataframe)
+        preview = run_sql(context, f"SELECT * FROM {view_name} LIMIT {limit}")
+        batches = preview.collect()
+        import pyarrow as pa
+
+        rows = pa.Table.from_batches(batches, schema=preview.schema()).to_pylist() if batches else []
+        elapsed_ms = round((time.perf_counter() - start_time) * 1000, 1)
+        inferred_columns = [
+            {
+                "name": field.name,
+                "data_type": str(field.type),
+                "nullable": field.nullable,
+                "description": "",
+            }
+            for field in preview.schema()
+        ]
+        return {
+            "success": True,
+            "columns": columns or inferred_columns,
+            "inferred_columns": inferred_columns,
+            "rows": rows,
+            "row_count": len(rows),
+            "row_limit": limit,
+            "elapsed_ms": elapsed_ms,
+        }
+    except Exception as exc:
+        return {
+            "success": False,
+            "error": str(exc),
+            "elapsed_ms": round((time.perf_counter() - start_time) * 1000, 1),
+        }
 
 
 def get_pipeline_store() -> PipelineStore:
