@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "det-core"
-version = "0.2.2"
+version = "0.2.3"
 description = "Fast, local-first SQL ETL workspace and pipeline orchestration engine powered by Apache DataFusion"
 readme = "README.md"
 license = "MIT"
