@@ -186,16 +186,16 @@ class CatalogStore:
             self._active_filename = filename
             return self.read()
 
-    def read(self) -> dict[str, Any]:
+    def read(self, filename: str | None = None) -> dict[str, Any]:
         with self._lock:
-            filename = self._validate_filename(self._active_filename)
-            path = self.directory / filename
+            target_filename = self._validate_filename(filename or self._active_filename)
+            path = self.directory / target_filename
             try:
                 raw = yaml.safe_load(path.read_text(encoding="utf-8"))
                 if raw is None:
                     raw = {}
                 if not isinstance(raw, dict):
-                    raise ValueError(f"Catalog root must be a YAML mapping: {filename}")
+                    raise ValueError(f"Catalog root must be a YAML mapping: {target_filename}")
                 needs_migration = False
                 if "folders" not in raw or not raw["folders"]:
                     raw["folders"] = [{
@@ -219,13 +219,13 @@ class CatalogStore:
                             needs_migration = True
                 catalog = CatalogDocument.model_validate(raw)
             except (OSError, ValueError, yaml.YAMLError, ValidationError) as error:
-                raise ValueError(f"Could not load catalog {filename}: {error}") from error
+                raise ValueError(f"Could not load catalog {target_filename}: {error}") from error
             self._validate_ids(catalog)
             if needs_migration:
-                self._write_file(filename, catalog)
-                path = self.directory / filename
+                self._write_file(target_filename, catalog)
+                path = self.directory / target_filename
             return {
-                "filename": filename,
+                "filename": target_filename,
                 "catalog": catalog.model_dump(mode="json"),
                 "yaml": path.read_text(encoding="utf-8"),
             }

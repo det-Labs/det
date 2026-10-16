@@ -55,7 +55,8 @@ class DetRequestHandler(BaseHTTPRequestHandler):
             elif path == "/api/catalogs":
                 self._send_json(200, get_catalog_store().describe_catalogs())
             elif path == "/api/catalog":
-                self._send_json(200, get_catalog_store().read())
+                filename = query.get("filename", [None])[0]
+                self._send_json(200, get_catalog_store().read(filename=filename))
             elif path == "/api/connectors":
                 self._send_json(200, {"items": get_connector_metadata()})
 

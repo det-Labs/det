@@ -62,6 +62,8 @@ const svg = {
 
 let currentState;
 let activeCatalog;
+const pipelineCatalogCache = new Map();
+let etlActiveCatalog = null;
 let connectors = [];
 let selectedConnectionId = null;
 let selectedFolderId = null;
@@ -499,6 +501,10 @@ function renderModule(module) {
 
 async function refreshCatalog() {
   activeCatalog = await api("/api/catalog");
+  pipelineCatalogCache.set(activeCatalog.filename, activeCatalog);
+  if (!etlActiveCatalog || etlActiveCatalog.filename === activeCatalog.filename) {
+    etlActiveCatalog = activeCatalog;
+  }
   const { catalog, filename } = activeCatalog;
   document.querySelector("#catalog-file-name").textContent = catalog.name;
   document.querySelector("#catalog-file-path").textContent = `catalog/${filename}`;
@@ -514,6 +520,7 @@ async function refreshCatalog() {
   renderCatalogTree();
   renderCatalogSummary();
   renderTableInsertDropdown();
+  renderDestinations();
   if (selectedConnectionId) {
     await renderConnectionDetail(selectedConnectionId);
   } else if (selectedFolderId) {
@@ -1572,7 +1579,7 @@ catalogDetail.addEventListener("click", async (event) => {
     const connName = queryBtn.dataset.connectionName;
     if (connName) {
       switchToModule("ETL");
-      createNewPipelineInMemory("default", `SELECT * FROM ${connName} LIMIT 100;\n`, `query_${connName}`);
+      await createNewPipelineInMemory("default", `SELECT * FROM ${connName} LIMIT 100;\n`, `query_${connName}`, activeCatalog?.filename);
       showNotification(`Created pipeline querying source '${connName}'`);
     }
     return;
@@ -1716,6 +1723,29 @@ let activeRunData = null;
 let customLeftRatio = null; // Percentage width for SQL pane when split
 let isDraggingSplitter = false;
 
+async function loadPipelineCatalog(filename) {
+  const target = filename || activeCatalog?.filename || "default.yaml";
+  if (activeCatalog && activeCatalog.filename === target) {
+    etlActiveCatalog = activeCatalog;
+    pipelineCatalogCache.set(target, activeCatalog);
+    return activeCatalog;
+  }
+  if (pipelineCatalogCache.has(target)) {
+    etlActiveCatalog = pipelineCatalogCache.get(target);
+    return etlActiveCatalog;
+  }
+  try {
+    const data = await api(`/api/catalog?filename=${encodeURIComponent(target)}`);
+    pipelineCatalogCache.set(target, data);
+    etlActiveCatalog = data;
+    return data;
+  } catch (err) {
+    console.warn("Failed to load catalog for pipeline:", target, err);
+    etlActiveCatalog = activeCatalog || null;
+    return etlActiveCatalog;
+  }
+}
+
 async function refreshETL(preferredKey) {
   try {
     const [pipelineRes, catalogRes] = await Promise.all([
@@ -1726,7 +1756,7 @@ async function refreshETL(preferredKey) {
     etlFolders = pipelineRes.folders || [];
     etlPipelines = pipelineRes.items || [];
 
-    etlPipelineCount.textContent = `${etlFolders.length} folders Â· ${etlPipelines.length} pipelines`;
+    etlPipelineCount.textContent = `${etlFolders.length} folders · ${etlPipelines.length} pipelines`;
 
     const catalogs = catalogRes.items || ["default.yaml"];
     etlCatalogSelect.innerHTML = catalogs
@@ -1743,22 +1773,23 @@ async function refreshETL(preferredKey) {
     if (targetKey) {
       await selectPipeline(targetKey);
     } else {
-      createNewPipelineInMemory();
+      await createNewPipelineInMemory();
     }
   } catch (error) {
     console.error("Failed to load pipelines:", error);
   }
 }
 
-function createNewPipelineInMemory(initialFolder = "default", initialSql = null, initialName = null) {
+async function createNewPipelineInMemory(initialFolder = "default", initialSql = null, initialName = null, initialCatalog = null) {
   const folder = etlFolders.includes(initialFolder) ? initialFolder : (etlFolders[0] || "default");
   const pipelineName = initialName || "new_pipeline";
   const defaultSql = initialSql || "SELECT 1 AS sample_col";
+  const defaultCatalog = initialCatalog || activeCatalog?.filename || "default.yaml";
   activePipeline = {
     id: crypto.randomUUID(),
     name: pipelineName,
     folder: folder,
-    catalog: "default.yaml",
+    catalog: defaultCatalog,
     description: initialSql ? `Pipeline querying ${initialName || "source"}` : "",
     steps: [
       {
@@ -1773,6 +1804,7 @@ function createNewPipelineInMemory(initialFolder = "default", initialSql = null,
   };
   selectedPipelineKey = `${activePipeline.folder}/${activePipeline.name}`;
   activeStepIndex = 0;
+  await loadPipelineCatalog(defaultCatalog);
   populatePipelineForm();
 }
 
@@ -1782,6 +1814,7 @@ async function selectPipeline(keyOrId) {
     activePipeline = JSON.parse(JSON.stringify(pipelineData));
     selectedPipelineKey = `${activePipeline.folder}/${activePipeline.name}`;
     activeStepIndex = 0;
+    await loadPipelineCatalog(activePipeline.catalog || "default.yaml");
     populatePipelineForm();
     renderETLTree();
 
@@ -1822,8 +1855,17 @@ function populatePipelineForm() {
   etlPipelineTitle.textContent = activePipeline.name;
   etlPipelineSubtitle.textContent = activePipeline.description || "Use registered connections, build steps, and publish your results.";
   etlPipelineNameInput.value = activePipeline.name;
-  etlCatalogSelect.value = activePipeline.catalog || "default.yaml";
-  etlCatalogDesc.textContent = activePipeline.catalog === "default.yaml" ? "Default catalog" : activePipeline.catalog;
+
+  const targetCatalog = activePipeline.catalog || activeCatalog?.filename || "default.yaml";
+  activePipeline.catalog = targetCatalog;
+  if (![...etlCatalogSelect.options].some((opt) => opt.value === targetCatalog)) {
+    const opt = document.createElement("option");
+    opt.value = targetCatalog;
+    opt.textContent = targetCatalog;
+    etlCatalogSelect.appendChild(opt);
+  }
+  etlCatalogSelect.value = targetCatalog;
+  etlCatalogDesc.textContent = targetCatalog === "default.yaml" ? "Default catalog" : targetCatalog;
   etlPipelineDescription.value = activePipeline.description || "";
 
   renderStepTabs();
@@ -1927,7 +1969,8 @@ function renderActiveStep() {
 function renderTableInsertDropdown() {
   if (!etlSqlInsertTableSelect) return;
 
-  const allSources = (activeCatalog?.catalog?.folders || [])
+  const catalogToUse = etlActiveCatalog || activeCatalog;
+  const allSources = (catalogToUse?.catalog?.folders || [])
     .flatMap((f) => f.connections || [])
     .filter((c) => c.is_source !== false && c.name);
 
@@ -1940,7 +1983,8 @@ function renderTableInsertDropdown() {
   if (allSources.length > 0) {
     html += '<optgroup label="Catalog sources">';
     for (const src of allSources) {
-      html += `<option value="${escapeHtml(src.name)}">${escapeHtml(src.name)} (${escapeHtml(src.connector || "source")})</option>`;
+      const connLabel = connectors.find((item) => item.id === src.connector)?.label || src.connector || "source";
+      html += `<option value="${escapeHtml(src.name)}">${escapeHtml(src.name)} (${escapeHtml(connLabel)})</option>`;
     }
     html += '</optgroup>';
   }
@@ -1961,7 +2005,8 @@ function renderDestinations() {
   const step = activePipeline.steps[activeStepIndex];
   step.destinations = step.destinations || [];
 
-  const allDestConns = (activeCatalog?.catalog?.folders || [])
+  const catalogToUse = etlActiveCatalog || activeCatalog;
+  const allDestConns = (catalogToUse?.catalog?.folders || [])
     .flatMap((f) => f.connections)
     .filter((c) => c.is_destination);
 
@@ -1974,7 +2019,7 @@ function renderDestinations() {
           `<div class="etl-dest-tab" data-dest-name="${escapeHtml(destName)}">
             <span class="dest-tab-dot"></span>
             <span>${escapeHtml(destName)}</span>
-            <button type="button" class="dest-remove-btn" data-remove-dest="${escapeHtml(destName)}" title="Remove destination">Ã—</button>
+            <button type="button" class="dest-remove-btn" data-remove-dest="${escapeHtml(destName)}" title="Remove destination">×</button>
           </div>`
       )
       .join("");
@@ -1991,7 +2036,10 @@ function renderDestinations() {
     destinationsAddSelect.innerHTML =
       `<option value="">+ Add destination (${unselected.length} available)...</option>` +
       unselected
-        .map((c) => `<option value="${escapeHtml(c.name)}">${escapeHtml(c.name)} (${escapeHtml(c.connector || "sink")})</option>`)
+        .map((c) => {
+          const connLabel = connectors.find((item) => item.id === c.connector)?.label || c.connector || "sink";
+          return `<option value="${escapeHtml(c.name)}">${escapeHtml(c.name)} (${escapeHtml(connLabel)})</option>`;
+        })
         .join("");
     destinationsAddSelect.disabled = false;
     if (addBtnText) addBtnText.textContent = `Add destination (${unselected.length})`;
@@ -2441,21 +2489,28 @@ etlNewFolderButton.addEventListener("click", () => {
 });
 
 etlNewPipelineButton.addEventListener("click", () => {
+  const defaultCatalog = activeCatalog?.filename || "default.yaml";
+  const catalogOptions = [...etlCatalogSelect.options];
+  const catalogSelectHtml = catalogOptions.length
+    ? `<label class="form-field"><span>Catalog file</span><select name="catalog">${catalogOptions.map((opt) => `<option value="${escapeHtml(opt.value)}" ${opt.value === defaultCatalog ? "selected" : ""}>${escapeHtml(opt.textContent)}</option>`).join("")}</select></label>`
+    : "";
   openEditor({
     title: "New pipeline",
     fields: `<div class="form-grid">
       <label class="form-field"><span>Folder</span><select name="folder">${etlFolders.map((f) => `<option value="${escapeHtml(f)}">${escapeHtml(f)}</option>`).join("")}</select></label>
       ${textField("name", "Pipeline name", "", "e.g. daily_aggregation", { required: true })}
+      ${catalogSelectHtml}
     </div>`,
     onSubmit: async (data) => {
       const folder = String(data.get("folder") || "default").trim();
       const name = String(data.get("name") || "").trim();
+      const catalog = String(data.get("catalog") || defaultCatalog).trim();
       if (!name) return;
       activePipeline = {
         id: crypto.randomUUID(),
         name,
         folder,
-        catalog: "default.yaml",
+        catalog,
         description: "",
         steps: [
           {
@@ -2502,6 +2557,7 @@ etlTree.addEventListener("click", async (event) => {
     const pipelineKey = actionButton.dataset.pipelineKey;
 
     if (action === "add-pipeline-to-folder") {
+      const defaultCatalog = activeCatalog?.filename || "default.yaml";
       promptName(`New pipeline in ${folderName}`, "Pipeline name", "", async (data) => {
         const name = String(data.get("name") || "").trim();
         if (!name) return;
@@ -2509,7 +2565,7 @@ etlTree.addEventListener("click", async (event) => {
           id: crypto.randomUUID(),
           name,
           folder: folderName,
-          catalog: "default.yaml",
+          catalog: defaultCatalog,
           description: "",
           steps: [{ id: crypto.randomUUID(), name: "step_1", description: "", sql: "SELECT 1 AS sample_col", destinations: [], keep_temporary: true }],
         };
@@ -2770,10 +2826,13 @@ if (etlStepDescInput) {
   });
 }
 
-etlCatalogSelect.addEventListener("change", () => {
+etlCatalogSelect.addEventListener("change", async () => {
   if (!activePipeline) return;
-  activePipeline.catalog = etlCatalogSelect.value;
+  activePipeline.catalog = etlCatalogSelect.value || "default.yaml";
   etlCatalogDesc.textContent = activePipeline.catalog === "default.yaml" ? "Default catalog" : activePipeline.catalog;
+  await loadPipelineCatalog(activePipeline.catalog);
+  renderTableInsertDropdown();
+  renderDestinations();
   triggerValidateSql();
 });
 

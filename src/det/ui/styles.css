@@ -63,6 +63,36 @@ button {
   color: inherit;
 }
 
+select {
+  color-scheme: light dark;
+}
+
+:root[data-theme="dark"] select {
+  color-scheme: dark;
+}
+
+:root[data-theme="light"] select {
+  color-scheme: light;
+}
+
+select option,
+select optgroup {
+  background-color: var(--surface);
+  color: var(--text);
+}
+
+:root[data-theme="dark"] select option,
+:root[data-theme="dark"] select optgroup {
+  background-color: #0f172a;
+  color: #f8fafc;
+}
+
+:root[data-theme="light"] select option,
+:root[data-theme="light"] select optgroup {
+  background-color: #ffffff;
+  color: #0f172a;
+}
+
 .app-shell {
   min-height: 100vh;
 }
@@ -1387,6 +1417,36 @@ p {
   font-size: 11px;
 }
 
+.form-field select {
+  color-scheme: inherit;
+}
+
+.form-field select option,
+.form-field select optgroup {
+  background-color: var(--surface);
+  color: var(--text);
+}
+
+:root[data-theme="dark"] .form-field select {
+  color-scheme: dark;
+}
+
+:root[data-theme="dark"] .form-field select option,
+:root[data-theme="dark"] .form-field select optgroup {
+  background-color: #0f172a;
+  color: #f8fafc;
+}
+
+:root[data-theme="light"] .form-field select {
+  color-scheme: light;
+}
+
+:root[data-theme="light"] .form-field select option,
+:root[data-theme="light"] .form-field select optgroup {
+  background-color: #ffffff;
+  color: #0f172a;
+}
+
 .form-field textarea {
   min-height: 65px;
   resize: vertical;
@@ -2171,6 +2231,30 @@ p {
   cursor: pointer;
   border-right: 1px solid var(--line);
   outline: none;
+  color-scheme: inherit;
+}
+
+.etl-doc-select option {
+  background-color: var(--surface);
+  color: var(--text);
+}
+
+:root[data-theme="dark"] .etl-doc-select {
+  color-scheme: dark;
+}
+
+:root[data-theme="dark"] .etl-doc-select option {
+  background-color: #0f172a;
+  color: #f8fafc;
+}
+
+:root[data-theme="light"] .etl-doc-select {
+  color-scheme: light;
+}
+
+:root[data-theme="light"] .etl-doc-select option {
+  background-color: #ffffff;
+  color: #0f172a;
 }
 
 .etl-doc-select:focus {
@@ -2674,6 +2758,30 @@ details[open] > .etl-accordion-summary .accordion-chevron {
   height: 100%;
   opacity: 0;
   cursor: pointer;
+  color-scheme: inherit;
+}
+
+.destinations-select-overlay option {
+  background-color: var(--surface);
+  color: var(--text);
+}
+
+:root[data-theme="dark"] .destinations-select-overlay {
+  color-scheme: dark;
+}
+
+:root[data-theme="dark"] .destinations-select-overlay option {
+  background-color: #0f172a;
+  color: #f8fafc;
+}
+
+:root[data-theme="light"] .destinations-select-overlay {
+  color-scheme: light;
+}
+
+:root[data-theme="light"] .destinations-select-overlay option {
+  background-color: #ffffff;
+  color: #0f172a;
 }
 
 .checkbox-label {
@@ -2741,16 +2849,47 @@ details[open] > .etl-accordion-summary .accordion-chevron {
   cursor: pointer;
   max-width: 220px;
   padding: 2px 0;
+  color-scheme: inherit;
 }
 
 .etl-table-select optgroup {
   font-weight: 700;
   color: var(--muted);
+  background-color: var(--surface);
 }
 
 .etl-table-select option {
   color: var(--text);
   font-weight: 400;
+  background-color: var(--surface);
+}
+
+:root[data-theme="dark"] .etl-table-select {
+  color-scheme: dark;
+}
+
+:root[data-theme="dark"] .etl-table-select optgroup {
+  background-color: #0f172a;
+  color: #94a3b8;
+}
+
+:root[data-theme="dark"] .etl-table-select option {
+  background-color: #0f172a;
+  color: #f8fafc;
+}
+
+:root[data-theme="light"] .etl-table-select {
+  color-scheme: light;
+}
+
+:root[data-theme="light"] .etl-table-select optgroup {
+  background-color: #ffffff;
+  color: #64748b;
+}
+
+:root[data-theme="light"] .etl-table-select option {
+  background-color: #ffffff;
+  color: #0f172a;
 }
 
 .etl-table-insert-btn {
@@ -3435,6 +3574,30 @@ details[open] > .etl-accordion-summary .accordion-chevron {
   font-size: 12px;
   outline: none;
   transition: border-color 120ms ease;
+  color-scheme: inherit;
+}
+
+.mon-filter-select option {
+  background-color: var(--surface);
+  color: var(--text);
+}
+
+:root[data-theme="dark"] .mon-filter-select {
+  color-scheme: dark;
+}
+
+:root[data-theme="dark"] .mon-filter-select option {
+  background-color: #0f172a;
+  color: #f8fafc;
+}
+
+:root[data-theme="light"] .mon-filter-select {
+  color-scheme: light;
+}
+
+:root[data-theme="light"] .mon-filter-select option {
+  background-color: #ffffff;
+  color: #0f172a;
 }
 
 .mon-filter-select:focus,
