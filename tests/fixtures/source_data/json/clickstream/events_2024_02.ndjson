@@ -1,2 +1,0 @@
-{"event_id": "EV-04", "customer_id": "C003", "product_id": 103, "action": "view", "device": "desktop", "timestamp": "2024-02-01T09:30:00Z"}
-{"event_id": "EV-05", "customer_id": "C004", "product_id": 101, "action": "purchase", "device": "mobile", "timestamp": "2024-02-14T16:45:00Z"}

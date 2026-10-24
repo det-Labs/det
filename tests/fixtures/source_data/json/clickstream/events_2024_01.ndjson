@@ -1,3 +1,0 @@
-{"event_id": "EV-01", "customer_id": "C001", "product_id": 101, "action": "view", "device": "mobile", "timestamp": "2024-01-05T10:15:00Z"}
-{"event_id": "EV-02", "customer_id": "C001", "product_id": 101, "action": "add_to_cart", "device": "mobile", "timestamp": "2024-01-05T10:18:00Z"}
-{"event_id": "EV-03", "customer_id": "C002", "product_id": 102, "action": "view", "device": "desktop", "timestamp": "2024-01-12T14:22:00Z"}

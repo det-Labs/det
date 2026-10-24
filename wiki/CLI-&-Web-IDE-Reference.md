@@ -6,49 +6,50 @@ Comprehensive reference for the `det` command-line interface and the local Web I
 
 ## 💻 CLI Commands
 
-### `det gui`
-Launches the interactive Web IDE server and automatically opens your web browser:
+### `det init`
+Scaffolds a clean workspace with standard folders (`catalog/`, `projects/`, `extensions/`, `.det/`):
 
 ```bash
-det gui [--port 8000] [--host 127.0.0.1] [--no-browser]
+det init [workspace_name]
+```
+
+### `det gui`
+Launches the interactive zero-CDN Web IDE and opens your web browser:
+
+```bash
+det gui [--port 8080] [--host 127.0.0.1] [--no-browser]
 ```
 
 ### `det run`
-Executes one or all pipelines headlessly:
+Executes one or all pipelines headlessly with topological DAG resolution:
 
 ```bash
-det run <pipeline_path_or_name> [--catalog custom.yaml] [--verbose]
+det run <pipeline_or_project> [--verbose]
 ```
 
-Examples:
+### `det test`
+Executes data quality audits and tests configured on pipeline models:
+
 ```bash
-det run Sample_Warehouse_Pipelines/fct_orders
-det run Sample_Warehouse_Pipelines/mart_customer_rfm_loyalty --verbose
+det test <pipeline_or_project>
 ```
 
 ### `det validate`
-Performs static pre-flight validation on a pipeline's SQL queries, schemas, and dependencies:
+Performs static pre-flight validation on SQL queries, column schemas, and DAG dependencies:
 
 ```bash
-det validate <pipeline_path_or_name>
-```
-
-### `det sample-data`
-Installs the complete NovaMart Global sample warehouse into the current directory:
-
-```bash
-det sample-data [--force]
+det validate <pipeline_or_project>
 ```
 
 ### `det doc`
-Generates interactive HTML or Markdown documentation from a pipeline definition:
+Generates interactive documentation with SVG/Mermaid DAG diagrams and column contracts:
 
 ```bash
-det doc <pipeline_path_or_name> [--format html|markdown]
+det doc <pipeline_or_project>
 ```
 
 ### `det inspect`
-Inspects a catalog connection, lists columns, data types, and row count:
+Inspects a catalog connection, schema, and displays a sample row preview:
 
 ```bash
 det inspect <connection_name> [--rows 10]
@@ -56,30 +57,24 @@ det inspect <connection_name> [--rows 10]
 
 ---
 
-## 🖥️ Web IDE Interface & Keyboard Shortcuts
+## 🖥️ Web IDE Interface & Modules
 
-The `det` Web IDE offers four unified modules:
+The `det` Web IDE offers a clean, dual-pane architecture:
 
-1. **Catalog Module**:
-   - Manage source and destination connection metadata
-   - Live sample preview with pagination and data types
-   - Schema derivation and type overrides
-2. **ETL Module**:
-   - Visual Mermaid DAG graph reflecting transformation flow
-   - Multi-step SQL editor with syntax highlighting
-   - Inline schema validation and destination routing
-   - One-click pipeline execution with real-time step timers
-3. **Monitoring Module**:
-   - Comprehensive telemetry history for every run
-   - Status indicators (SUCCESS, FAILED, RUNNING)
-   - Step-by-step latency analysis and processed row counts
-4. **Documentation Module**:
-   - Auto-generated living documentation for every pipeline
-   - Embedded SVG/Mermaid DAGs
-   - Markdown and HTML export
+1. **Explorer Bar**:
+   - Filter and search projects and pipeline models
+   - Persistent bottom settings access for common **Storage Sinks Configuration**
+2. **Secondary Collapsible Panel**:
+   - **Execution Telemetry**: Run history, stage durations, and row metrics
+   - **Quarantine Explorer**: Inspection of quarantined rows and validation failure details
+   - **Data Quality Audits**: Pass/fail status across `not_null`, `unique`, and conditional rules
+3. **DAG Lineage Visualizer**:
+   - Interactive SVG/Mermaid graph reflecting transformation flow and upstream dependencies
+4. **Interactive SQL Editor**:
+   - Fast in-browser SQL authoring with real-time execution
+   - *Roadmap*: Native in-editor autocompletion and Language Server Protocol (LSP) diagnostics
 
-### Global Keyboard Shortcuts
-- `Ctrl + Enter` (or `Cmd + Enter`): Run active pipeline or step
-- `Ctrl + S` (or `Cmd + S`): Save pipeline definition
+### Keyboard Shortcuts
+- `Ctrl + Enter` (or `Cmd + Enter`): Run active SQL query or pipeline
 - `Escape`: Close modals and inspection drawers
 

@@ -1,6 +1,6 @@
 # SQL ETL Pipeline Authoring
 
-`det` pipelines are declared in human-readable YAML files. Each pipeline consists of metadata, an optional catalog binding, and an ordered series of SQL transformation steps.
+`det` pipelines are declared in human-readable YAML files. Each pipeline consists of metadata, an optional catalog binding, and an ordered series of SQL transformation models.
 
 ---
 
@@ -10,8 +10,6 @@
 version: 1
 id: 550e8400-e29b-41d4-a716-446655440000
 name: mart_customer_rfm_loyalty
-folder: Analytics_Marts
-catalog: sample_warehouse.yaml
 description: Computes Recency, Frequency, and Monetary (RFM) customer loyalty tiers.
 
 steps:
@@ -54,11 +52,11 @@ steps:
 
 ---
 
-## 🔗 Step Interdependence & Dynamic Views
+## 🔗 Step Interdependence & In-Memory Views
 
-When step 1 executes, its output `DataFrame` is automatically registered into the DataFusion `SessionContext` under its step name (`customer_order_aggregates`).
+When step 1 executes, its output view is automatically registered into the DuckDB session under its step name (`customer_order_aggregates`).
 
-Subsequent steps in the same pipeline can query previous step names just like any physical table, enabling clean, modular multi-stage DAG transformations without intermediate disk writes.
+Subsequent steps in the same pipeline can query previous step names directly, enabling clean, modular multi-stage DAG transformations without writing intermediate files to disk.
 
 ---
 
@@ -70,22 +68,23 @@ Any step can declare one or more destinations referencing catalog connections:
 destinations:
   - name: dw_fct_orders_parquet
     mode: overwrite   # Options: overwrite, append
-  - name: dw_daily_sales_delta
-    mode: append
+  - name: dw_monthly_report_excel
+    mode: overwrite
 ```
 
 Supported destination formats include:
+- **Parquet**: Writes columnar Parquet files with compression.
 - **CSV**: Writes delimited text files with headers.
-- **Parquet**: Writes columnar Parquet files with snappy/zstd compression.
-- **Delta Lake**: Appends or overwrites ACID transaction log tables.
+- **JSON**: Writes structured JSON or NDJSON documents.
+- **Excel**: Exports formatted `.xlsx` workbooks.
+- **Relational Databases**: Mounts and writes to PostgreSQL, MySQL, and SQLite.
+- *(Note: Delta Lake is currently supported as a read-only source; Delta Lake write destination support is scheduled for an upcoming release).*
 
 ---
 
-## 🔍 Pre-Flight Validation
+## 🛡️ Data Quality Audits & Row Quarantine
 
-Before executing in production, `det` validates:
-1. SQL parsing and syntax conformance
-2. Source table and intermediate view existence
-3. Referenced column existence against catalog schemas
-4. Output column mapping to destination schemas
+`det` includes native row-level quarantine capabilities:
+- **Pre-flight & Post-flight Audits**: Validate `not_null`, `unique`, `accepted_values`, and custom SQL expressions.
+- **Row-Level Quarantine**: Route violating rows to `.det/quarantine/` while allowing conforming rows to proceed downstream, preventing entire pipeline crashes due to isolated dirty records.
 

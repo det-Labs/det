@@ -1,431 +1,161 @@
-"""det.runner - High-performance DataFusion pipeline execution engine and destination writer.
+"""Pipeline runner orchestrating DAG model materialization and egress destinations."""
 
-Design principle: We are building an ETL tool with monitoring capabilities,
-not a monitoring tool that runs ETL. Telemetry is zero-copy, non-blocking,
-and imposes negligible overhead (<2ms total) on pipeline execution.
-"""
-
-from __future__ import annotations
-
-import re
-import time
-from datetime import UTC, datetime
+from dataclasses import dataclass, field
+import logging
 from pathlib import Path
+import time
 from typing import Any
+import duckdb
 
-from det.catalog import CatalogStore, resolve_connection_options
-from det.connectors import (
-    CSV_CONNECTOR,
-    DELTA_CONNECTOR,
-    EXCEL_CONNECTOR,
-    JSON_CONNECTOR,
-    PARQUET_CONNECTOR,
-    POSTGRESQL_CONNECTOR,
-    build_postgres_uri,
-    resolve_env_vars,
-    scan_builtin,
-)
-from det.engine import create_session_context, run_sql
-from det.monitoring import (
-    DestinationWriteMetric,
-    MonitoringStore,
-    RunRecord,
-    SourceReadMetric,
-    StepRunRecord,
-    _utcnow_iso,
-)
-from det.pipeline import Pipeline, PipelineStore
-from det.validator import PipelineValidator
+from det.engine.facade import EngineFacade
+from det.models.base import DestinationSpec, WriteMode
+from det.models.dag import ModelDAG
+from det.models.definition import ModelDefinition
+
+logger = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True)
+class ModelExecutionResult:
+    """Telemetry outcome for an individual model run."""
+
+    model_name: str
+    status: str
+    duration_ms: float
+    row_count: int = 0
+    error_message: str | None = None
+
+    @property
+    def is_success(self) -> bool:
+        """Return True if model materialized without error."""
+        return self.status == "SUCCESS"
+
+
+@dataclass
+class PipelineExecutionReport:
+    """Summary metrics of an end-to-end pipeline DAG run."""
+
+    total_models: int = 0
+    succeeded: int = 0
+    failed: int = 0
+    duration_ms: float = 0.0
+    results: list[ModelExecutionResult] = field(default_factory=list)
+
+    @property
+    def is_successful(self) -> bool:
+        """Return True if all models succeeded."""
+        return self.failed == 0
+
+    def add_result(self, result: ModelExecutionResult) -> None:
+        """Record model execution result into aggregate metrics."""
+        self.total_models += 1
+        self.results.append(result)
+        if result.is_success:
+            self.succeeded += 1
+        else:
+            self.failed += 1
 
 
 class PipelineRunner:
-    """Executes multi-stage DataFusion SQL pipelines with zero-overhead telemetry."""
+    """Orchestrates staged execution of models and egress publishing."""
 
-    def __init__(self, workspace: str | Path) -> None:
-        self.workspace = Path(workspace).expanduser().resolve()
-        self.catalog_store = CatalogStore(self.workspace)
-        self.pipeline_store = PipelineStore(self.workspace)
-        self.monitoring_store = MonitoringStore(self.workspace)
-        self.validator = PipelineValidator(self.workspace)
+    def __init__(self, engine: EngineFacade | None = None) -> None:
+        self._engine = engine or EngineFacade()
 
-    def run(self, pipeline_input: str | dict[str, Any] | Pipeline) -> dict[str, Any]:
-        """Execute a pipeline by identifier, dict, or Pipeline model."""
-        if isinstance(pipeline_input, str):
-            pipeline_data = self.pipeline_store.get_pipeline(pipeline_input)
-            pipeline = Pipeline.model_validate(pipeline_data)
-        elif isinstance(pipeline_input, dict):
-            pipeline = Pipeline.model_validate(pipeline_input)
-        else:
-            pipeline = pipeline_input
-
-        # 1. Fast pre-flight validation (lazy DataFusion planning, zero data reads)
-        val_result = self.validator.validate_pipeline(pipeline)
-        if not val_result["valid"]:
-            # Pre-flight caught an error before execution began
-            failed_run = RunRecord(
-                run_id=_utcnow_iso().replace(":", "-"),
-                pipeline_id=pipeline.id,
-                pipeline_name_at_run=pipeline.name,
-                folder_at_run=pipeline.folder,
-                catalog=pipeline.catalog,
-                status="FAILED",
-                started_at=_utcnow_iso(),
-                completed_at=_utcnow_iso(),
-                total_duration_seconds=0.0,
-                error=val_result["error"],
-                warnings=val_result.get("hints", []),
-            )
-            try:
-                self.monitoring_store.record_run(failed_run)
-            except Exception:
-                pass
-            return failed_run.model_dump(mode="json")
-
-        import uuid
-        run_id = str(uuid.uuid4())
-        started_dt = datetime.now(UTC)
-        run_record = RunRecord(
-            run_id=run_id,
-            pipeline_id=pipeline.id,
-            pipeline_name_at_run=pipeline.name,
-            folder_at_run=pipeline.folder,
-            catalog=pipeline.catalog,
-            status="RUNNING",
-            started_at=started_dt.isoformat(),
-        )
-
-        start_perf = time.perf_counter()
-        context = create_session_context()
-
-        try:
-            # 2. Load catalog
-            catalog_file = pipeline.catalog or "default.yaml"
-            catalog_doc = self.catalog_store.select(catalog_file)["catalog"]
-
-            all_connections: dict[str, dict[str, Any]] = {}
-            for folder in catalog_doc.get("folders", []):
-                for conn in folder.get("connections", []):
-                    all_connections[conn["id"]] = conn
-                    all_connections[conn["name"]] = conn
-
-            # Identify referenced sources in pipeline SQL to avoid scanning unused sources
-            all_sql = " ".join(step.sql for step in pipeline.steps)
-            referenced_sources = {
-                name for name in all_connections
-                if re.search(rf"\b{re.escape(name)}\b", all_sql, re.IGNORECASE)
-            }
-
-            # 3. Register sources lazily (pure metadata, zero I/O)
-            registered_source_names: set[str] = set()
-            for conn in all_connections.values():
-                conn_name = conn.get("name")
-                if not conn_name or conn_name in registered_source_names:
-                    continue
-                if conn.get("is_source"):
-                    registered_source_names.add(conn_name)
-                    connector_guid = conn.get("connector", "")
-                    if connector_guid in (POSTGRESQL_CONNECTOR.guid, POSTGRESQL_CONNECTOR.key) and conn_name not in referenced_sources:
-                        continue
-                    try:
-                        resolved_options = resolve_connection_options(conn, catalog_doc)
-                        df = scan_builtin(
-                            context,
-                            conn["connector"],
-                            resolved_options,
-                            self.workspace,
-                            saved_columns=conn.get("columns") or None,
-                        )
-                        context.register_view(conn_name, df)
-
-                        if conn_name in referenced_sources and not any(s.source_name == conn_name for s in run_record.sources):
-                            run_record.sources.append(
-                                SourceReadMetric(
-                                    source_name=conn_name,
-                                    connector_type=conn.get("connector", ""),
-                                    started_at=_utcnow_iso(),
-                                    completed_at=_utcnow_iso(),
-                                    rows_read=0,  # Populated after step execution
-                                )
-                            )
-                    except Exception as scan_err:
-                        if conn_name in referenced_sources:
-                            run_record.warnings.append(
-                                f"Referenced source '{conn_name}' could not be registered: {scan_err}"
-                            )
-
-            # 4. Sequentially execute each pipeline step
-            for step in pipeline.steps:
-                step_start_perf = time.perf_counter()
-                step_record = StepRunRecord(
-                    step_id=step.id,
-                    step_name=step.name,
-                    sql=step.sql,
-                    status="RUNNING",
-                    started_at=_utcnow_iso(),
-                )
-
-                try:
-                    step_df = run_sql(context, step.sql)
-
-                    # Register as temporary table/view so subsequent steps can query it
-                    context.register_view(step.name, step_df)
-
-                    # Collect to arrow table for destination writes and O(1) row count
-                    arrow_table = step_df.to_arrow_table()
-                    row_count = arrow_table.num_rows
-                    step_record.rows_processed = row_count
-
-                    # 5. Write to configured destinations
-                    for dest_ref in step.destinations:
-                        dest_conn = all_connections.get(dest_ref)
-                        if not dest_conn or not dest_conn.get("is_destination"):
-                            continue
-
-                        dest_metric = self._write_to_destination(
-                            dest_conn,
-                            step_df,
-                            arrow_table,
-                            catalog_doc,
-                        )
-                        step_record.destinations.append(dest_metric)
-
-                    step_record.status = "SUCCESS"
-                    step_record.completed_at = _utcnow_iso()
-                    step_record.duration_ms = round(
-                        (time.perf_counter() - step_start_perf) * 1000, 2
-                    )
-                    run_record.steps.append(step_record)
-
-                except Exception as step_exc:
-                    step_record.status = "FAILED"
-                    step_record.completed_at = _utcnow_iso()
-                    step_record.error = f"Step '{step.name}' failed: {step_exc}"
-                    step_record.duration_ms = round(
-                        (time.perf_counter() - step_start_perf) * 1000, 2
-                    )
-                    run_record.steps.append(step_record)
-                    raise
-
-            # Pipeline execution succeeded
-            completed_dt = datetime.now(UTC)
-            run_record.status = "SUCCESS"
-            run_record.completed_at = completed_dt.isoformat()
-            run_record.total_duration_seconds = round(time.perf_counter() - start_perf, 3)
-
-        except Exception as exc:
-            completed_dt = datetime.now(UTC)
-            run_record.status = "FAILED"
-            run_record.completed_at = completed_dt.isoformat()
-            run_record.total_duration_seconds = round(time.perf_counter() - start_perf, 3)
-            run_record.error = f"Pipeline execution failed: {exc}"
-
-        finally:
-            # Single non-blocking write at the very end
-            try:
-                saved_run = self.monitoring_store.record_run(run_record)
-            except Exception as log_err:
-                run_record.warnings.append(f"Failed to persist run telemetry: {log_err}")
-                saved_run = run_record.model_dump(mode="json")
-
-        return saved_run
-
-    def _write_to_destination(
+    def run_dag(
         self,
-        dest_conn: dict[str, Any],
-        df: Any,
-        arrow_table: Any,
-        catalog_doc: dict[str, Any] | None = None,
-    ) -> DestinationWriteMetric:
-        """Write DataFrame/Arrow Table to destination with minimal overhead."""
-        start_write = time.perf_counter()
-        write_started_iso = _utcnow_iso()
+        dag: ModelDAG,
+        selected_models: set[str] | None = None,
+    ) -> PipelineExecutionReport:
+        """Execute models in staged topological order against the engine session."""
+        start_time = time.perf_counter()
+        report = PipelineExecutionReport()
+        stages = dag.get_execution_stages()
 
-        resolved = resolve_connection_options(dest_conn, catalog_doc)
-        options = resolve_env_vars(resolved, self.workspace)
-        connector_guid = dest_conn.get("connector", "")
+        for stage in stages:
+            for model_name in stage.models:
+                if selected_models is not None and model_name not in selected_models:
+                    continue
+                model = dag.get_model(model_name)
+                if not model or not model.config.enabled:
+                    continue
+                result = self._execute_single_model(self._engine.session, model)
+                report.add_result(result)
+                if not result.is_success:
+                    logger.error("Halting pipeline: Model '%s' failed.", model_name)
+                    report.duration_ms = round((time.perf_counter() - start_time) * 1000.0, 2)
+                    return report
 
-        # 0. PostgreSQL Destination via Apache Arrow ADBC
-        if connector_guid in (POSTGRESQL_CONNECTOR.guid, POSTGRESQL_CONNECTOR.key):
-            return self._write_postgresql(
-                dest_conn, arrow_table, options, start_write, write_started_iso
+        report.duration_ms = round((time.perf_counter() - start_time) * 1000.0, 2)
+        return report
+
+    def _execute_single_model(
+        self, con: duckdb.DuckDBPyConnection, model: ModelDefinition
+    ) -> ModelExecutionResult:
+        """Materialize model in DuckDB session and publish to configured destinations."""
+        start = time.perf_counter()
+        try:
+            # 1. Primary local materialization
+            ddl_sql = model.get_materialize_sql()
+            con.execute(ddl_sql)
+
+            # 2. Publish to secondary destinations
+            self._publish_destinations(con, model)
+
+            # 3. Telemetry row count
+            count_res = con.execute(f"SELECT COUNT(*) FROM {model.name}").fetchall()
+            row_count = int(count_res[0][0]) if count_res else 0
+            elapsed = (time.perf_counter() - start) * 1000.0
+
+            return ModelExecutionResult(
+                model_name=model.name,
+                status="SUCCESS",
+                duration_ms=round(elapsed, 2),
+                row_count=row_count,
+            )
+        except Exception as exc:
+            elapsed = (time.perf_counter() - start) * 1000.0
+            logger.error("Execution failed for model '%s': %s", model.name, exc)
+            return ModelExecutionResult(
+                model_name=model.name,
+                status="FAILED",
+                duration_ms=round(elapsed, 2),
+                error_message=str(exc),
             )
 
-        raw_path = options.get("output_path") or options.get("path", "")
-        if not raw_path:
-            raise ValueError(f"Destination connection '{dest_conn['name']}' has no output path configured.")
-
-        target_path = Path(raw_path)
-        if not target_path.is_absolute():
-            target_path = self.workspace / target_path
-        target_path.parent.mkdir(parents=True, exist_ok=True)
-
-        format_name = "unknown"
-
-        # 1. CSV Destination
-        if connector_guid == CSV_CONNECTOR.guid:
-            format_name = "csv"
-            # In CSV_CONNECTOR fields:
-            # write field is 'with_header' ("Write column headers")
-            # read field is 'has_header' ("First row contains column names")
-            hdr_val = options.get("with_header")
-            if hdr_val is None:
-                hdr_val = options.get("has_header", True)
-            if isinstance(hdr_val, str):
-                with_header = hdr_val.strip().lower() in ("true", "1", "yes", "on")
+    def _publish_destinations(
+        self, con: duckdb.DuckDBPyConnection, model: ModelDefinition
+    ) -> None:
+        """Execute publishing SQL for each non-local destination."""
+        for dest in model.config.destinations:
+            if dest.target == "local" and not dest.path:
+                continue
+            out = dest.path or dest.target
+            if out.lower().endswith((".xlsx", ".xls")):
+                self._export_to_excel(con, model.name, out)
+            elif out.lower().endswith((".parquet", ".csv", ".json")):
+                fmt = (dest.format or out.split(".")[-1]).upper()
+                Path(out).parent.mkdir(parents=True, exist_ok=True)
+                con.execute(f"COPY {model.name} TO '{out}' (FORMAT {fmt})")
+            elif dest.mode == WriteMode.APPEND:
+                publish_sql = f"INSERT INTO {dest.target} BY NAME SELECT * FROM {model.name}"
+                con.execute(publish_sql)
             else:
-                with_header = bool(hdr_val)
+                publish_sql = f"CREATE OR REPLACE TABLE {dest.target} AS SELECT * FROM {model.name}"
+                con.execute(publish_sql)
 
-            out_file = target_path if target_path.suffix.lower() == ".csv" else target_path / f"{dest_conn['name']}.csv"
-            target_path = out_file
-            write_mode = str(options.get("write_mode", "overwrite")).strip().lower()
-
-            if write_mode == "append" and out_file.exists() and out_file.stat().st_size > 0:
-                import pyarrow.csv as pacsv
-                with open(out_file, "ab") as f:
-                    pacsv.write_csv(arrow_table, f, write_options=pacsv.WriteOptions(include_header=False))
-            else:
-                df.write_csv(str(out_file), with_header=with_header)
-
-        # 2. Parquet Destination
-        elif connector_guid == PARQUET_CONNECTOR.guid:
-            format_name = "parquet"
-            if target_path.suffix.lower() == ".parquet":
-                df.write_parquet(str(target_path))
-            else:
-                out_file = target_path / f"{dest_conn['name']}.parquet"
-                df.write_parquet(str(out_file))
-                target_path = out_file
-
-        # 3. Delta Lake Destination
-        elif connector_guid == DELTA_CONNECTOR.guid:
-            format_name = "delta"
-            import deltalake
-
-            mode = options.get("mode", "overwrite")
-            if mode not in {"overwrite", "append"}:
-                mode = "overwrite"
-            schema_mode = "overwrite" if mode == "overwrite" else "merge"
-            deltalake.write_deltalake(
-                str(target_path), arrow_table, mode=mode, schema_mode=schema_mode
-            )
-
-        # 4. JSON Destination
-        elif connector_guid == JSON_CONNECTOR.guid:
-            format_name = "json"
-            if target_path.suffix.lower() in {".json", ".ndjson"}:
-                df.write_json(str(target_path))
-            else:
-                out_file = target_path / f"{dest_conn['name']}.json"
-                df.write_json(str(out_file))
-                target_path = out_file
-
-        # 5. Excel Destination
-        elif connector_guid == EXCEL_CONNECTOR.guid:
-            format_name = "excel"
-            sheet_name = options.get("sheet_name", "Sheet1")
-            excel_file = target_path if target_path.suffix.lower() == ".xlsx" else target_path / f"{dest_conn['name']}.xlsx"
-            self._write_excel(arrow_table, excel_file, sheet_name)
-            target_path = excel_file
-
-        else:
-            format_name = "parquet_fallback"
-            fallback_file = target_path if target_path.suffix else target_path / f"{dest_conn['name']}.parquet"
-            df.write_parquet(str(fallback_file))
-            target_path = fallback_file
-
-        duration_ms = round((time.perf_counter() - start_write) * 1000, 2)
-        return DestinationWriteMetric(
-            destination_name=dest_conn["name"],
-            target_path=str(target_path),
-            format=format_name,
-            started_at=write_started_iso,
-            completed_at=_utcnow_iso(),
-            rows_written=arrow_table.num_rows,
-            duration_ms=duration_ms,
-        )
-
-    @staticmethod
-    def _write_excel(arrow_table: Any, target_path: Path, sheet_name: str) -> None:
-        """Write pyarrow Table to Excel using openpyxl."""
+    def _export_to_excel(
+        self, con: duckdb.DuckDBPyConnection, table_name: str, out_path: str
+    ) -> None:
+        """Export table or view to an Excel workbook (.xlsx)."""
         import openpyxl
-
         wb = openpyxl.Workbook()
         ws = wb.active
-        ws.title = sheet_name
+        ws.title = table_name[:31]
+        res = con.execute(f"SELECT * FROM {table_name}")
+        ws.append([col[0] for col in res.description])
+        for row in res.fetchall():
+            ws.append(list(row))
+        Path(out_path).parent.mkdir(parents=True, exist_ok=True)
+        wb.save(out_path)
 
-        # Header row
-        ws.append(arrow_table.column_names)
-
-        # Data rows
-        pydict = arrow_table.to_pydict()
-        num_rows = arrow_table.num_rows
-        col_names = arrow_table.column_names
-
-        for row_idx in range(num_rows):
-            row_vals = [pydict[col][row_idx] for col in col_names]
-            ws.append(row_vals)
-
-        wb.save(str(target_path))
-
-    def _write_postgresql(
-        self,
-        dest_conn: dict[str, Any],
-        arrow_table: Any,
-        options: dict[str, Any],
-        start_write: float,
-        write_started_iso: str,
-    ) -> DestinationWriteMetric:
-        """Ingest Arrow table into PostgreSQL using Apache ADBC."""
-        try:
-            import adbc_driver_postgresql.dbapi as pg_dbapi
-        except ImportError as exc:
-            raise RuntimeError(
-                "PostgreSQL connector requires 'adbc-driver-postgresql'. "
-                "Install it with: pip install adbc-driver-postgresql"
-            ) from exc
-
-        target_table = options.get("target_table") or options.get("table")
-        if not target_table or not str(target_table).strip():
-            target_table = dest_conn["name"]
-        target_table = str(target_table).strip()
-
-        target_schema = options.get("target_schema") or options.get("schema") or "public"
-        target_schema = str(target_schema).strip()
-
-        if "." in target_table:
-            schema_part, _, table_part = target_table.partition(".")
-            target_schema = schema_part
-            target_table = table_part
-
-        write_mode = str(options.get("write_mode") or "create_or_replace").strip()
-        if write_mode in ("create_or_replace", "replace", "overwrite"):
-            adbc_mode = "replace"
-        elif write_mode == "append":
-            adbc_mode = "create_append"
-        elif write_mode in ("error_if_exists", "create"):
-            adbc_mode = "create"
-        else:
-            adbc_mode = "replace"
-
-        uri = build_postgres_uri(options)
-
-        with pg_dbapi.connect(uri, autocommit=True) as conn, conn.cursor() as cursor:
-            cursor.adbc_ingest(
-                table_name=target_table,
-                data=arrow_table,
-                mode=adbc_mode,
-                db_schema_name=target_schema if target_schema else None,
-            )
-            conn.commit()
-
-        duration_ms = round((time.perf_counter() - start_write) * 1000, 2)
-        target_repr = f"{target_schema}.{target_table}"
-        return DestinationWriteMetric(
-            destination_name=dest_conn["name"],
-            target_path=target_repr,
-            format="postgresql",
-            started_at=write_started_iso,
-            completed_at=_utcnow_iso(),
-            rows_written=arrow_table.num_rows,
-            duration_ms=duration_ms,
-        )

@@ -1,4 +1,0 @@
-order_id,customer_id,product_id,store_id,order_date,quantity,unit_price,discount
-ORD-1004,C001,104,S30,2024-02-02,4,59.95,0.0
-ORD-1005,C004,101,S20,2024-02-14,1,199.99,0.0
-ORD-1006,C002,103,S10,2024-02-22,2,129.00,0.15

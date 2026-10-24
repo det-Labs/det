@@ -1,92 +1,59 @@
-# =============================================================================
-# Git Ignore - det-core
-# =============================================================================
-
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
-*.so
 
-# C extensions
-*.obj
-*.o
-*.lib
-
-# Distribution / packaging
+# Distribution & Packaging
 build/
-develop-eggs/
 dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-pip-wheel-metadata/
-share/python-wheels/
 *.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
 
 # Virtual Environments
 .venv/
 venv/
-env/
 ENV/
-env.bak/
-venv.bak/
+env/
 
-# IDE, Editor & OS files
+# DET Scaffolded Workspace & Runtime Directories (Retained locally, excluded from git)
+/samples/
+/.det/
+/catalog/
+/extensions/
+/data/
+/projects/
+
+# Temporary and Scratch Directories
+/temp_test_ws/
+/scratch/
+
+# Database and Storage Files
+*.duckdb
+*.duckdb.wal
+*.db
+*.sqlite
+*.sqlite3
+*.wal
+
+# Testing & Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Logs
+*.log
+
+# Environment variables & Credentials
+.env
+.env.*
+*.pem
+*.key
+*.cert
+
+# Editor & OS files
 .vscode/
 .idea/
-*.sublime-project
-*.sublime-workspace
 *.swp
 *.swo
 *~
 .DS_Store
 Thumbs.db
-Desktop.ini
-
-# Testing, Type Checking & Linting
-.pytest_cache/
-.ruff_cache/
-.mypy_cache/
-.coverage
-htmlcov/
-.tox/
-.nox/
-
-# det Root Workspace Runtime Artifacts
-# (Generated when running 'det init', 'det sample-data', or pipelines in the repo root)
-/catalog/
-/pipelines/
-/source_data/
-/logs/
-/docs/
-/documentation/
-/extensions/
-/Sample Workspace/
-/*.duckdb
-/*.sqlite
-/*.db
-
-# Scratch and internal planning notes
-/IMPLEMENTATION_PLAN.md
-/scratch/
-*.tmp
-*.bak
-/_site/
-/demo_workspace/
-media/*.wav
-media/screen_record.mp4
-media/*.ps1
-media/linkedin/*.wav
-media/linkedin/screen_record.mp4
-media/linkedin/tts.ps1
-

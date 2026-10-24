@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>det - Modern SQL ETL & Multi-Project Data Platform</title>
+    <link rel="stylesheet" href="style.css?v=0.3.4">
+</head>
+<body>
+    <!-- Top Header Bar with Navigation -->
+    <header class="header-bar">
+        <div class="brand">
+            <span class="logo">⚡ det</span>
+            <span class="version-tag">v0.3.0</span>
+        </div>
+
+        <nav class="nav-bar" id="nav-bar">
+            <!-- Dynamically populated from /api/ui/manifest -->
+        </nav>
+
+        <div class="header-actions">
+            <select class="select-dropdown" id="theme-select">
+                <!-- Dynamically populated from themes -->
+            </select>
+            <div class="status-pill">
+                <span>●</span>
+                <span>Ready</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Workspace Layout -->
+    <div class="layout-body">
+        <!-- Left Explorer Bar -->
+        <aside class="explorer-bar" id="explorer-bar">
+            <div class="explorer-header">
+                <span id="explorer-title">Connections</span>
+                <div class="explorer-header-actions" id="explorer-header-actions">
+                    <button class="icon-btn" id="btn-explorer-create-folder" title="Create New Folder" onclick="onExplorerCreateFolder()">
+                        <svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                            <line x1="12" y1="11" x2="12" y2="17"/>
+                            <line x1="9" y1="14" x2="15" y2="14"/>
+                        </svg>
+                    </button>
+                    <button class="icon-btn" id="btn-explorer-add" title="Add Connection" onclick="onExplorerAdd()">
+                        <svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="12" y1="5" x2="12" y2="19"/>
+                            <line x1="5" y1="12" x2="19" y2="12"/>
+                        </svg>
+                    </button>
+                    <button class="icon-btn" id="btn-explorer-docs-regenerate" title="Regenerate Docs" style="display: none;" onclick="onDocsRegenerate()">
+                        <svg class="ui-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+                        </svg>
+                    </button>
+                    <button class="icon-btn text-danger" id="btn-explorer-docs-delete" title="Delete Generated Docs" style="display: none;" onclick="onDocsDelete()">
+                        <svg class="ui-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                        </svg>
+                    </button>
+                    <button class="icon-btn" id="btn-explorer-collapse" title="Collapse Explorer Sidebar" onclick="togglePrimaryExplorer()">
+                        <svg class="ui-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="15 18 9 12 15 6"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="explorer-search-box">
+                <input type="text" id="explorer-search" class="explorer-search-input" placeholder="Search connections..." oninput="onExplorerSearch(this.value)">
+            </div>
+
+            <div class="explorer-body" id="explorer-body">
+                <!-- Dynamically populated based on active navigation tab -->
+            </div>
+
+            <div class="explorer-footer" id="explorer-footer" style="display: none;">
+                <!-- Fixed settings option at bottom of primary explorer bar -->
+            </div>
+        </aside>
+
+        <!-- Collapsed Strip for Primary Explorer Bar -->
+        <div class="explorer-collapsed-strip" id="explorer-expand-tab" style="display: none;" onclick="togglePrimaryExplorer()" title="Expand Explorer Sidebar">
+            <svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="9 18 15 12 9 6"/>
+            </svg>
+            <span class="collapsed-vertical-text" id="explorer-collapsed-label">EXPLORER</span>
+        </div>
+
+        <!-- Main Right Workspace Container -->
+        <div class="workspace-area" id="workspace-area">
+            <!-- Full-Width Pipeline Toolbar (Visible in Pipelines view) -->
+            <div id="pipeline-toolbar-container" class="pipeline-toolbar-container" style="display: none;"></div>
+
+            <!-- Workspace Body: Collapsible Model Explorer + Main Stage -->
+            <div class="workspace-body" id="workspace-body">
+                <!-- Secondary Collapsible Models Bar (Visible in Pipelines view) -->
+                <aside class="sub-explorer-bar" id="sub-explorer-bar" style="display: none;">
+                    <div class="sub-explorer-header">
+                        <div class="sub-explorer-title-wrap">
+                            <span class="sub-explorer-title" id="sub-explorer-title">Models</span>
+                            <span class="item-badge" id="sub-explorer-count">0</span>
+                        </div>
+                        <div class="sub-explorer-actions">
+                            <button class="icon-btn" id="btn-sub-create-folder" title="Create Schema / Folder" onclick="promptCreateModelFolder()">
+                                <svg class="ui-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                                    <line x1="12" y1="11" x2="12" y2="17"/>
+                                    <line x1="9" y1="14" x2="15" y2="14"/>
+                                </svg>
+                            </button>
+                            <button class="icon-btn" id="btn-sub-add-model" title="Add Model" onclick="openAddModelModal()">
+                                <svg class="ui-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="12" y1="5" x2="12" y2="19"/>
+                                    <line x1="5" y1="12" x2="19" y2="12"/>
+                                </svg>
+                            </button>
+                            <button class="icon-btn" id="btn-sub-collapse" title="Collapse Models Sidebar" onclick="toggleSubExplorer()">
+                                <svg class="ui-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="15 18 9 12 15 6"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="explorer-search-box">
+                        <input type="text" id="sub-explorer-search" class="explorer-search-input" placeholder="Search models..." oninput="onSubExplorerSearch(this.value)">
+                    </div>
+
+                    <div class="explorer-body" id="sub-explorer-body">
+                        <!-- Dynamically populated models in selected pipeline -->
+                    </div>
+                </aside>
+
+                <!-- Collapsed strip / expand button when sub-explorer is collapsed -->
+                <div class="sub-explorer-collapsed-strip" id="sub-explorer-expand-tab" style="display: none;" onclick="toggleSubExplorer()" title="Expand Models Sidebar">
+                    <svg class="ui-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="9 18 15 12 9 6"/>
+                    </svg>
+                    <span class="collapsed-vertical-text" id="sub-explorer-collapsed-label">MODELS</span>
+                </div>
+
+                <!-- Main Stage Workspace: Shows selected connection details & scratchpad or DAG canvas -->
+                <main class="main-stage" id="main-stage">
+                    <!-- Dynamically rendered based on active navigation tab & selection -->
+                </main>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Model Modal -->
+    <div class="modal-overlay" id="model-modal" style="display: none;">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 id="model-modal-title">Create New Model</h3>
+                <button class="btn-close" onclick="closeModelModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-row">
+                    <div class="form-group flex-1">
+                        <label>Target Pipeline *</label>
+                        <select id="model-modal-pipeline" class="form-input"></select>
+                    </div>
+                    <div class="form-group flex-1">
+                        <label>Materialization *</label>
+                        <select id="model-modal-mat" class="form-input">
+                            <option value="view">View (Virtual SQL)</option>
+                            <option value="table">Table (DuckDB Table)</option>
+                            <option value="incremental">Incremental</option>
+                            <option value="ephemeral">Ephemeral (CTE Only)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group flex-1">
+                        <label>Model Name (Identifier) *</label>
+                        <input type="text" id="model-modal-name" class="form-input" placeholder="e.g. stg_orders, fct_revenue">
+                    </div>
+                    <div class="form-group flex-1">
+                        <label>Folder (e.g. staging, marts)</label>
+                        <input type="text" id="model-modal-folder" class="form-input" placeholder="e.g. staging, marts">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Description (Optional)</label>
+                    <input type="text" id="model-modal-desc" class="form-input" placeholder="e.g. Orders staging transformation">
+                </div>
+                <div class="form-group">
+                    <label>Model SQL Query *</label>
+                    <textarea id="model-modal-sql" class="sql-textarea" style="min-height: 120px;" placeholder="SELECT * FROM raw_events;"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModelModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="saveNewModel()">Save Model</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Connection Modal -->
+    <div class="modal-overlay" id="conn-modal" style="display: none;">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 id="modal-title">Add Catalog Connection</h3>
+                <button class="btn-close" onclick="closeConnModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <!-- Step 1: Connection Tier (Selected first) -->
+                <div class="form-group">
+                    <label>1. Connection Tier *</label>
+                    <select id="modal-conn-tier" class="form-input" onchange="onTierChange()">
+                        <option value="entity">Entity (Direct Query View - CSV, Parquet, JSON, S3, Iceberg...)</option>
+                        <option value="database">Database (Attached Catalog - DuckDB, SQLite, PostgreSQL, MySQL...)</option>
+                    </select>
+                </div>
+
+                <!-- Step 2: Connector Type (Filtered by Tier) -->
+                <div class="form-group">
+                    <label>2. Connector Type *</label>
+                    <select id="modal-conn-type" class="form-input" onchange="onConnectorTypeChange()"></select>
+                </div>
+
+                <!-- Step 3: Connection Name, Folder & Description -->
+                <div class="form-row">
+                    <div class="form-group flex-1">
+                        <label>3. Connection Identifier (Name) *</label>
+                        <input type="text" id="modal-conn-name" class="form-input" placeholder="e.g. raw_events, sales_db">
+                    </div>
+                    <div class="form-group flex-1">
+                        <label>Folder / Group</label>
+                        <select id="modal-conn-folder-select" class="form-input" onchange="onFolderSelectChange(this.value)">
+                            <option value="">None (Ungrouped)</option>
+                            <option value="__new__">+ Create New Folder...</option>
+                        </select>
+                        <input type="text" id="modal-conn-folder-custom" class="form-input" placeholder="Type new folder name..." style="display: none; margin-top: 0.35rem;">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Description (Optional)</label>
+                    <input type="text" id="modal-conn-desc" class="form-input" placeholder="e.g. Ingestion data source or lakehouse warehouse">
+                </div>
+
+                <!-- Step 4: Dynamic Connector Parameters -->
+                <div class="form-group">
+                    <label>4. Connector Configuration</label>
+                    <div id="dynamic-fields-container" class="dynamic-fields-grid"></div>
+                </div>
+
+                <div id="modal-test-result" class="test-result-box" style="display: none;"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="testModalConnection()">
+                    <svg class="ui-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                    Test Connection
+                </button>
+                <button class="btn btn-primary" onclick="saveModalConnection()">Save & Mount</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick In-DOM Prompt Modal (No browser window.prompt) -->
+    <div class="modal-overlay" id="prompt-modal" style="display: none;">
+        <div class="modal-card" style="max-width: 420px;">
+            <div class="modal-header">
+                <h3 id="prompt-modal-title">Create</h3>
+                <button class="btn-close" onclick="closePromptModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label id="prompt-modal-label">Name *</label>
+                    <input type="text" id="prompt-modal-input" class="form-input" placeholder="Enter name...">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closePromptModal()">Cancel</button>
+                <button class="btn btn-primary" id="prompt-modal-submit" onclick="submitPromptModal()">Create</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="icons.js?v=0.3.4"></script>
+    <script src="state.js?v=0.3.4"></script>
+    <script src="dag.js?v=0.3.4"></script>
+    <script src="scratchpad.js?v=0.3.4"></script>
+    <script src="catalog_modal.js?v=0.3.4"></script>
+    <script src="catalog.js?v=0.3.4"></script>
+    <script src="pipelines_explorer.js?v=0.3.4"></script>
+    <script src="pipeline_modal.js?v=0.3.4"></script>
+    <script src="pipelines_inspector.js?v=0.3.4"></script>
+    <script src="pipelines_stage.js?v=0.3.4"></script>
+    <script src="docs_explorer.js?v=0.3.4"></script>
+    <script src="docs_model_card.js?v=0.3.4"></script>
+    <script src="docs_stage.js?v=0.3.4"></script>
+    <script src="monitoring_explorer.js?v=0.3.6"></script>
+    <script src="monitoring_runs.js?v=0.3.6"></script>
+    <script src="monitoring_stage.js?v=0.3.6"></script>
+    <script src="app.js?v=0.3.6"></script>
+</body>
+</html>

@@ -1,11 +1,11 @@
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
 
 [project]
 name = "det-core"
-version = "0.2.3"
-description = "Fast, local-first SQL ETL workspace and pipeline orchestration engine powered by Apache DataFusion"
+version = "0.3.0"
+description = "Fast, local-first SQL ETL workspace and pipeline orchestration engine powered by DuckDB 2.0"
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.14"
@@ -19,15 +19,13 @@ maintainers = [
 keywords = [
     "etl",
     "det",
-    "dbt-alternative",
     "sql",
     "data-engineering",
     "data-pipeline",
-    "datafusion",
+    "duckdb",
     "apache-arrow",
     "parquet",
     "delta-lake",
-    "duckdb-alternative",
     "analytics-engineering",
     "data-orchestration",
 ]
@@ -35,31 +33,25 @@ classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "Intended Audience :: Information Technology",
-    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: 3.15",
     "Topic :: Database",
     "Topic :: Scientific/Engineering :: Information Analysis",
     "Topic :: Software Development :: Build Tools",
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 dependencies = [
-    "datafusion>=55.0.0,<56",
+    "duckdb>=2.0.0",
+    "pyyaml>=6.0.0",
     "pyarrow>=22",
-    "pydantic",
-    "PyYAML",
-    "fastexcel>=0.20.0",
     "openpyxl>=3.1.0",
-    "deltalake>=1.0.0",
-    "adbc-driver-postgresql>=1.0.0",
-    "adbc-driver-manager>=1.0.0",
 ]
 
 [project.optional-dependencies]
 dev = [
-    "pytest>=8.0.0",
-    "ruff>=0.3.0",
+    "pytest>=9.0.0",
     "build>=1.0.0",
     "twine>=5.0.0",
 ]
@@ -70,12 +62,11 @@ det = "det.cli:main"
 [project.urls]
 Homepage = "https://github.com/det-Labs/det"
 Repository = "https://github.com/det-Labs/det"
-Documentation = "https://github.com/det-Labs/det/wiki"
-Showcase = "https://det-labs.github.io/det/demo.html"
 Issues = "https://github.com/det-Labs/det/issues"
 
-[tool.hatch.build.targets.wheel]
-packages = ["src/det"]
+[tool.setuptools.packages.find]
+where = ["src"]
 
 [tool.pytest.ini_options]
-pythonpath = ["."]
+pythonpath = ["src"]
+testpaths = ["tests"]
