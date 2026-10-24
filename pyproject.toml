@@ -68,5 +68,5 @@ Issues = "https://github.com/det-Labs/det/issues"
 where = ["src"]
 
 [tool.pytest.ini_options]
-pythonpath = ["src"]
+pythonpath = ["src", "."]
 testpaths = ["tests"]
