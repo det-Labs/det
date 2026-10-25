@@ -2,6 +2,7 @@
 
 import logging
 from pathlib import Path
+import threading
 from typing import Any
 
 from det.catalog.base import ConnectionTestResult
@@ -43,22 +44,46 @@ class Workspace:
         self.engine = engine or EngineFacade(self.config.to_engine_config(self.root))
         self.catalog = catalog or CatalogManager(self.root / "catalog" / "connections.yaml")
         self.projects = projects or ProjectManager(self.root, catalog_manager=self.catalog)
-        self.runner = runner or PipelineRunner(engine=self.engine)
+        self.runner = runner or PipelineRunner(engine=self.engine, workspace_root=self.root)
         self.tester = tester or TestRunner()
         self.docs_gen = docs_gen or DocsGenerator()
         self.lineage_gen = LineageGenerator()
         self.docs_extractor = DocsExtractor()
         self.monitoring = TelemetryManager(self.root)
+        self._active_runs: set[str] = set()
+        self._run_lock = threading.Lock()
 
         # Eagerly mount all catalog connections into the shared engine session
         self.mount_catalog()
 
+    def is_pipeline_running(self, project: str) -> bool:
+        """Check if a specific pipeline project is actively running."""
+        with self._run_lock:
+            return project in self._active_runs
+
+    def get_running_pipelines(self) -> list[str]:
+        """Return list of pipeline names currently executing."""
+        with self._run_lock:
+            return sorted(self._active_runs)
+
     def mount_catalog(self) -> MountReport:
         """Eagerly register all catalog connections into the shared DuckDB session."""
+        try:
+            self.engine.session.execute(f"SET file_search_path = '{self.root.as_posix()}'")
+        except Exception as exc:
+            logger.debug("Could not set file_search_path: %s", exc)
         mountable_items = self.catalog.get_mountable_items()
         report = self.engine.mount_all(mountable_items)
         logger.debug("Mounted %d catalog connections into workspace.", len(report.mounted))
         return report
+
+    def setup_demo(self, use_remote: bool = False) -> dict[str, Any]:
+        """Scaffold and mount sample demo datasets, connections, and pipelines."""
+        from det.demo import setup_demo_workspace
+        result = setup_demo_workspace(self.root, use_remote=use_remote)
+        self.catalog = CatalogManager(self.root / "catalog" / "connections.yaml")
+        self.mount_catalog()
+        return result
 
     @classmethod
     def init(cls, workspace_path: Path) -> "Workspace":
@@ -81,14 +106,25 @@ class Workspace:
     ) -> PipelineExecutionReport:
         """Execute models in topological order, optionally filtered by selector."""
         proj_name = project or self.config.default_project
-        dag = self.projects.build_dag(proj_name)
-        selected = dag.select_models(select) if select else None
-        rep = self.runner.run_dag(dag, selected_models=selected)
+        with self._run_lock:
+            if proj_name in self._active_runs:
+                raise RuntimeError(
+                    f"Pipeline '{proj_name}' is already running. Please wait for the current run to finish."
+                )
+            self._active_runs.add(proj_name)
+
         try:
-            self._record_telemetry_run(proj_name, rep)
-        except Exception as e:
-            logger.warning("Telemetry run logging notice: %s", e)
-        return rep
+            dag = self.projects.build_dag(proj_name)
+            selected = dag.select_models(select) if select else None
+            rep = self.runner.run_dag(dag, selected_models=selected)
+            try:
+                self._record_telemetry_run(proj_name, rep)
+            except Exception as e:
+                logger.warning("Telemetry run logging notice: %s", e)
+            return rep
+        finally:
+            with self._run_lock:
+                self._active_runs.discard(proj_name)
 
     def _record_telemetry_run(self, project: str, rep: PipelineExecutionReport) -> None:
         """Persist pipeline execution report and per-model stage telemetry."""
@@ -109,19 +145,34 @@ class Workspace:
         )
 
     def _load_explicit_tests(self, project: str) -> dict[str, list[Any]]:
-        """Discover and parse declarative schema tests for project models."""
+        """Discover and parse declarative schema tests for project models with mtime caching."""
         models_dir = self.projects._get_models_directory(project)
         tests_by_model: dict[str, list[Any]] = {}
         if not models_dir.exists():
             return tests_by_model
+
+        schema_files = sorted(models_dir.rglob("schema.y*ml"))
+        if not schema_files:
+            return tests_by_model
+
+        current_mtime = max(sf.stat().st_mtime for sf in schema_files)
+        if not hasattr(self, "_explicit_tests_cache"):
+            self._explicit_tests_cache: dict[str, tuple[float, dict[str, list[Any]]]] = {}
+
+        cached = self._explicit_tests_cache.get(project)
+        if cached and cached[0] == current_mtime:
+            return cached[1]
+
         import yaml
-        for sf in sorted(models_dir.rglob("schema.y*ml")):
+        for sf in schema_files:
             try:
                 data = yaml.safe_load(sf.read_text(encoding="utf-8")) or {}
                 for t in self.tester.parse_schema_tests(data):
                     tests_by_model.setdefault(t.model_name, []).append(t)
             except Exception as e:
                 logger.warning("Error loading schema tests from %s: %s", sf, e)
+
+        self._explicit_tests_cache[project] = (current_mtime, tests_by_model)
         return tests_by_model
 
     def test(self, project: str | None = None) -> TestSuiteReport:
@@ -207,6 +258,9 @@ class Workspace:
 
     def _docs_dir(self, proj_name: str) -> Path:
         """Resolve docs directory path for project."""
+        models_dir = self.projects._get_models_directory(proj_name)
+        if models_dir.parent.exists() and models_dir.parent != self.root:
+            return models_dir.parent / "docs"
         p_dir = self.root / "projects" / proj_name / "docs"
         return p_dir if (self.root / "projects").exists() else self.root / "docs"
 
@@ -218,6 +272,15 @@ class Workspace:
             shutil.rmtree(out_dir, ignore_errors=True)
             return True
         return False
+
+    def delete_pipeline(self, name: str) -> bool:
+        """Delete a pipeline project directory and its generated artifacts."""
+        deleted = self.projects.delete_project(name)
+        if deleted:
+            self.delete_docs(project=name)
+            if not self.projects.discover_projects():
+                (self.root / "projects" / "default" / "models").mkdir(parents=True, exist_ok=True)
+        return deleted
 
     def test_catalog(self) -> dict[str, ConnectionTestResult]:
         """Ping all registered catalog connections and report latency."""

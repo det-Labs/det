@@ -48,9 +48,18 @@ function _renderCommandRibbon(pipeline) {
                 <div style="width:1px; height:18px; background:var(--border); margin:0 0.15rem;"></div>
                 <button class="icon-btn icon-btn-sm" title="Fit to Canvas" onclick="fitDAGToCanvas()">${icons.fit}</button>
                 <button class="icon-btn icon-btn-sm" title="Refresh Lineage" onclick="refreshPipelineLineage()">${icons.refresh}</button>
+                <button class="icon-btn icon-btn-sm text-danger" title="Delete Current Pipeline" onclick="deleteActivePipeline()">${icons.trash}</button>
             </div>
         </div>
     `;
+}
+
+async function deleteActivePipeline() {
+    const name = state.selectedPipeline;
+    if (!name) return;
+    if (typeof onDeletePipeline === "function") {
+        await onDeletePipeline(null, name);
+    }
 }
 
 function _renderDAGCard() {
@@ -94,20 +103,37 @@ function renderPipelinesDAGStage(stage) {
 }
 
 async function runActivePipeline() {
+    const proj = state.selectedPipeline || "default";
+    if (state.runningPipelines && state.runningPipelines.has(proj)) {
+        alert(`Pipeline '${proj}' is already running. Please wait for the current run to finish.`);
+        return;
+    }
+    if (!state.runningPipelines) state.runningPipelines = new Set();
+    state.runningPipelines.add(proj);
+
     const statusEl = document.getElementById("pipeline-run-status");
-    if (statusEl) { statusEl.textContent = "Running DAG..."; statusEl.style.color = "var(--accent)"; }
+    const runBtn = document.querySelector(".dag-toolbar-actions button.btn-primary");
+    if (statusEl) { statusEl.textContent = `Running ${proj}...`; statusEl.style.color = "var(--accent)"; }
+    if (runBtn) { runBtn.disabled = true; runBtn.innerHTML = `${icons.refresh || ""} Running...`; }
+
     try {
         const res = await fetch("/api/pipelines/run", {
             method: "POST", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ project: state.selectedPipeline }),
+            body: JSON.stringify({ project: proj }),
         });
         const rep = await res.json();
         if (statusEl) {
-            statusEl.textContent = rep.status === "ok" ? `● Finished (${rep.duration_ms}ms, ${rep.succeeded} models)` : "✗ Run Failed";
+            statusEl.textContent = rep.status === "ok" ? `● Finished (${rep.duration_ms}ms, ${rep.succeeded} models)` : (rep.error || "✗ Run Failed");
             statusEl.style.color = rep.status === "ok" ? "var(--success)" : "#ef4444";
+        }
+        if (rep.status !== "ok" && rep.error) {
+            alert(rep.error);
         }
     } catch (err) {
         if (statusEl) { statusEl.textContent = `✗ Error: ${err.message}`; statusEl.style.color = "#ef4444"; }
+    } finally {
+        if (state.runningPipelines) state.runningPipelines.delete(proj);
+        if (runBtn) { runBtn.disabled = false; runBtn.innerHTML = `${icons.play} Run`; }
     }
 }
 

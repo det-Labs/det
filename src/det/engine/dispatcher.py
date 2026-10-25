@@ -31,8 +31,7 @@ class QueryDispatcher(BaseDispatcher):
     ) -> Any:
         """Execute a SQL query and return the result as a PyArrow Table."""
         try:
-            cursor = con.execute(sql)
-            return cursor.arrow()
+            return con.sql(sql).to_arrow_table()
         except Exception as exc:
             if "pyarrow" in str(exc).lower() or not self._is_pyarrow_available():
                 raise RuntimeError(

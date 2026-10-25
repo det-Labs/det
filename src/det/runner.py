@@ -59,8 +59,13 @@ class PipelineExecutionReport:
 class PipelineRunner:
     """Orchestrates staged execution of models and egress publishing."""
 
-    def __init__(self, engine: EngineFacade | None = None) -> None:
+    def __init__(
+        self,
+        engine: EngineFacade | None = None,
+        workspace_root: Path | None = None,
+    ) -> None:
         self._engine = engine or EngineFacade()
+        self._workspace_root = workspace_root
 
     def run_dag(
         self,
@@ -131,18 +136,71 @@ class PipelineRunner:
             if dest.target == "local" and not dest.path:
                 continue
             out = dest.path or dest.target
-            if out.lower().endswith((".xlsx", ".xls")):
-                self._export_to_excel(con, model.name, out)
-            elif out.lower().endswith((".parquet", ".csv", ".json")):
+            is_cloud = any(
+                out.startswith(prefix)
+                for prefix in ("s3://", "gs://", "gcs://", "azure://", "abfss://")
+            )
+
+            if is_cloud:
+                out_path = None
+                out_str = out
+            else:
+                out_path = Path(out)
+                if not out_path.is_absolute() and self._workspace_root:
+                    out_path = self._workspace_root / out_path
+                out_str = out_path.as_posix()
+
+            is_delta = (
+                (dest.format and dest.format.lower() in ("delta", "delta_lake"))
+                or out.lower().endswith(".delta")
+                or "/_delta_log" in out.lower()
+            )
+
+            if is_delta:
+                mode_str = dest.mode.value if hasattr(dest.mode, "value") else str(dest.mode)
+                self._export_to_delta(con, model.name, out_str, mode=mode_str)
+            elif out.lower().endswith((".xlsx", ".xls")) or (
+                dest.format and dest.format.upper() in ("EXCEL", "XLSX")
+            ):
+                if is_cloud:
+                    raise ValueError(
+                        f"Direct Excel export to cloud URI '{out}' is not supported. Use a local file path."
+                    )
+                self._export_to_excel(con, model.name, str(out_path))
+            elif out.lower().endswith((".parquet", ".csv", ".json")) or (
+                dest.format and dest.format.upper() in ("PARQUET", "CSV", "JSON")
+            ):
                 fmt = (dest.format or out.split(".")[-1]).upper()
-                Path(out).parent.mkdir(parents=True, exist_ok=True)
-                con.execute(f"COPY {model.name} TO '{out}' (FORMAT {fmt})")
+                if out_path:
+                    out_path.parent.mkdir(parents=True, exist_ok=True)
+                opt = ", HEADER" if fmt == "CSV" else ""
+                con.execute(f"COPY {model.name} TO '{out_str}' (FORMAT {fmt}{opt})")
             elif dest.mode == WriteMode.APPEND:
                 publish_sql = f"INSERT INTO {dest.target} BY NAME SELECT * FROM {model.name}"
                 con.execute(publish_sql)
             else:
                 publish_sql = f"CREATE OR REPLACE TABLE {dest.target} AS SELECT * FROM {model.name}"
                 con.execute(publish_sql)
+
+    def _export_to_delta(
+        self,
+        con: duckdb.DuckDBPyConnection,
+        table_name: str,
+        out_path: str,
+        mode: str = "overwrite",
+    ) -> None:
+        """Export table or view to a Delta Lake table directory."""
+        try:
+            from deltalake import write_deltalake
+        except ImportError:
+            raise RuntimeError(
+                "Delta Lake export requires the 'deltalake' package. "
+                "Install it with: pip install deltalake pyarrow"
+            )
+
+        delta_mode = "append" if str(mode).lower() == "append" else "overwrite"
+        arrow_tbl = con.sql(f"SELECT * FROM {table_name}").to_arrow_table()
+        write_deltalake(out_path, arrow_tbl, mode=delta_mode)
 
     def _export_to_excel(
         self, con: duckdb.DuckDBPyConnection, table_name: str, out_path: str

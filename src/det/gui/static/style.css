@@ -370,6 +370,8 @@ body {
 .badge { font-size: 0.7rem; padding: 0.15rem 0.45rem; border-radius: 4px; font-weight: 500; }
 .badge-entity { background-color: var(--badge-entity-bg, rgba(59, 130, 246, 0.15)); color: var(--badge-entity-text, #60a5fa); border: 1px solid var(--border); }
 .badge-database { background-color: var(--badge-db-bg, rgba(16, 185, 129, 0.15)); color: var(--badge-db-text, #34d399); border: 1px solid var(--border); }
+.badge-success { background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); }
+.badge-muted { background: rgba(100, 116, 139, 0.15); color: #94a3b8; border: 1px solid rgba(100, 116, 139, 0.3); }
 .badge-folder { background-color: var(--badge-folder-bg, var(--surface-card)); color: var(--badge-folder-text, var(--muted)); border: 1px solid var(--border); display: inline-flex; align-items: center; gap: 0.25rem; }
 .config-summary-box {
     background-color: var(--bg);
@@ -1193,4 +1195,136 @@ body {
     color: var(--text);
     font-size: 0.78rem;
     font-weight: 600;
+}
+
+/* Demo Mode & Spotlight Tour Styles */
+.nav-pill-demo {
+    background: linear-gradient(135deg, rgba(234, 179, 8, 0.12), rgba(245, 158, 11, 0.12));
+    border: 1px solid rgba(234, 179, 8, 0.35);
+    color: #eab308 !important;
+    font-weight: 600;
+    margin-left: 0.5rem;
+    transition: all 0.2s ease;
+}
+.nav-pill-demo:hover {
+    background: linear-gradient(135deg, rgba(234, 179, 8, 0.22), rgba(245, 158, 11, 0.22));
+    border-color: #eab308;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(234, 179, 8, 0.2);
+}
+
+.tour-spotlight-overlay {
+    position: fixed;
+    z-index: 9998;
+    pointer-events: none;
+    border: 2px solid var(--accent, #38bdf8);
+    border-radius: 8px;
+    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.65), 0 0 20px rgba(56, 189, 248, 0.4);
+    transition: top 0.25s ease-out, left 0.25s ease-out, width 0.25s ease-out, height 0.25s ease-out;
+}
+
+.tour-tooltip-card {
+    position: fixed;
+    z-index: 9999;
+    width: 360px;
+    background: var(--surface, #1e293b);
+    border: 1px solid var(--border, #334155);
+    border-radius: 10px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.6), 0 10px 10px -5px rgba(0, 0, 0, 0.4);
+    padding: 1.15rem;
+    color: var(--text, #f8fafc);
+    transition: top 0.25s ease-out, left 0.25s ease-out;
+}
+
+.tour-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.6rem;
+}
+
+.tour-step-pill {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--accent, #38bdf8);
+    background: rgba(56, 189, 248, 0.15);
+    padding: 2px 8px;
+    border-radius: 12px;
+}
+
+.tour-btn-close {
+    background: none;
+    border: none;
+    color: var(--text-muted, #94a3b8);
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 0 4px;
+    line-height: 1;
+}
+.tour-btn-close:hover {
+    color: var(--text, #f8fafc);
+}
+
+.tour-card-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    margin-bottom: 0.45rem;
+    color: var(--text, #f8fafc);
+}
+
+.tour-card-body {
+    font-size: 0.84rem;
+    line-height: 1.48;
+    color: var(--text-muted, #cbd5e1);
+    margin-bottom: 1rem;
+}
+.tour-card-body code {
+    background: var(--bg-tertiary, #0f172a);
+    padding: 2px 5px;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 0.8rem;
+}
+
+.tour-card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid var(--border, #334155);
+    padding-top: 0.75rem;
+}
+
+.tour-actions-right {
+    display: flex;
+    gap: 0.4rem;
+}
+
+.tour-btn {
+    padding: 0.35rem 0.75rem;
+    border-radius: 6px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+.tour-btn-primary {
+    background: var(--accent, #38bdf8);
+    color: #0f172a;
+    border: none;
+}
+.tour-btn-primary:hover {
+    filter: brightness(1.1);
+}
+.tour-btn-secondary {
+    background: var(--bg-tertiary, #334155);
+    color: var(--text, #f8fafc);
+    border: 1px solid var(--border, #475569);
+}
+.tour-btn-secondary:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+.tour-btn-secondary:hover:not(:disabled) {
+    background: var(--border, #475569);
 }

@@ -39,18 +39,105 @@ function _renderDocsContent(stage, data) {
 function _createDocsHeaderBar(data) {
     const header = document.createElement("div");
     header.className = "docs-header-bar";
+    const projName = data.project_name || state.selectedPipeline;
+    const hasGenerated = !!data.has_generated_docs;
     header.innerHTML = `
         <div class="docs-header-titles">
             <h2 class="docs-main-title">Data Dictionary & Pipeline Schema</h2>
-            <div class="pane-subtitle">Project: <strong>${data.project_name || state.selectedPipeline}</strong> &middot; v${data.version || "0.1.0"}</div>
+            <div class="pane-subtitle" style="display:flex; align-items:center; gap:0.5rem; margin-top:0.25rem;">
+                <span>Project: <strong>${escapeHtml(projName)}</strong> &middot; v${data.version || "0.1.0"}</span>
+                ${hasGenerated
+                    ? '<span class="badge badge-success" style="font-size:0.72rem; padding:2px 8px; font-weight:600;">● HTML Docs Generated</span>'
+                    : '<span class="badge badge-muted" style="font-size:0.72rem; padding:2px 8px;">No HTML Docs Generated</span>'}
+            </div>
         </div>
-        <div class="docs-header-actions">
-            <button class="btn btn-secondary" onclick="exportStaticDocs()">
-                ${icons.save || ""} <span>Export Static HTML Docs</span>
+        <div class="docs-header-actions" style="display:flex; align-items:center; gap:0.4rem;">
+            ${hasGenerated ? `
+                <button class="btn btn-secondary btn-sm" title="Open static HTML documentation in new tab" onclick="viewGeneratedDocs('${escapeJs(projName)}')">
+                    ${icons.docs || ""} <span>View Docs</span>
+                </button>
+            ` : ""}
+            <button class="btn btn-secondary btn-sm" id="btn-regenerate-docs" title="${hasGenerated ? 'Regenerate static HTML documentation' : 'Generate static HTML documentation'}" onclick="regenerateStaticDocs('${escapeJs(projName)}')">
+                ${icons.refresh || ""} <span>${hasGenerated ? "Regenerate Docs" : "Generate Docs"}</span>
             </button>
+            ${hasGenerated ? `
+                <button class="btn btn-secondary btn-sm btn-danger" id="btn-delete-docs" title="Delete generated HTML documentation" onclick="deleteGeneratedDocs('${escapeJs(projName)}')">
+                    ${icons.trash || ""} <span>Delete Docs</span>
+                </button>
+            ` : ""}
         </div>
     `;
     return header;
+}
+
+function viewGeneratedDocs(projName) {
+    const project = projName || state.selectedPipeline;
+    window.open(`/api/docs/view?project=${encodeURIComponent(project)}`, "_blank");
+}
+
+async function regenerateStaticDocs(projName) {
+    const project = projName || state.selectedPipeline;
+    const btn = document.getElementById("btn-regenerate-docs");
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `${icons.refresh || ""} <span>Generating...</span>`;
+    }
+    try {
+        const res = await fetch("/api/docs/generate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ project })
+        });
+        const out = await res.json();
+        if (out.status === "ok") {
+            await renderDocsStage(document.getElementById("main-stage"));
+        } else {
+            alert(`Docs generation failed: ${out.error || "Unknown error"}`);
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = `${icons.refresh || ""} <span>Regenerate Docs</span>`;
+            }
+        }
+    } catch (e) {
+        alert(`Docs generation failed: ${e.message}`);
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = `${icons.refresh || ""} <span>Regenerate Docs</span>`;
+        }
+    }
+}
+
+async function deleteGeneratedDocs(projName) {
+    const project = projName || state.selectedPipeline;
+    if (!confirm(`Are you sure you want to delete the generated HTML documentation for project '${project}'?`)) {
+        return;
+    }
+    const btn = document.getElementById("btn-delete-docs");
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `${icons.trash || ""} <span>Deleting...</span>`;
+    }
+    try {
+        const res = await fetch("/api/docs/delete", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ project })
+        });
+        const out = await res.json();
+        if (out.status === "ok") {
+            await renderDocsStage(document.getElementById("main-stage"));
+        } else {
+            alert(`Failed to delete docs: ${out.error || "Unknown error"}`);
+            if (btn) btn.disabled = false;
+        }
+    } catch (e) {
+        alert(`Delete docs error: ${e.message}`);
+        if (btn) btn.disabled = false;
+    }
+}
+
+async function exportStaticDocs() {
+    await regenerateStaticDocs();
 }
 
 function _createDocsDagCard(data) {
@@ -65,20 +152,6 @@ function _createDocsDagCard(data) {
         <div class="docs-dag-canvas-wrap" id="docs-dag-canvas"></div>
     `;
     return card;
-}
-
-async function exportStaticDocs() {
-    try {
-        const res = await fetch("/api/docs/generate", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ project: state.selectedPipeline })
-        });
-        const out = await res.json();
-        alert(out.status === "ok" ? `Docs generated successfully!\nArtifact: ${out.path}` : `Error: ${out.error || "Unknown"}`);
-    } catch (e) {
-        alert(`Export failed: ${e.message}`);
-    }
 }
 
 function _createDocsKpiGrid(data) {

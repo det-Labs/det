@@ -44,6 +44,37 @@ class CatalogMounter(BaseMounter):
     ) -> None:
         """Mount a single Mountable object by executing its generated SQL."""
         self._validate_identifier(item.name)
+
+        # 1. Dynamically load extensions if needed
+        conn_type = getattr(item, "type", "").lower()
+        if conn_type in ("azure", "abfss", "onelake"):
+            try:
+                con.load_extension("azure")
+            except Exception as exc:
+                logger.debug("Optional extension 'azure' load notice: %s", exc)
+        elif conn_type in ("s3", "aws"):
+            try:
+                con.load_extension("aws")
+            except Exception as exc:
+                logger.debug("Optional extension 'aws' load notice: %s", exc)
+        elif conn_type in ("delta", "delta_lake"):
+            try:
+                con.load_extension("delta")
+            except Exception as exc:
+                logger.debug("Optional extension 'delta' load notice: %s", exc)
+
+        # 2. Configure DuckDB Secrets if credentials or cloud configs exist
+        if hasattr(item, "get_secret_sql"):
+            from det.engine.secrets import SecretResolver
+            secret_sql = item.get_secret_sql(resolver=SecretResolver())
+            if secret_sql:
+                logger.debug("Configuring secret for item '%s': %s", item.name, secret_sql)
+                try:
+                    con.execute(secret_sql)
+                except Exception as exc:
+                    logger.warning("Secret configuration warning for '%s': %s", item.name, exc)
+
+        # 3. Mount item
         sql = item.get_mount_sql()
         logger.debug("Mounting item '%s' (%s): %s", item.name, item.tier, sql)
         con.execute(sql)

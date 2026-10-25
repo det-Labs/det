@@ -11,6 +11,7 @@ from typing import Any
 from det.gui.base import BaseGUIServer
 from det.gui.routes.catalog_routes import CatalogRouteHandler
 from det.gui.routes.common import read_json_body, send_error_json
+from det.gui.routes.demo_routes import DemoRouteHandler
 from det.gui.routes.docs_routes import DocsRouteHandler
 from det.gui.routes.explorer_routes import ExplorerRouteHandler
 from det.gui.routes.monitoring_routes import MonitoringRouteHandler
@@ -36,6 +37,7 @@ class GUIRequestHandler(SimpleHTTPRequestHandler):
         pipeline_handler: PipelineRouteHandler,
         docs_handler: DocsRouteHandler,
         monitoring_handler: MonitoringRouteHandler,
+        demo_handler: DemoRouteHandler,
         **kwargs: Any,
     ) -> None:
         self.catalog_h = catalog_handler
@@ -45,11 +47,14 @@ class GUIRequestHandler(SimpleHTTPRequestHandler):
         self.pipeline_h = pipeline_handler
         self.docs_h = docs_handler
         self.monitoring_h = monitoring_handler
+        self.demo_h = demo_handler
         super().__init__(*args, directory=str(STATIC_DIR), **kwargs)
 
     def do_GET(self) -> None:
         """Handle incoming GET requests."""
         raw_path = self.path.split("?")[0]
+        if self.demo_h.handle_get(self, raw_path):
+            return
         if self.catalog_h.handle_get(self, raw_path):
             return
         if self.status_h.handle_get(self, raw_path):
@@ -70,6 +75,8 @@ class GUIRequestHandler(SimpleHTTPRequestHandler):
         """Handle incoming POST requests."""
         raw_path = self.path.split("?")[0]
         body = read_json_body(self)
+        if self.demo_h.handle_post(self, raw_path, body):
+            return
         if self.catalog_h.handle_post(self, raw_path, body):
             return
         if self.status_h.handle_post(self, raw_path, body):
@@ -114,6 +121,7 @@ class GUIServer(BaseGUIServer):
         self.pipeline_handler = PipelineRouteHandler(workspace)
         self.docs_handler = DocsRouteHandler(workspace)
         self.monitoring_handler = MonitoringRouteHandler(workspace)
+        self.demo_handler = DemoRouteHandler(workspace)
         self._server: HTTPServer | None = None
         self._thread: threading.Thread | None = None
 
@@ -128,6 +136,7 @@ class GUIServer(BaseGUIServer):
             pipeline_handler=self.pipeline_handler,
             docs_handler=self.docs_handler,
             monitoring_handler=self.monitoring_handler,
+            demo_handler=self.demo_handler,
         )
         self._server = HTTPServer(("127.0.0.1", port), handler_factory)
         logger.info("det Web IDE launched at http://127.0.0.1:%d", port)

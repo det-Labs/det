@@ -1,12 +1,14 @@
 """Built-in connectors package registering standard data sources."""
 
-from det.extensions.builtins.delta_lake import DeltaLakeConnector
+from det.extensions.builtins.azure import AzureConnector
+from det.extensions.builtins.delta_lake import DeltaConnector, DeltaLakeConnector
 from det.extensions.builtins.excel import ExcelConnector
 from det.extensions.builtins.filesystem import (
     CSVConnector,
     JSONConnector,
     ParquetConnector,
 )
+from det.extensions.builtins.gcs import GCSConnector
 from det.extensions.builtins.httpfs import HTTPFSConnector
 from det.extensions.builtins.huggingface import HuggingFaceConnector
 from det.extensions.builtins.iceberg import IcebergConnector
@@ -29,6 +31,8 @@ BUILTIN_CONNECTORS = [
     MSSQLConnector,
     HTTPFSConnector,
     S3Connector,
+    AzureConnector,
+    GCSConnector,
     HuggingFaceConnector,
     IcebergConnector,
     DeltaLakeConnector,
@@ -47,9 +51,12 @@ register_builtins(global_registry)
 
 __all__ = [
     "BUILTIN_CONNECTORS",
+    "AzureConnector",
     "CSVConnector",
+    "DeltaConnector",
     "DeltaLakeConnector",
     "ExcelConnector",
+    "GCSConnector",
     "HTTPFSConnector",
     "HuggingFaceConnector",
     "IcebergConnector",

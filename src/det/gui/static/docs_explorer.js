@@ -33,9 +33,38 @@ function _createDocsPipelineItem(p) {
         <span class="item-icon">${icons.pipelines || ""}</span>
         <span class="truncate" title="${escapeHtml(p.name)}">${escapeHtml(p.name)}</span>
         <span class="item-badge item-badge-hide-on-hover">${p.models_count || (p.models ? p.models.length : 0)}</span>
+        <div class="explorer-item-actions">
+            <button class="icon-btn icon-btn-sm text-danger" title="Delete Pipeline" onclick="onDeletePipelineInDocs(event, '${escapeJs(p.name)}')">${icons.trash}</button>
+        </div>
     `;
     item.onclick = () => selectDocsPipeline(p.name);
     return item;
+}
+
+async function onDeletePipelineInDocs(event, pipelineName) {
+    if (event) event.stopPropagation();
+    if (!confirm(`Are you sure you want to delete pipeline '${pipelineName}' and all its models? This action cannot be undone.`)) {
+        return;
+    }
+    try {
+        const res = await fetch("/api/pipelines/delete", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name: pipelineName }),
+        });
+        const rep = await res.json();
+        if (rep.status === "ok") {
+            if (typeof reloadPipelinesData === "function") {
+                await reloadPipelinesData();
+            }
+            const nextPipeline = state.pipelines[0]?.name || "default";
+            selectDocsPipeline(nextPipeline);
+        } else {
+            alert(rep.error || "Failed to delete pipeline.");
+        }
+    } catch (err) {
+        alert("Pipeline deletion error: " + err.message);
+    }
 }
 
 function selectDocsPipeline(name) {

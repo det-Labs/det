@@ -11,21 +11,39 @@ function renderMonitoringExplorer(container) {
         state.monitoringPipelineFilter = state.selectedPipeline || state.pipelines[0].name;
     }
 
-    const q = (state.searchQuery || "").trim().toLowerCase();
-    const filtered = (state.pipelines || []).filter((p) => !q || p.name.toLowerCase().includes(q));
+    const query = (state.searchQuery || "").trim().toLowerCase();
+    const pipelines = state.pipelines || [];
+    const groups = typeof groupPipelinesByFolder === "function"
+        ? groupPipelinesByFolder(pipelines, query)
+        : { "Pipelines": pipelines };
 
-    if (filtered.length === 0) {
-        const empty = document.createElement("div");
-        empty.className = "explorer-empty-hint";
-        empty.style.cssText = "padding:0.75rem 1rem; font-size:0.78rem;";
-        empty.textContent = "No matching pipelines";
-        wrap.appendChild(empty);
-    } else {
-        filtered.forEach((p) => {
+    let totalItems = 0;
+    Object.keys(groups).sort().forEach((folderName) => {
+        let items = groups[folderName] || [];
+        if (query) items = items.filter((p) => p.name.toLowerCase().includes(query));
+        if (folderName === "Ungrouped" && items.length === 0) return;
+        totalItems += items.length;
+
+        const header = document.createElement("div");
+        header.className = "explorer-folder-header";
+        header.innerHTML = `
+            <span class="explorer-folder-title" title="${escapeHtml(folderName)}">${icons.folder || ""} <span>${escapeHtml(folderName)}</span></span>
+            <span class="item-badge">${items.length}</span>
+        `;
+        wrap.appendChild(header);
+
+        items.forEach((p) => {
             const item = document.createElement("div");
             const isSel = p.name === state.monitoringPipelineFilter && state.activeMonitoringView !== "sinks";
             item.className = `explorer-item sub-item ${isSel ? "active" : ""}`;
-            item.innerHTML = `<span class="item-icon">${icons.pipelines || ""}</span><span class="truncate">${escapeHtml(p.name)}</span>`;
+            item.innerHTML = `
+                <span class="item-icon">${icons.pipelines || ""}</span>
+                <span class="truncate" title="${escapeHtml(p.name)}">${escapeHtml(p.name)}</span>
+                <span class="item-badge item-badge-hide-on-hover">${p.models_count || (p.models ? p.models.length : 0)}</span>
+                <div class="explorer-item-actions">
+                    <button class="icon-btn icon-btn-sm" title="Run Pipeline '${escapeJs(p.name)}'" onclick="onRunPipelineInMonitoring(event, '${escapeJs(p.name)}')">${icons.play}</button>
+                </div>
+            `;
             item.onclick = () => {
                 state.monitoringPipelineFilter = p.name;
                 state.selectedPipeline = p.name;
@@ -37,8 +55,25 @@ function renderMonitoringExplorer(container) {
             };
             wrap.appendChild(item);
         });
+    });
+
+    if (totalItems === 0) {
+        const empty = document.createElement("div");
+        empty.className = "explorer-empty-hint";
+        empty.style.cssText = "padding:0.75rem 1rem; font-size:0.78rem;";
+        empty.textContent = "No matching pipelines";
+        wrap.appendChild(empty);
     }
     container.appendChild(wrap);
+}
+
+function onRunPipelineInMonitoring(event, pipelineName) {
+    if (event) event.stopPropagation();
+    state.monitoringPipelineFilter = pipelineName;
+    state.selectedPipeline = pipelineName;
+    if (typeof runPipelineFromMonitoring === "function") {
+        runPipelineFromMonitoring(pipelineName);
+    }
 }
 
 function renderMonitoringFooter(container) {

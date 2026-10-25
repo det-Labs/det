@@ -111,3 +111,53 @@ def test_docs_delete_api_endpoint(tmp_path: Path) -> None:
         ws.close()
 
 
+def test_docs_regenerate_and_view_api_endpoints(tmp_path: Path) -> None:
+    """Verify regenerating docs, viewing HTML docs, and metadata status flag."""
+    ws = _setup_test_workspace(tmp_path)
+    port = find_free_port()
+    server = GUIServer(ws)
+    server.start(port=port, blocking=False)
+    try:
+        content_url = f"http://127.0.0.1:{port}/api/docs/content?project=default"
+        # 1. Initially has_generated_docs is False
+        with urllib.request.urlopen(content_url) as res:
+            data = json.loads(res.read().decode("utf-8"))
+            assert data["has_generated_docs"] is False
+
+        # 2. View endpoint before generation returns 404
+        view_url = f"http://127.0.0.1:{port}/api/docs/view?project=default"
+        try:
+            urllib.request.urlopen(view_url)
+            assert False, "Should have returned 404"
+        except urllib.error.HTTPError as err:
+            assert err.code == 404
+
+        # 3. Call /api/docs/regenerate
+        regen_url = f"http://127.0.0.1:{port}/api/docs/regenerate"
+        payload = json.dumps({"project": "default"}).encode("utf-8")
+        req = urllib.request.Request(
+            regen_url, data=payload, headers={"Content-Type": "application/json"}, method="POST"
+        )
+        with urllib.request.urlopen(req) as res:
+            assert res.status == 200
+            data = json.loads(res.read().decode("utf-8"))
+            assert data["status"] == "ok"
+            assert data.get("regenerated") is True
+
+        # 4. Now has_generated_docs is True
+        with urllib.request.urlopen(content_url) as res:
+            data = json.loads(res.read().decode("utf-8"))
+            assert data["has_generated_docs"] is True
+            assert data["generated_docs_path"] is not None
+
+        # 5. View endpoint returns HTML content
+        with urllib.request.urlopen(view_url) as res:
+            assert res.status == 200
+            assert "text/html" in res.headers.get("Content-Type", "")
+            body = res.read().decode("utf-8")
+            assert "<!DOCTYPE html>" in body or "Data Dictionary" in body or "html" in body
+    finally:
+        server.stop()
+        ws.close()
+
+

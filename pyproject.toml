@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "det-core"
-version = "0.3.0"
+version = "0.3.1"
 description = "Fast, local-first SQL ETL workspace and pipeline orchestration engine powered by DuckDB 2.0"
 readme = "README.md"
 license = "MIT"
@@ -47,6 +47,7 @@ dependencies = [
     "pyyaml>=6.0.0",
     "pyarrow>=22",
     "openpyxl>=3.1.0",
+    "deltalake>=1.0.0",
 ]
 
 [project.optional-dependencies]

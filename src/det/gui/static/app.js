@@ -3,8 +3,11 @@
 document.addEventListener("DOMContentLoaded", async () => {
     const rawHash = window.location.hash.replace("#", "");
     const [hashMod, hashQuery] = rawHash.split("?");
+    const savedMod = sessionStorage.getItem("det_active_module");
     if (hashMod && ["catalog", "pipelines", "monitoring", "docs"].includes(hashMod)) {
         state.activeModule = hashMod;
+    } else if (savedMod && ["catalog", "pipelines", "monitoring", "docs"].includes(savedMod)) {
+        state.activeModule = savedMod;
     }
     await loadInitialData();
     if (hashQuery) {
@@ -66,10 +69,23 @@ function renderNavigation() {
         btn.onclick = () => switchModule(mod.id);
         navContainer.appendChild(btn);
     });
+
+    // Demo Mode Trigger Pill beside module navigation
+    const demoBtn = document.createElement("button");
+    demoBtn.className = "nav-pill nav-pill-demo";
+    demoBtn.id = "btn-demo-mode";
+    demoBtn.title = "Explore sample datasets & interactive guided tour";
+    demoBtn.innerHTML = `<span>✨</span> <span>Demo Mode</span>`;
+    demoBtn.onclick = () => {
+        if (typeof triggerDemoMode === "function") triggerDemoMode();
+    };
+    navContainer.appendChild(demoBtn);
 }
 
 function switchModule(moduleId) {
     state.activeModule = moduleId;
+    sessionStorage.setItem("det_active_module", moduleId);
+    window.location.hash = moduleId;
     state.searchQuery = "";
     const searchInput = document.getElementById("explorer-search");
     if (searchInput) searchInput.value = "";

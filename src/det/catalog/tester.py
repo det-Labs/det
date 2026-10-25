@@ -45,6 +45,32 @@ class ConnectionTester(BaseConnectionTester):
         self, con: duckdb.DuckDBPyConnection, conn_def: ConnectionDefinition
     ) -> None:
         """Execute mount and probe queries for entity or database tier."""
+        conn_type = conn_def.type.lower()
+        if conn_type in ("azure", "abfss", "onelake"):
+            try:
+                con.load_extension("azure")
+            except Exception:
+                pass
+        elif conn_type in ("s3", "aws", "gcs", "gs"):
+            try:
+                con.load_extension("httpfs")
+            except Exception:
+                pass
+        elif conn_type in ("delta", "delta_lake"):
+            try:
+                con.load_extension("delta")
+            except Exception:
+                pass
+
+        if hasattr(conn_def, "get_secret_sql"):
+            from det.engine.secrets import SecretResolver
+            secret_sql = conn_def.get_secret_sql(resolver=SecretResolver())
+            if secret_sql:
+                try:
+                    con.execute(secret_sql)
+                except Exception as exc:
+                    logger.debug("Test probe secret configuration note: %s", exc)
+
         try:
             mount_sql = conn_def.get_mount_sql()
             con.execute(mount_sql)

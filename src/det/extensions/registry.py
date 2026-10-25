@@ -14,9 +14,14 @@ class ExtensionRegistry:
 
     def __init__(self) -> None:
         self._connectors: dict[str, type[BaseConnector]] = {}
+        self._aliases: dict[str, str] = {}
         self._lock = threading.Lock()
 
-    def register(self, connector_cls: type[BaseConnector]) -> None:
+    def register(
+        self,
+        connector_cls: type[BaseConnector],
+        aliases: list[str] | None = None,
+    ) -> None:
         """Register a new connector class, validating its key and base type."""
         if not issubclass(connector_cls, BaseConnector):
             raise TypeError(
@@ -28,26 +33,47 @@ class ExtensionRegistry:
             )
 
         with self._lock:
-            self._connectors[connector_cls.key.lower()] = connector_cls
-            logger.debug("Registered connector: '%s'", connector_cls.key)
+            canonical_key = connector_cls.key.lower()
+            self._connectors[canonical_key] = connector_cls
+
+            # Register any explicit aliases or connector class attributes
+            all_aliases = list(aliases or [])
+            if hasattr(connector_cls, "aliases") and isinstance(connector_cls.aliases, (list, tuple)):
+                all_aliases.extend(connector_cls.aliases)
+
+            for alias in all_aliases:
+                self._aliases[alias.lower()] = canonical_key
+
+            logger.debug(
+                "Registered connector: '%s' (aliases: %s)",
+                canonical_key,
+                all_aliases,
+            )
+
+    def register_alias(self, alias: str, canonical_key: str) -> None:
+        """Register an alternative lookup key pointing to a canonical connector."""
+        with self._lock:
+            self._aliases[alias.lower()] = canonical_key.lower()
 
     def get(self, key: str) -> type[BaseConnector] | None:
-        """Retrieve a registered connector class by its key."""
+        """Retrieve a registered connector class by its key or alias."""
         with self._lock:
-            return self._connectors.get(key.lower())
+            key_lower = key.lower()
+            canonical = self._aliases.get(key_lower, key_lower)
+            return self._connectors.get(canonical)
 
     def list_keys(self) -> list[str]:
-        """Return list of all registered connector keys."""
+        """Return list of all registered canonical connector keys."""
         with self._lock:
             return sorted(self._connectors.keys())
 
     def list_connectors(self) -> list[type[BaseConnector]]:
-        """Return list of all registered connector classes."""
+        """Return list of all registered unique connector classes."""
         with self._lock:
             return sorted(self._connectors.values(), key=lambda c: c.key)
 
     def list_schemas(self) -> list[dict[str, Any]]:
-        """Return UI form schemas for all registered connectors."""
+        """Return UI form schemas for all unique registered connectors."""
         with self._lock:
             return [
                 conn_cls.get_schema()
@@ -55,9 +81,10 @@ class ExtensionRegistry:
             ]
 
     def clear(self) -> None:
-        """Clear all registered connectors."""
+        """Clear all registered connectors and aliases."""
         with self._lock:
             self._connectors.clear()
+            self._aliases.clear()
 
 
 # Default global registry instance

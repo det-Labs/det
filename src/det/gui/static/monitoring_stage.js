@@ -48,22 +48,67 @@ function _createMonitoringHeader(cfg, view, proj) {
         audits: "Assertion Evaluation Audits",
         sinks: "Extensible Telemetry Sinks Configuration",
     };
+    const activeProj = proj || state.monitoringPipelineFilter || state.selectedPipeline || (state.pipelines && state.pipelines[0]?.name) || "default";
     const subtitle = view === "sinks"
         ? `Active Storage Provider: <strong style="color:var(--text); text-transform:uppercase;">${escapeHtml(cfg.active_sink || "duckdb")}</strong> &middot; Target: ${escapeHtml(cfg.config?.path || cfg.config?.url || ".det/telemetry.duckdb")}`
         : `Pipeline: <strong style="color:var(--accent);">${escapeHtml(proj || "All")}</strong> &middot; Sink: <strong style="color:var(--text); text-transform:uppercase;">${escapeHtml(cfg.active_sink || "duckdb")}</strong> &middot; Target: ${escapeHtml(cfg.config?.path || cfg.config?.url || ".det/telemetry.duckdb")}`;
 
+    const isRunning = state.runningPipelines && state.runningPipelines.has(activeProj);
     header.innerHTML = `
         <div class="docs-header-titles">
             <h2 class="docs-main-title">${titles[view] || "Monitoring Dashboard"}</h2>
             <div class="pane-subtitle">${subtitle}</div>
         </div>
-        <div class="docs-header-actions">
+        <div class="docs-header-actions" style="display:flex; align-items:center; gap:0.4rem;">
+            ${view !== "sinks" ? `
+                <button class="btn btn-primary btn-sm" id="btn-mon-run-pipeline" title="Run pipeline '${escapeHtml(activeProj)}'" onclick="runPipelineFromMonitoring('${escapeJs(activeProj)}')" ${isRunning ? "disabled" : ""}>
+                    ${isRunning ? icons.refresh || "" : icons.play || ""} <span>${isRunning ? "Running..." : `Run '${escapeHtml(activeProj)}'`}</span>
+                </button>
+            ` : ""}
             <button class="btn btn-secondary btn-sm" onclick="renderMonitoringStage(document.getElementById('main-stage'))">
                 ${icons.refresh || ""} Refresh
             </button>
         </div>
     `;
     return header;
+}
+
+async function runPipelineFromMonitoring(projectName) {
+    const project = projectName || state.monitoringPipelineFilter || state.selectedPipeline || "default";
+    if (state.runningPipelines && state.runningPipelines.has(project)) {
+        alert(`Pipeline '${project}' is already running. Please wait for the current run to finish.`);
+        return;
+    }
+    if (!state.runningPipelines) state.runningPipelines = new Set();
+    state.runningPipelines.add(project);
+
+    const runBtn = document.getElementById("btn-mon-run-pipeline");
+    if (runBtn) {
+        runBtn.disabled = true;
+        runBtn.innerHTML = `${icons.refresh || ""} <span>Running '${escapeHtml(project)}'...</span>`;
+    }
+
+    try {
+        const res = await fetch("/api/pipelines/run", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ project }),
+        });
+        const rep = await res.json();
+        if (rep.status === "ok") {
+            await renderMonitoringStage(document.getElementById("main-stage"));
+        } else {
+            alert(`Pipeline run error: ${rep.error || "Execution failed"}`);
+        }
+    } catch (err) {
+        alert(`Pipeline run request failed: ${err.message}`);
+    } finally {
+        if (state.runningPipelines) state.runningPipelines.delete(project);
+        if (runBtn) {
+            runBtn.disabled = false;
+            runBtn.innerHTML = `${icons.play || ""} <span>Run '${escapeHtml(project)}'</span>`;
+        }
+    }
 }
 
 function _createMonitoringKpis(runs, quarantine) {

@@ -45,6 +45,19 @@ def build_parser() -> argparse.ArgumentParser:
     gui_cmd.add_argument("--port", "-p", type=int, default=8080, help="Port to host Web IDE")
     gui_cmd.add_argument("--open", "-o", action="store_true", help="Automatically open browser")
 
+    # det demo / sample [path] [--remote] [--open]
+    demo_cmd = subparsers.add_parser("demo", help="Scaffold sample demo workspace with datasets and pipelines")
+    demo_cmd.add_argument("path", nargs="?", default=".", help="Target workspace directory")
+    demo_cmd.add_argument("--remote", action="store_true", help="Download online datasets via HTTPS")
+    demo_cmd.add_argument("--open", "-o", action="store_true", help="Automatically launch and open Web IDE")
+    demo_cmd.add_argument("--port", "-p", type=int, default=8080, help="Port to host Web IDE")
+
+    sample_cmd = subparsers.add_parser("sample", help="Alias for 'demo' command")
+    sample_cmd.add_argument("path", nargs="?", default=".", help="Target workspace directory")
+    sample_cmd.add_argument("--remote", action="store_true", help="Download online datasets via HTTPS")
+    sample_cmd.add_argument("--open", "-o", action="store_true", help="Automatically launch and open Web IDE")
+    sample_cmd.add_argument("--port", "-p", type=int, default=8080, help="Port to host Web IDE")
+
     return parser
 
 
@@ -137,6 +150,23 @@ def handle_gui(args: argparse.Namespace) -> int:
         ws.close()
 
 
+def handle_demo(args: argparse.Namespace) -> int:
+    """Handle det demo / sample command."""
+    from det.demo import setup_demo_workspace
+    target_path = Path(args.path).resolve()
+    print(f"Scaffolding det demo workspace in: {target_path}...")
+    res = setup_demo_workspace(target_path, use_remote=args.remote)
+    print(f"✓ Generated {len(res['datasets'])} datasets in data/")
+    print(f"✓ Created catalog connections in catalog/connections.yaml")
+    print(f"✓ Scaffolded {len(res['pipelines'])} sample pipelines: {', '.join(res['pipelines'])}")
+    if args.open:
+        args.command = "gui"
+        return handle_gui(args)
+    print("\nTo explore in Web IDE, run:")
+    print("  det gui --open")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     """CLI entrypoint dispatching commands to specific handlers."""
     parser = build_parser()
@@ -154,6 +184,8 @@ def main(argv: list[str] | None = None) -> int:
         return handle_catalog(args)
     if args.command == "gui":
         return handle_gui(args)
+    if args.command in ("demo", "sample"):
+        return handle_demo(args)
     return 0
 
 

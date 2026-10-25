@@ -30,30 +30,76 @@ class ProjectManager(BaseProjectManager):
         self._resolver = direct_resolver or DirectConnectionResolver()
 
     def discover_projects(self) -> list[str]:
-        """Discover all valid project folders in the workspace."""
+        """Discover all valid project folders in the workspace, including nested group folders."""
         projects_dir = self._root / "projects"
         if projects_dir.exists() and projects_dir.is_dir():
-            found = [
-                d.name
-                for d in projects_dir.iterdir()
-                if d.is_dir() and not d.name.startswith((".", "_"))
-            ]
+            found: list[str] = []
+            for d in sorted(projects_dir.iterdir()):
+                if not d.is_dir() or d.name.startswith((".", "_")):
+                    continue
+                # If directory is a project directly (contains models/ or det_project.yaml)
+                if (d / "models").exists() or (d / "det_project.yaml").exists():
+                    found.append(d.name)
+                else:
+                    # Directory is a filesystem group folder (e.g. projects/sample_pipelines/)
+                    for sub in sorted(d.iterdir()):
+                        if sub.is_dir() and not sub.name.startswith((".", "_")):
+                            if (sub / "models").exists() or (sub / "det_project.yaml").exists():
+                                found.append(sub.name)
             if found:
-                return sorted(found)
+                return sorted(list(dict.fromkeys(found)))
 
         # Fallback to default single-project workspace
         if (self._root / "models").exists():
             return ["default"]
         return []
 
+    def get_project_folder(self, project_name: str) -> str:
+        """Resolve the parent folder name for a project based on its filesystem hierarchy."""
+        models_dir = self._get_models_directory(project_name)
+        if models_dir.exists():
+            proj_dir = models_dir.parent
+            try:
+                rel = proj_dir.relative_to(self._root / "projects")
+                if len(rel.parts) > 1:
+                    return rel.parts[0]
+            except ValueError:
+                pass
+        return "Core Pipelines"
+
+    def delete_project(self, project_name: str) -> bool:
+        """Delete a project folder from the workspace."""
+        import shutil
+        models_dir = self._get_models_directory(project_name)
+        target_dir = models_dir.parent
+        if target_dir.exists() and target_dir.is_dir() and target_dir != self._root / "projects":
+            shutil.rmtree(target_dir, ignore_errors=True)
+            # If parent group folder is now empty (e.g. sample_pipelines), remove it
+            parent = target_dir.parent
+            if parent != self._root / "projects" and parent.exists():
+                try:
+                    if not any(parent.iterdir()):
+                        parent.rmdir()
+                except OSError:
+                    pass
+            return True
+        return False
+
     def load_project_models(self, project_name: str) -> list[ModelDefinition]:
-        """Load and parse all SQL models belonging to a specific project."""
+        """Load and parse all SQL models belonging to a specific project with mtime caching."""
         models_dir = self._get_models_directory(project_name)
         if not models_dir.exists():
             return []
 
-        known_connections = self._get_known_connection_names()
         all_sql_files = [f for f in sorted(models_dir.rglob("*.sql")) if not f.name.startswith((".", "_"))]
+        current_mtime = max((f.stat().st_mtime for f in all_sql_files), default=0.0)
+        if not hasattr(self, "_models_cache"):
+            self._models_cache: dict[str, tuple[float, list[ModelDefinition]]] = {}
+        cached = self._models_cache.get(project_name)
+        if cached and cached[0] == current_mtime:
+            return cached[1]
+
+        known_connections = self._get_known_connection_names()
         known_models = {f.stem for f in all_sql_files}
         models: list[ModelDefinition] = []
 
@@ -78,6 +124,7 @@ class ProjectManager(BaseProjectManager):
             model.refs.sort()
             models.append(model)
 
+        self._models_cache[project_name] = (current_mtime, models)
         return models
 
     def build_dag(self, project_name: str | None = None) -> ModelDAG:
@@ -96,7 +143,16 @@ class ProjectManager(BaseProjectManager):
         """Resolve directory path containing model SQL files for a project."""
         if project_name == "default" and (self._root / "models").exists():
             return self._root / "models"
-        return self._root / "projects" / project_name / "models"
+        projects_dir = self._root / "projects"
+        direct = projects_dir / project_name / "models"
+        if direct.exists():
+            return direct
+        # Also check nested group folders, e.g. projects/<folder>/<project_name>/models
+        if projects_dir.exists():
+            for p in projects_dir.glob(f"**/{project_name}/models"):
+                if p.is_dir():
+                    return p
+        return direct
 
     def _get_known_connection_names(self) -> set[str]:
         """Fetch all connection identifiers from the catalog manager if present."""

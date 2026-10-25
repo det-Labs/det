@@ -52,6 +52,7 @@ class TestResult:
 class TestSuiteReport:
     """Aggregate summary of test suite execution across models."""
 
+    __test__ = False
     total_tests: int = 0
     passed: int = 0
     warned: int = 0

@@ -11,6 +11,7 @@ class DeltaLakeConnector(BaseConnector):
     """Connector scanning Linux Foundation Delta Lake tables."""
 
     key = "delta_lake"
+    aliases = ["delta"]
     label = "Delta Lake"
     description = "Read ACID Delta Lake transaction logs and Parquet data files."
     tier = ConnectionTier.ENTITY
@@ -19,17 +20,19 @@ class DeltaLakeConnector(BaseConnector):
     def get_fields(cls) -> list[ConnectorField]:
         return [
             ConnectorField(
-                name="table_path",
-                label="Delta Table Path",
+                name="path",
+                label="Delta Table Directory / URI",
                 field_type=FieldType.TEXT,
                 required=True,
-                placeholder="s3://lakehouse/delta/users/",
-                description="Directory path containing _delta_log/ directory.",
+                placeholder="data/delta/orders or s3://lakehouse/delta/orders",
+                description="Local directory or cloud URI containing _delta_log/ directory.",
             )
         ]
 
     def get_read_sql(self, options: dict[str, Any]) -> str:
-        table_path = str(options.get("table_path", "")).replace("'", "''")
+        table_path = str(options.get("path") or options.get("table_path", "")).replace("'", "''")
+        # Normalize Windows backslashes for DuckDB
+        table_path = table_path.replace("\\", "/")
         return f"delta_scan('{table_path}')"
 
     def get_attach_sql(
@@ -43,7 +46,16 @@ class DeltaLakeConnector(BaseConnector):
         options: dict[str, Any],
         credentials: dict[str, Any],
     ) -> bool:
+        try:
+            con.load_extension("delta")
+        except Exception:
+            pass
         sql = f"SELECT 1 FROM ({self.get_read_sql(options)}) LIMIT 1"
         con.execute(sql).fetchall()
         return True
+
+
+# Backward-compatible alias reference
+DeltaConnector = DeltaLakeConnector
+
 

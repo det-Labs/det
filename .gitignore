@@ -25,6 +25,9 @@ env/
 # Temporary and Scratch Directories
 /temp_test_ws/
 /scratch/
+scratch/
+temp/
+tmp/
 
 # Database and Storage Files
 *.duckdb
@@ -33,6 +36,13 @@ env/
 *.sqlite
 *.sqlite3
 *.wal
+*.parquet
+*.csv
+*.tsv
+*.jsonl
+*.ndjson
+*.xlsx
+_delta_log/
 
 # Testing & Coverage
 .pytest_cache/

@@ -61,6 +61,14 @@ class S3Connector(BaseConnector):
                 description="AWS Secret Key (supports ${ENV_VAR}).",
             ),
             ConnectorField(
+                name="session_token",
+                label="Session Token (STS)",
+                field_type=FieldType.PASSWORD,
+                required=False,
+                is_secret=True,
+                description="AWS Temporary Session Token (supports ${AWS_SESSION_TOKEN}).",
+            ),
+            ConnectorField(
                 name="endpoint",
                 label="Custom Endpoint",
                 field_type=FieldType.TEXT,
@@ -72,8 +80,12 @@ class S3Connector(BaseConnector):
 
     def get_read_sql(self, options: dict[str, Any]) -> str:
         path = str(options.get("path", "")).replace("'", "''")
+        if path.endswith(".delta") or "/_delta_log" in path:
+            return f"delta_scan('{path}')"
         if path.endswith((".csv", ".tsv")):
             return f"read_csv_auto('{path}')"
+        if path.endswith((".json", ".ndjson")):
+            return f"read_json_auto('{path}')"
         return f"read_parquet('{path}')"
 
     def get_attach_sql(
@@ -87,6 +99,10 @@ class S3Connector(BaseConnector):
         options: dict[str, Any],
         credentials: dict[str, Any],
     ) -> bool:
+        try:
+            con.load_extension("httpfs")
+        except Exception:
+            pass
         sql = f"SELECT 1 FROM ({self.get_read_sql(options)}) LIMIT 1"
         con.execute(sql).fetchall()
         return True

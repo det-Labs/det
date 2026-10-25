@@ -33,11 +33,12 @@ class ExplorerRouteHandler(BaseRouteHandler):
         projects_data = []
         for proj_name in self._workspace.projects.discover_projects():
             models = self._workspace.projects.load_project_models(proj_name)
+            folder = self._workspace.projects.get_project_folder(proj_name)
             models_list = [
                 {"name": m.name, "materialized": m.config.materialized.value}
                 for m in models
             ]
-            projects_data.append({"name": proj_name, "models": models_list})
+            projects_data.append({"name": proj_name, "folder": folder, "models": models_list})
 
         connections_data = [
             {"name": c.name, "type": c.type, "tier": c.tier.value, "folder": c.folder}

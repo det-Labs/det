@@ -21,8 +21,8 @@
   - Zero cloud serialization overhead, SIMD parallelism, and multi-threaded query execution for local and on-premises workloads.
 - 🔌 **Unified Multi-Tier Catalog:**
   - **Relational Databases:** PostgreSQL, MySQL, SQLite, Microsoft SQL Server / Fabric SQL endpoints.
-  - **Open Lakehouse Formats:** Delta Lake (read-only source scanner with time-travel snapshot querying), Apache Iceberg, Microsoft Fabric OneLake (`abfss://`).
-  - **Object Storage & Flat Files:** AWS S3, Cloudflare R2, Parquet, CSV, JSON, and Excel (`.xlsx`).
+  - **Open Lakehouse Formats:** Delta Lake (vectorized `delta_scan` reads and ACID `deltalake` writes in append and overwrite modes), Apache Iceberg, Microsoft Fabric OneLake (`abfss://`).
+  - **Multi-Cloud Object Storage & Flat Files:** AWS S3, Google Cloud Storage (GCS), Azure Blob / ADLS Gen2, Cloudflare R2, MinIO, Parquet, CSV, JSON, and Excel (`.xlsx`).
 - 🧩 **Declarative SQL Modeling & DAG Resolution:**
   - `{{ ref('model_name') }}`: Declare model lineage and automatically generate topological execution DAGs.
   - `{{ source('connection', 'target') }}`: Read directly from any catalog connection using vectorized scanners.
@@ -131,7 +131,7 @@ We are actively developing the following enhancements:
 ```bash
 pytest
 ```
-*108 passing unit and integration tests.*
+*175 passing unit and integration tests (94% code coverage).*
 
 ---
 

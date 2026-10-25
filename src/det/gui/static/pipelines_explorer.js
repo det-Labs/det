@@ -24,8 +24,10 @@ function onSubExplorerSearch(val) {
 
 function selectPipeline(name) {
     state.selectedPipeline = name;
+    sessionStorage.setItem("det_selected_pipeline", name);
     const pipeline = state.pipelines.find((p) => p.name === name);
     state.selectedModel = pipeline?.models?.[0]?.name || null;
+    if (state.selectedModel) sessionStorage.setItem("det_selected_model", state.selectedModel);
     state.highlightedNode = null;
     renderPipelinesExplorer(document.getElementById("explorer-body"));
     renderSubExplorerModels();
@@ -120,10 +122,41 @@ function createPipelineItem(p) {
         <span class="item-badge item-badge-hide-on-hover">${p.models_count || p.models?.length || 0}</span>
         <div class="explorer-item-actions">
             <button class="icon-btn icon-btn-sm" title="Run Pipeline" onclick="onRunPipeline(event, '${escapeJs(p.name)}')">${icons.play}</button>
+            <button class="icon-btn icon-btn-sm text-danger" title="Delete Pipeline" onclick="onDeletePipeline(event, '${escapeJs(p.name)}')">${icons.trash}</button>
         </div>
     `;
     item.onclick = () => selectPipeline(p.name);
     return item;
+}
+
+async function onDeletePipeline(event, pipelineName) {
+    if (event) event.stopPropagation();
+    if (!confirm(`Are you sure you want to delete pipeline '${pipelineName}' and all its models? This action cannot be undone.`)) {
+        return;
+    }
+    try {
+        const res = await fetch("/api/pipelines/delete", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name: pipelineName }),
+        });
+        const rep = await res.json();
+        if (rep.status === "ok") {
+            if (typeof reloadPipelinesData === "function") {
+                await reloadPipelinesData();
+            }
+            if (state.selectedPipeline === pipelineName) {
+                const nextPipeline = state.pipelines[0]?.name || "default";
+                selectPipeline(nextPipeline);
+            } else {
+                renderPipelinesExplorer(document.getElementById("explorer-body"));
+            }
+        } else {
+            alert(rep.error || "Failed to delete pipeline.");
+        }
+    } catch (err) {
+        alert("Pipeline deletion error: " + err.message);
+    }
 }
 
 function renderPipelinesExplorer(container) {

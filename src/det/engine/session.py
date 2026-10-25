@@ -56,8 +56,8 @@ class DuckDBSessionManager(BaseSessionManager):
         con = duckdb.connect(database=config.database, config=cfg_dict)
 
         # Default core extensions to load
-        core_exts = ["parquet", "json"] + [
-            ext for ext in config.extensions if ext not in ("parquet", "json")
+        core_exts = ["parquet", "json", "httpfs", "delta"] + [
+            ext for ext in config.extensions if ext not in ("parquet", "json", "httpfs", "delta")
         ]
         self._load_extensions(con, core_exts)
         return con

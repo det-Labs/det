@@ -33,17 +33,31 @@ class DocsRouteHandler:
             project = active_query.get("project", ["default"])[0]
             send_json(handler, self._get_docs_payload(project))
             return True
+        if raw_path == "/api/docs/view":
+            project = active_query.get("project", ["default"])[0]
+            docs_dir = self._workspace._docs_dir(project)
+            index_file = docs_dir / "index.html"
+            if index_file.exists():
+                content = index_file.read_bytes()
+                handler.send_response(200)
+                handler.send_header("Content-Type", "text/html; charset=utf-8")
+                handler.send_header("Content-Length", str(len(content)))
+                handler.end_headers()
+                handler.wfile.write(content)
+                return True
+            send_error_json(handler, f"Generated HTML docs not found for project '{project}'.", status_code=404)
+            return True
         return False
 
     def handle_post(
         self, handler: BaseHTTPRequestHandler, path: str, body: dict[str, Any]
     ) -> bool:
         """Route POST requests for compiling static documentation packages."""
-        if path == "/api/docs/generate":
+        if path in ("/api/docs/generate", "/api/docs/regenerate"):
             project = body.get("project", "default")
             try:
                 out_path = self._workspace.generate_docs(project=project)
-                send_json(handler, {"status": "ok", "path": str(out_path)})
+                send_json(handler, {"status": "ok", "path": str(out_path), "regenerated": True})
             except Exception as e:
                 send_error_json(handler, f"Docs generation failed: {e}")
             return True
@@ -91,12 +105,25 @@ class DocsRouteHandler:
                 total_models=len(models), total_sources=len(dag._dependencies),
                 total_tests=len(all_tests), models=model_docs, lineage_mermaid=lineage,
             )
+            docs_dir = self._workspace._docs_dir(project)
+            has_generated = (docs_dir / "index.html").exists()
+
             payload = asdict(proj_doc)
             payload["destinations_count"] = dest_count
             payload["dag"] = self._build_dag_dict(dag, project)
+            payload["has_generated_docs"] = has_generated
+            payload["generated_docs_path"] = str(docs_dir / "index.html") if has_generated else None
             return payload
         except Exception as e:
-            return {"project_name": project, "error": str(e), "models": [], "total_models": 0, "total_sources": 0, "total_tests": 0}
+            return {
+                "project_name": project,
+                "error": str(e),
+                "models": [],
+                "total_models": 0,
+                "total_sources": 0,
+                "total_tests": 0,
+                "has_generated_docs": False,
+            }
 
     def _collect_all_tests(self, project: str, models: list[Any]) -> list[TestDefinition]:
         """Collect all inferred and declared data quality assertions."""

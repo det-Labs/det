@@ -12,7 +12,10 @@ const state = {
     explorerCollapsed: false,
     subExplorerCollapsed: false,
     modelSqlCollapsed: false,
+    modelSchemaCollapsed: false,
     modelTestsCollapsed: false,
+    schemaViewMode: "table",
+    modelSchemaCache: {},
     isEditing: false,
     customFolders: new Set(),
     pipelineFolders: new Set(["Core Pipelines"]),
@@ -34,6 +37,7 @@ const state = {
     monitoringLimit: 100,
     monitoringExpandedRuns: new Set(),
     monitoringFilters: { date: "", status: "", model: "" },
+    runningPipelines: new Set(),
 };
 
 async function loadInitialData() {
@@ -61,8 +65,13 @@ async function loadInitialData() {
             state.selectedConnection = state.connections[0].name;
         }
         if (state.pipelines.length > 0) {
-            state.selectedPipeline = state.pipelines[0].name;
-            state.selectedModel = state.pipelines[0].models?.[0]?.name || null;
+            const savedPipeline = sessionStorage.getItem("det_selected_pipeline");
+            const pipeMatch = state.pipelines.find((p) => p.name === savedPipeline);
+            state.selectedPipeline = pipeMatch ? savedPipeline : (state.selectedPipeline || state.pipelines[0].name);
+            const currPipe = state.pipelines.find((p) => p.name === state.selectedPipeline);
+            const savedModel = sessionStorage.getItem("det_selected_model");
+            const modelMatch = currPipe?.models?.find((m) => m.name === savedModel);
+            state.selectedModel = modelMatch ? savedModel : (currPipe?.models?.[0]?.name || null);
         }
     } catch (err) {
         console.error("Failed to load initial IDE data:", err);
