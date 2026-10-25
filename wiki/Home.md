@@ -12,7 +12,7 @@ Everything in `det` is engineered around three foundational architectural pillar
 
 ### 1. 🧩 Modularity
 Every asset in `det` is cleanly decoupled and self-contained:
-- **Data Catalog**: Connections (CSV, Parquet, JSON, NDJSON, XML, Excel, Delta Lake, PostgreSQL, MySQL, SQLite, S3, Iceberg) are declared once and reused across all pipelines.
+- **Data Catalog**: Connections (CSV, Parquet, JSON, NDJSON, Excel, Delta Lake, Apache Iceberg, AWS S3, Azure Blob / ADLS Gen2, Google Cloud Storage, Microsoft Fabric OneLake, PostgreSQL, MySQL, SQLite, MSSQL) are declared once and reused across all pipelines.
 - **Topological DAG Pipelines**: Workflows are divided into independent, reproducible SQL transformation models. Intermediate stages can be inspected, tested, or routed to separate storage sinks.
 - **Workspace Isolation**: Workspaces contain their own catalogs, extensions, models, and execution history without cross-project bleed.
 
@@ -25,6 +25,7 @@ Every asset in `det` is cleanly decoupled and self-contained:
 ### 3. 🔌 Extensibility
 The platform is designed to adapt to any modern or legacy data ecosystem:
 - **Pluggable Connectors**: Python extensions allow mounting external databases, cloud object stores, and custom file formats directly into the DuckDB session.
+- **Unified Multi-Cloud Lakehouse**: Native support for AWS S3, Azure Blob / ADLS Gen2, Google Cloud Storage, Microsoft Fabric OneLake, and Delta Lake read/write.
 - **Unified SQL Dialect**: Standard SQL queries can effortlessly join local files, cloud tables, and database connections in a single pipeline.
 - **Headless Orchestration & Rich GUI**: Run headless in CI/CD via CLI (`det run`, `det test`) or visually design and debug pipelines in the embedded Web IDE (`det gui`).
 
@@ -37,6 +38,7 @@ The platform is designed to adapt to any modern or legacy data ecosystem:
 | **[[Quickstart & Installation|Quickstart-&-Installation]]** | Install `det-core` from PyPI, initialize a workspace, and run your first pipeline. |
 | **[[Core Directives & Architecture|Core-Directives-&-Architecture]]** | Deep dive into engine architecture, in-memory execution, and storage sinks. |
 | **[[SQL ETL Pipeline Authoring|SQL-ETL-Pipeline-Authoring]]** | Learn multi-stage DAG pipelines, data tests, row quarantine, and output destinations. |
+| **[[Cloud Lakehouse Connectors|Cloud-Lakehouse-Connectors]]** | Configure AWS S3, Azure ADLS Gen2, GCS, OneLake, and Delta Lake reads and writes. |
 | **[[Custom Connectors Guide|Custom-Connectors-Guide]]** | Build and mount custom source and destination connectors. |
 | **[[CLI & Web IDE Reference|CLI-&-Web-IDE-Reference]]** | Command-line arguments, keyboard shortcuts, and Web IDE capabilities. |
 
@@ -51,4 +53,3 @@ A major upcoming enhancement is **in-editor SQL autocompletion** powered by a li
 - **PyPI Package**: [`pip install det-core`](https://pypi.org/project/det-core/)
 - **Main Codebase**: [det-Labs/det on GitHub](https://github.com/det-Labs/det)
 - **Issue Tracker**: [GitHub Issues](https://github.com/det-Labs/det/issues)
-

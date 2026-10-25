@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>det — Local-First SQL ETL & Lakehouse Orchestration Engine</title>
+  <meta name="description" content="Fast, local-first SQL ETL workspace and multi-step pipeline orchestration engine powered by DuckDB 2.0 and Apache Arrow. Native Delta Lake read/write, multi-cloud lakehouses, and embedded Web IDE.">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            brand: {
+              50: '#eff6ff',
+              100: '#dbeafe',
+              400: '#60a5fa',
+              500: '#3b82f6',
+              600: '#2563eb',
+              700: '#1d4ed8',
+            },
+            dark: {
+              base: '#0B0F19',
+              card: '#111827',
+              border: '#1F2937',
+              hover: '#374151',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    .glow-bg {
+      background: radial-gradient(circle at 50% 20%, rgba(59, 130, 246, 0.15) 0%, rgba(11, 15, 25, 0) 70%);
+    }
+    .code-glass {
+      background: rgba(17, 24, 39, 0.85);
+      backdrop-filter: blur(12px);
+    }
+    pre code {
+      font-family: 'JetBrains Mono', monospace;
+    }
+  </style>
+</head>
+<body class="bg-dark-base text-slate-100 font-sans antialiased selection:bg-brand-500 selection:text-white">
+
+  <!-- Navigation -->
+  <header class="sticky top-0 z-50 backdrop-blur-md bg-dark-base/80 border-b border-dark-border">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-500 flex items-center justify-center font-bold text-xl shadow-lg shadow-brand-500/25">
+          d
+        </div>
+        <div class="flex items-baseline gap-2">
+          <span class="text-xl font-bold tracking-tight text-white">det</span>
+          <span class="text-xs px-2 py-0.5 rounded-full font-mono font-medium bg-brand-500/10 text-brand-400 border border-brand-500/20">v0.3.1</span>
+        </div>
+      </div>
+
+      <nav class="hidden md:flex items-center gap-8 text-sm font-medium text-slate-300">
+        <a href="#features" class="hover:text-white transition-colors">Features</a>
+        <a href="#lakehouse" class="hover:text-white transition-colors">Multi-Cloud</a>
+        <a href="#connectors" class="hover:text-white transition-colors">Connectors</a>
+        <a href="#ide" class="hover:text-white transition-colors">Web IDE</a>
+        <a href="#architecture" class="hover:text-white transition-colors">Architecture</a>
+        <a href="https://github.com/det-Labs/det/wiki" target="_blank" class="hover:text-white transition-colors flex items-center gap-1.5">
+          Wiki <i class="fa-solid fa-arrow-up-right-from-square text-xs text-slate-500"></i>
+        </a>
+      </nav>
+
+      <div class="flex items-center gap-3">
+        <a href="https://pypi.org/project/det-core/" target="_blank" class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-all">
+          <i class="fa-brands fa-python text-yellow-400"></i> PyPI
+        </a>
+        <a href="https://github.com/det-Labs/det" target="_blank" class="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold bg-brand-600 hover:bg-brand-500 text-white shadow-lg shadow-brand-600/30 transition-all">
+          <i class="fa-brands fa-github text-sm"></i> Star on GitHub
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="relative pt-20 pb-24 overflow-hidden glow-bg">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
+      
+      <!-- Announcement Pill -->
+      <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-medium bg-slate-800/80 border border-slate-700 text-slate-300 mb-8 shadow-sm">
+        <span class="flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        <span class="font-semibold text-white">v0.3.1 Live:</span> Multi-Cloud Storage, Delta Lake ACID Writes & 94% Test Coverage
+        <i class="fa-solid fa-arrow-right text-xs text-slate-500"></i>
+      </div>
+
+      <h1 class="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-white max-w-5xl mx-auto leading-[1.1]">
+        Local-First SQL ETL &amp; <br class="hidden sm:block">
+        <span class="bg-gradient-to-r from-blue-400 via-indigo-300 to-emerald-400 bg-clip-text text-transparent">Lakehouse Orchestration Engine</span>
+      </h1>
+
+      <p class="mt-6 text-lg sm:text-xl text-slate-300 max-w-3xl mx-auto leading-relaxed">
+        Powered by <strong class="text-white">DuckDB 2.0</strong> and <strong class="text-white">Apache Arrow</strong>. 
+        Author declarative SQL pipeline DAGs, isolate violating records with non-blocking row quarantine, and orchestrate across AWS S3, Azure ADLS Gen2, GCS, OneLake, and Delta Lake—at bare-metal in-process speed.
+      </p>
+
+      <!-- Quickstart Box -->
+      <div class="mt-10 max-w-xl mx-auto">
+        <div class="code-glass border border-slate-700/80 rounded-2xl p-4 shadow-2xl text-left relative group">
+          <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-800 text-xs text-slate-400">
+            <div class="flex items-center gap-2">
+              <span class="w-3 h-3 rounded-full bg-red-500/80 inline-block"></span>
+              <span class="w-3 h-3 rounded-full bg-yellow-500/80 inline-block"></span>
+              <span class="w-3 h-3 rounded-full bg-emerald-500/80 inline-block"></span>
+              <span class="ml-2 font-mono">Terminal &bull; Quickstart</span>
+            </div>
+            <button onclick="copyQuickstart()" class="flex items-center gap-1.5 px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-all text-xs">
+              <i class="fa-regular fa-copy"></i> <span id="copyText">Copy</span>
+            </button>
+          </div>
+          <pre class="font-mono text-sm leading-relaxed text-slate-200 overflow-x-auto"><span class="text-slate-500"># 1. Install det-core from PyPI</span>
+<span class="text-brand-400">pip</span> install det-core deltalake
+
+<span class="text-slate-500"># 2. Scaffold workspace &amp; launch local Web IDE</span>
+<span class="text-brand-400">det</span> init my_pipeline
+<span class="text-brand-400">cd</span> my_pipeline
+<span class="text-brand-400">det</span> gui --port 8080</pre>
+        </div>
+      </div>
+
+      <!-- Key Badges -->
+      <div class="mt-10 flex flex-wrap items-center justify-center gap-3 text-xs text-slate-400 font-medium">
+        <span class="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 flex items-center gap-1.5">
+          <i class="fa-solid fa-microchip text-brand-400"></i> In-Process DuckDB 2.0
+        </span>
+        <span class="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 flex items-center gap-1.5">
+          <i class="fa-solid fa-layer-group text-emerald-400"></i> Apache Arrow Zero-Copy
+        </span>
+        <span class="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 flex items-center gap-1.5">
+          <i class="fa-solid fa-database text-yellow-400"></i> Delta Lake Read &amp; Write
+        </span>
+        <span class="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 flex items-center gap-1.5">
+          <i class="fa-solid fa-cloud text-indigo-400"></i> AWS S3 &bull; Azure &bull; GCS &bull; OneLake
+        </span>
+        <span class="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 flex items-center gap-1.5">
+          <i class="fa-solid fa-shield-halved text-purple-400"></i> 94% Test Coverage (175 Tests)
+        </span>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Three Directives / Value Pillars -->
+  <section id="features" class="py-20 border-t border-dark-border bg-dark-card/40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <div class="text-center max-w-3xl mx-auto mb-16">
+        <h2 class="text-xs font-bold uppercase tracking-wider text-brand-400 mb-3">Foundational Architecture</h2>
+        <p class="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">The Three Directives of `det`</p>
+        <p class="mt-4 text-slate-400 text-sm sm:text-base">
+          Built from the ground up for modern data engineers who demand local simplicity without sacrificing enterprise-grade lakehouse capabilities.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        
+        <!-- Pillar 1 -->
+        <div class="p-8 rounded-2xl bg-dark-card border border-dark-border hover:border-brand-500/40 transition-all duration-300 group">
+          <div class="w-12 h-12 rounded-xl bg-brand-500/10 border border-brand-500/20 text-brand-400 flex items-center justify-center text-xl mb-6 group-hover:scale-110 transition-transform">
+            <i class="fa-solid fa-bolt"></i>
+          </div>
+          <h3 class="text-xl font-bold text-white mb-3">1. Vectorized Performance</h3>
+          <p class="text-slate-400 text-sm leading-relaxed mb-4">
+            Direct in-memory SIMD analytical processing with DuckDB 2.0. Multithreaded joins and aggregations execute on CPU cores with zero cloud serialization overhead.
+          </p>
+          <ul class="text-xs text-slate-300 space-y-2">
+            <li class="flex items-center gap-2"><i class="fa-solid fa-check text-emerald-400"></i> Apache Arrow columnar interchange</li>
+            <li class="flex items-center gap-2"><i class="fa-solid fa-check text-emerald-400"></i> Automatic projection &amp; predicate pushdown</li>
+            <li class="flex items-center gap-2"><i class="fa-solid fa-check text-emerald-400"></i> Sub-second pipeline cold starts</li>
+          </ul>
+        </div>
+
+        <!-- Pillar 2 -->
+        <div class="p-8 rounded-2xl bg-dark-card border border-dark-border hover:border-emerald-500/40 transition-all duration-300 group">
+          <div class="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center text-xl mb-6 group-hover:scale-110 transition-transform">
+            <i class="fa-solid fa-cubes"></i>
+          </div>
+          <h3 class="text-xl font-bold text-white mb-3">2. Declarative Modularity</h3>
+          <p class="text-slate-400 text-sm leading-relaxed mb-4">
+            Define lineage cleanly using dbt-compatible <code class="text-emerald-300">{{ ref() }}</code> and <code class="text-emerald-300">{{ source() }}</code> macros. Models resolve automatically into a topological DAG.
+          </p>
+          <ul class="text-xs text-slate-300 space-y-2">
+            <li class="flex items-center gap-2"><i class="fa-solid fa-check text-emerald-400"></i> Graph cycle detection &amp; stage parallelism</li>
+            <li class="flex items-center gap-2"><i class="fa-solid fa-check text-emerald-400"></i> Self-contained workspace isolation</li>
+            <li class="flex items-center gap-2"><i class="fa-solid fa-check text-emerald-400"></i> dbt-style selectors (<code class="text-slate-200">+model+</code>)</li>
+          </ul>
+        </div>
+
+        <!-- Pillar 3 -->
+        <div class="p-8 rounded-2xl bg-dark-card border border-dark-border hover:border-indigo-500/40 transition-all duration-300 group">
+          <div class="w-12 h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center text-xl mb-6 group-hover:scale-110 transition-transform">
+            <i class="fa-solid fa-puzzle-piece"></i>
+          </div>
+          <h3 class="text-xl font-bold text-white mb-3">3. Universal Extensibility</h3>
+          <p class="text-slate-400 text-sm leading-relaxed mb-4">
+            Connect to any data ecosystem effortlessly. Join AWS S3 Parquet with a Delta Lake table and write directly into Azure ADLS Gen2 or PostgreSQL in one SQL query.
+          </p>
+          <ul class="text-xs text-slate-300 space-y-2">
+            <li class="flex items-center gap-2"><i class="fa-solid fa-check text-emerald-400"></i> 14+ built-in multi-tier connectors</li>
+            <li class="flex items-center gap-2"><i class="fa-solid fa-check text-emerald-400"></i> Dynamic Python connector extensions</li>
+            <li class="flex items-center gap-2"><i class="fa-solid fa-check text-emerald-400"></i> Dual interface: Headless CLI &amp; Web IDE</li>
+          </ul>
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Interactive Code Deep-Dives / Multi-Cloud Lakehouse Section -->
+  <section id="lakehouse" class="py-20 border-t border-dark-border">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <div class="text-center max-w-3xl mx-auto mb-16">
+        <h2 class="text-xs font-bold uppercase tracking-wider text-brand-400 mb-3">Multi-Cloud Storage &amp; Code Ergonomics</h2>
+        <p class="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">Code Like an Engineer, Orchestrate Like a Pro</p>
+        <p class="mt-4 text-slate-400 text-sm sm:text-base">
+          Explore declarative connection contracts, Delta Lake ACID write configurations, data quality rules, and Python SDK scripts.
+        </p>
+      </div>
+
+      <!-- Tab Navigation -->
+      <div class="flex flex-wrap items-center justify-center gap-2 mb-8">
+        <button onclick="switchTab('delta')" id="tab-btn-delta" class="px-4 py-2 rounded-xl text-xs font-semibold bg-brand-600 text-white shadow-md transition-all">
+          <i class="fa-solid fa-database mr-1.5"></i> Delta Lake (Read/Write)
+        </button>
+        <button onclick="switchTab('cloud')" id="tab-btn-cloud" class="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 transition-all">
+          <i class="fa-solid fa-cloud mr-1.5"></i> Cloud Lakehouses (S3/Azure/GCS/OneLake)
+        </button>
+        <button onclick="switchTab('sql')" id="tab-btn-sql" class="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 transition-all">
+          <i class="fa-solid fa-code mr-1.5"></i> Declarative SQL Model
+        </button>
+        <button onclick="switchTab('quarantine')" id="tab-btn-quarantine" class="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 transition-all">
+          <i class="fa-solid fa-shield-halved mr-1.5"></i> Data Quality &amp; Quarantine
+        </button>
+        <button onclick="switchTab('python')" id="tab-btn-python" class="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 transition-all">
+          <i class="fa-brands fa-python mr-1.5"></i> Python SDK
+        </button>
+      </div>
+
+      <!-- Tab Contents -->
+      <div class="max-w-4xl mx-auto">
+        <div class="code-glass border border-slate-700/80 rounded-2xl shadow-2xl overflow-hidden">
+          
+          <!-- Delta Lake Tab -->
+          <div id="tab-delta" class="tab-pane p-6 text-sm">
+            <div class="flex items-center justify-between pb-3 mb-4 border-b border-slate-800 text-xs text-slate-400">
+              <span class="font-mono text-brand-400">models/marts/fct_customer_orders.sql</span>
+              <span>ACID Write Destination (Append &amp; Overwrite)</span>
+            </div>
+            <pre class="font-mono text-xs sm:text-sm text-slate-200 overflow-x-auto leading-relaxed"><span class="text-purple-400">{{</span> <span class="text-yellow-400">config</span>(
+    <span class="text-slate-400">materialized</span>=<span class="text-emerald-300">'table'</span>,
+    <span class="text-slate-400">description</span>=<span class="text-emerald-300">'High-value customers aggregated from staging orders.'</span>,
+    <span class="text-slate-400">destinations</span>=[
+        <span class="text-slate-500"># Export directly to Delta Lake ACID table in S3 with append mode</span>
+        {
+            <span class="text-emerald-300">'target'</span>: <span class="text-emerald-300">'s3://analytics-gold/delta/customer_metrics'</span>,
+            <span class="text-emerald-300">'format'</span>: <span class="text-emerald-300">'delta'</span>,
+            <span class="text-emerald-300">'mode'</span>: <span class="text-emerald-300">'append'</span>
+        }
+    ]
+) <span class="text-purple-400">}}</span>
+
+<span class="text-blue-400">SELECT</span>
+    customer_id,
+    <span class="text-blue-400">COUNT</span>(order_id) <span class="text-blue-400">AS</span> total_orders,
+    <span class="text-blue-400">SUM</span>(net_amount) <span class="text-blue-400">AS</span> total_spend,
+    <span class="text-blue-400">MAX</span>(order_timestamp) <span class="text-blue-400">AS</span> last_order_at
+<span class="text-blue-400">FROM</span> <span class="text-purple-400">{{</span> <span class="text-yellow-400">ref</span>(<span class="text-emerald-300">'stg_orders'</span>) <span class="text-purple-400">}}</span>
+<span class="text-blue-400">WHERE</span> order_status != <span class="text-emerald-300">'CANCELLED'</span>
+<span class="text-blue-400">GROUP BY</span> customer_id;</pre>
+          </div>
+
+          <!-- Cloud Lakehouses Tab -->
+          <div id="tab-cloud" class="tab-pane hidden p-6 text-sm">
+            <div class="flex items-center justify-between pb-3 mb-4 border-b border-slate-800 text-xs text-slate-400">
+              <span class="font-mono text-brand-400">catalog/connections.yaml</span>
+              <span>DuckDB 2.0 Temporary Secret Management</span>
+            </div>
+            <pre class="font-mono text-xs sm:text-sm text-slate-200 overflow-x-auto leading-relaxed"><span class="text-blue-400">connections</span>:
+  <span class="text-yellow-400">aws_s3_landing</span>:
+    <span class="text-slate-400">type</span>: <span class="text-emerald-300">s3</span>
+    <span class="text-slate-400">options</span>:
+      <span class="text-slate-400">path</span>: <span class="text-emerald-300">"s3://landing-zone/events.parquet"</span>
+      <span class="text-slate-400">region</span>: <span class="text-emerald-300">"us-east-1"</span>
+    <span class="text-slate-400">credentials</span>:
+      <span class="text-slate-400">key_id</span>: <span class="text-emerald-300">"${AWS_ACCESS_KEY_ID}"</span>
+      <span class="text-slate-400">secret_key</span>: <span class="text-emerald-300">"${AWS_SECRET_ACCESS_KEY}"</span>
+
+  <span class="text-yellow-400">azure_adls_gold</span>:
+    <span class="text-slate-400">type</span>: <span class="text-emerald-300">azure</span>
+    <span class="text-slate-400">options</span>:
+      <span class="text-slate-400">path</span>: <span class="text-emerald-300">"abfss://gold@analytics.dfs.core.windows.net/sales.parquet"</span>
+    <span class="text-slate-400">credentials</span>:
+      <span class="text-slate-400">tenant_id</span>: <span class="text-emerald-300">"${AZURE_TENANT_ID}"</span>
+      <span class="text-slate-400">client_id</span>: <span class="text-emerald-300">"${AZURE_CLIENT_ID}"</span>
+      <span class="text-slate-400">client_secret</span>: <span class="text-emerald-300">"${AZURE_CLIENT_SECRET}"</span>
+
+  <span class="text-yellow-400">fabric_onelake_lh</span>:
+    <span class="text-slate-400">type</span>: <span class="text-emerald-300">onelake</span>
+    <span class="text-slate-400">options</span>:
+      <span class="text-slate-400">workspace</span>: <span class="text-emerald-300">"EnterpriseAnalytics"</span>
+      <span class="text-slate-400">lakehouse</span>: <span class="text-emerald-300">"BronzeLakehouse"</span>
+      <span class="text-slate-400">table</span>: <span class="text-emerald-300">"raw_telemetry"</span></pre>
+          </div>
+
+          <!-- Declarative SQL Tab -->
+          <div id="tab-sql" class="tab-pane hidden p-6 text-sm">
+            <div class="flex items-center justify-between pb-3 mb-4 border-b border-slate-800 text-xs text-slate-400">
+              <span class="font-mono text-brand-400">models/staging/stg_orders.sql</span>
+              <span>Multi-Source Jinja Lineage Macro</span>
+            </div>
+            <pre class="font-mono text-xs sm:text-sm text-slate-200 overflow-x-auto leading-relaxed"><span class="text-purple-400">{{</span> <span class="text-yellow-400">config</span>(<span class="text-slate-400">materialized</span>=<span class="text-emerald-300">'view'</span>) <span class="text-purple-400">}}</span>
+
+<span class="text-blue-400">WITH</span> raw_s3_feed <span class="text-blue-400">AS</span> (
+    <span class="text-blue-400">SELECT</span> * <span class="text-blue-400">FROM</span> <span class="text-purple-400">{{</span> <span class="text-yellow-400">source</span>(<span class="text-emerald-300">'aws_s3_landing'</span>) <span class="text-purple-400">}}</span>
+),
+postgres_metadata <span class="text-blue-400">AS</span> (
+    <span class="text-blue-400">SELECT</span> * <span class="text-blue-400">FROM</span> <span class="text-purple-400">{{</span> <span class="text-yellow-400">source</span>(<span class="text-emerald-300">'prod_postgres'</span>, <span class="text-emerald-300">'customer_dim'</span>) <span class="text-purple-400">}}</span>
+)
+<span class="text-blue-400">SELECT</span>
+    o.order_id,
+    o.customer_id,
+    c.country_code,
+    o.net_amount,
+    o.order_timestamp
+<span class="text-blue-400">FROM</span> raw_s3_feed o
+<span class="text-blue-400">INNER JOIN</span> postgres_metadata c 
+  <span class="text-blue-400">ON</span> o.customer_id = c.id;</pre>
+          </div>
+
+          <!-- Data Quality & Quarantine Tab -->
+          <div id="tab-quarantine" class="tab-pane hidden p-6 text-sm">
+            <div class="flex items-center justify-between pb-3 mb-4 border-b border-slate-800 text-xs text-slate-400">
+              <span class="font-mono text-brand-400">models/schema.yml</span>
+              <span>Declarative Assertions &amp; Non-Blocking Quarantine</span>
+            </div>
+            <pre class="font-mono text-xs sm:text-sm text-slate-200 overflow-x-auto leading-relaxed"><span class="text-blue-400">version</span>: 2
+<span class="text-blue-400">models</span>:
+  - <span class="text-yellow-400">name</span>: <span class="text-emerald-300">stg_orders</span>
+    <span class="text-slate-400">description</span>: <span class="text-emerald-300">"Staging orders with row quarantine enforcement."</span>
+    <span class="text-slate-400">columns</span>:
+      - <span class="text-slate-400">name</span>: <span class="text-emerald-300">order_id</span>
+        <span class="text-slate-400">tests</span>:
+          - <span class="text-emerald-300">not_null</span>
+          - <span class="text-emerald-300">unique</span>
+
+      - <span class="text-slate-400">name</span>: <span class="text-emerald-300">net_amount</span>
+        <span class="text-slate-400">tests</span>:
+          - <span class="text-slate-400">expression</span>:
+              <span class="text-slate-400">expression</span>: <span class="text-emerald-300">"net_amount >= 0.0"</span>
+              <span class="text-slate-400">severity</span>: <span class="text-emerald-300">quarantine</span>  <span class="text-slate-500"># Routes bad rows to _quarantine_stg_orders</span>
+
+      - <span class="text-slate-400">name</span>: <span class="text-emerald-300">order_status</span>
+        <span class="text-slate-400">tests</span>:
+          - <span class="text-slate-400">accepted_values</span>:
+              <span class="text-slate-400">values</span>: [<span class="text-emerald-300">'PENDING'</span>, <span class="text-emerald-300">'COMPLETED'</span>, <span class="text-emerald-300">'CANCELLED'</span>]</pre>
+          </div>
+
+          <!-- Python SDK Tab -->
+          <div id="tab-python" class="tab-pane hidden p-6 text-sm">
+            <div class="flex items-center justify-between pb-3 mb-4 border-b border-slate-800 text-xs text-slate-400">
+              <span class="font-mono text-brand-400">run_pipeline.py</span>
+              <span>Headless CI/CD &amp; Automation SDK</span>
+            </div>
+            <pre class="font-mono text-xs sm:text-sm text-slate-200 overflow-x-auto leading-relaxed"><span class="text-blue-400">from</span> pathlib <span class="text-blue-400">import</span> Path
+<span class="text-blue-400">from</span> det <span class="text-blue-400">import</span> Workspace
+
+<span class="text-slate-500"># 1. Open active workspace</span>
+ws = Workspace(Path(<span class="text-emerald-300">"./my_pipeline"</span>))
+
+<span class="text-slate-500"># 2. Benchmark catalog health &amp; cloud connectivity</span>
+health = ws.test_catalog()
+print(<span class="text-emerald-300">"Catalog Status:"</span>, health)
+
+<span class="text-slate-500"># 3. Execute topological pipeline DAG</span>
+report = ws.run()
+print(f<span class="text-emerald-300">"Executed {report.total_models} models in {report.duration_ms:.1f}ms"</span>)
+
+<span class="text-slate-500"># 4. Run data quality assertions with quarantine routing</span>
+test_suite = ws.test()
+print(f<span class="text-emerald-300">"Tests Passed: {test_suite.passed}, Quarantined: {test_suite.quarantined}"</span>)
+
+<span class="text-slate-500"># 5. Compile static HTML documentation</span>
+docs_path = ws.generate_docs()
+print(<span class="text-emerald-300">"Documentation generated at:"</span>, docs_path)</pre>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Interactive Web IDE Showcase -->
+  <section id="ide" class="py-20 border-t border-dark-border bg-dark-card/30">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <div class="text-center max-w-3xl mx-auto mb-16">
+        <h2 class="text-xs font-bold uppercase tracking-wider text-brand-400 mb-3">Embedded Developer Studio</h2>
+        <p class="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">Zero-Install Browser Web IDE</p>
+        <p class="mt-4 text-slate-400 text-sm sm:text-base">
+          Launch with <code class="text-brand-300 font-mono">det gui</code>. Visualize DAG lineages, write SQL with live data introspection, audit quarantined rows, and view stage execution durations in milliseconds.
+        </p>
+      </div>
+
+      <!-- Mock Web IDE Browser Window -->
+      <div class="rounded-2xl border border-slate-700/80 bg-slate-950 shadow-2xl overflow-hidden max-w-6xl mx-auto">
+        
+        <!-- IDE Window Header -->
+        <div class="h-10 bg-slate-900 border-b border-slate-800 px-4 flex items-center justify-between text-xs text-slate-400">
+          <div class="flex items-center gap-2">
+            <span class="w-3 h-3 rounded-full bg-red-500/80"></span>
+            <span class="w-3 h-3 rounded-full bg-yellow-500/80"></span>
+            <span class="w-3 h-3 rounded-full bg-emerald-500/80"></span>
+            <span class="ml-3 font-mono text-slate-300 flex items-center gap-1.5">
+              <i class="fa-solid fa-cube text-brand-400"></i> det Web IDE &bull; http://127.0.0.1:8080
+            </span>
+          </div>
+          <div class="flex items-center gap-3">
+            <span class="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-mono">
+              <i class="fa-solid fa-circle text-[8px] animate-pulse"></i> Session Connected
+            </span>
+            <span class="px-2 py-0.5 rounded bg-slate-800 text-slate-400 font-mono">default project</span>
+          </div>
+        </div>
+
+        <!-- IDE Main Workspace -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 min-h-[500px]">
+          
+          <!-- Sidebar: Pipelines & Catalog -->
+          <div class="lg:col-span-3 border-r border-slate-800 p-4 bg-slate-900/40 text-xs">
+            <div class="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-3">Pipeline Models</div>
+            <div class="space-y-1 font-mono">
+              <div class="p-2 rounded bg-slate-800/80 text-brand-300 font-semibold flex items-center justify-between border border-brand-500/30">
+                <span class="flex items-center gap-1.5"><i class="fa-solid fa-table"></i> stg_orders</span>
+                <span class="text-[10px] px-1.5 py-0.2 rounded bg-brand-500/20 text-brand-300">view</span>
+              </div>
+              <div class="p-2 rounded hover:bg-slate-800/50 text-slate-300 flex items-center justify-between transition-colors">
+                <span class="flex items-center gap-1.5"><i class="fa-solid fa-table"></i> stg_customers</span>
+                <span class="text-[10px] px-1.5 py-0.2 rounded bg-slate-800 text-slate-400">view</span>
+              </div>
+              <div class="p-2 rounded hover:bg-slate-800/50 text-slate-300 flex items-center justify-between transition-colors">
+                <span class="flex items-center gap-1.5"><i class="fa-solid fa-database text-yellow-400"></i> fct_orders_delta</span>
+                <span class="text-[10px] px-1.5 py-0.2 rounded bg-yellow-500/20 text-yellow-300">delta</span>
+              </div>
+              <div class="p-2 rounded hover:bg-slate-800/50 text-slate-300 flex items-center justify-between transition-colors">
+                <span class="flex items-center gap-1.5"><i class="fa-solid fa-chart-pie text-emerald-400"></i> mart_customer_rfm</span>
+                <span class="text-[10px] px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300">table</span>
+              </div>
+            </div>
+
+            <div class="text-[11px] font-bold uppercase tracking-wider text-slate-500 mt-6 mb-3">Catalog Connections</div>
+            <div class="space-y-1 font-mono text-slate-400">
+              <div class="p-1.5 flex items-center gap-1.5 hover:text-white transition-colors">
+                <i class="fa-brands fa-aws text-yellow-500"></i> s3_landing_lake
+              </div>
+              <div class="p-1.5 flex items-center gap-1.5 hover:text-white transition-colors">
+                <i class="fa-brands fa-microsoft text-blue-400"></i> azure_adls_gold
+              </div>
+              <div class="p-1.5 flex items-center gap-1.5 hover:text-white transition-colors">
+                <i class="fa-solid fa-database text-purple-400"></i> customer_delta_lake
+              </div>
+            </div>
+          </div>
+
+          <!-- Center: DAG & Editor Canvas -->
+          <div class="lg:col-span-6 border-r border-slate-800 flex flex-col bg-slate-950">
+            <!-- IDE Toolbar -->
+            <div class="h-10 border-b border-slate-800 px-4 flex items-center justify-between text-xs">
+              <div class="flex items-center gap-2">
+                <span class="text-slate-400 font-mono">Model:</span>
+                <span class="text-white font-semibold font-mono">fct_orders_delta</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <button class="px-2.5 py-1 rounded bg-brand-600 text-white font-medium hover:bg-brand-500 transition-all flex items-center gap-1">
+                  <i class="fa-solid fa-play text-[10px]"></i> Run Model
+                </button>
+                <button class="px-2.5 py-1 rounded bg-slate-800 text-slate-300 hover:bg-slate-700 transition-all flex items-center gap-1">
+                  <i class="fa-solid fa-vial-circle-check text-[10px] text-emerald-400"></i> Test
+                </button>
+              </div>
+            </div>
+
+            <!-- DAG Flow Preview -->
+            <div class="p-4 bg-slate-900/30 border-b border-slate-800 flex items-center justify-center gap-4 text-xs font-mono">
+              <div class="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-300">
+                s3_landing
+              </div>
+              <i class="fa-solid fa-arrow-right text-slate-600"></i>
+              <div class="px-3 py-1.5 rounded-lg bg-brand-500/20 border border-brand-500/40 text-brand-300 font-semibold">
+                stg_orders
+              </div>
+              <i class="fa-solid fa-arrow-right text-slate-600"></i>
+              <div class="px-3 py-1.5 rounded-lg bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-semibold">
+                fct_orders_delta
+              </div>
+            </div>
+
+            <!-- SQL Query View -->
+            <div class="p-4 flex-1 font-mono text-xs text-slate-300 leading-relaxed overflow-y-auto">
+              <span class="text-purple-400">{{</span> <span class="text-yellow-400">config</span>(materialized=<span class="text-emerald-300">'table'</span>, destinations=[{<span class="text-emerald-300">'target'</span>: <span class="text-emerald-300">'s3://gold/delta_orders'</span>, <span class="text-emerald-300">'format'</span>: <span class="text-emerald-300">'delta'</span>}]) <span class="text-purple-400">}}</span><br><br>
+              <span class="text-blue-400">SELECT</span><br>
+              &nbsp;&nbsp;order_id,<br>
+              &nbsp;&nbsp;customer_id,<br>
+              &nbsp;&nbsp;net_amount,<br>
+              &nbsp;&nbsp;order_timestamp<br>
+              <span class="text-blue-400">FROM</span> <span class="text-purple-400">{{</span> <span class="text-yellow-400">ref</span>(<span class="text-emerald-300">'stg_orders'</span>) <span class="text-purple-400">}}</span><br>
+              <span class="text-blue-400">WHERE</span> net_amount &gt; 0.0;
+            </div>
+          </div>
+
+          <!-- Right: Inspector & Telemetry Drawer -->
+          <div class="lg:col-span-3 p-4 bg-slate-900/40 text-xs flex flex-col justify-between">
+            <div>
+              <div class="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-3">Model Schema &amp; Assertions</div>
+              <div class="space-y-2">
+                <div class="p-2 rounded bg-slate-800/60 border border-slate-800">
+                  <div class="flex items-center justify-between text-slate-200 font-mono">
+                    <span>order_id</span>
+                    <span class="text-[10px] text-slate-400">VARCHAR</span>
+                  </div>
+                  <div class="flex gap-1 mt-1">
+                    <span class="px-1.5 py-0.2 rounded text-[9px] bg-emerald-500/20 text-emerald-300">NOT NULL</span>
+                    <span class="px-1.5 py-0.2 rounded text-[9px] bg-emerald-500/20 text-emerald-300">UNIQUE</span>
+                  </div>
+                </div>
+
+                <div class="p-2 rounded bg-slate-800/60 border border-slate-800">
+                  <div class="flex items-center justify-between text-slate-200 font-mono">
+                    <span>net_amount</span>
+                    <span class="text-[10px] text-slate-400">DOUBLE</span>
+                  </div>
+                  <div class="flex gap-1 mt-1">
+                    <span class="px-1.5 py-0.2 rounded text-[9px] bg-yellow-500/20 text-yellow-300">&gt;= 0.0</span>
+                    <span class="px-1.5 py-0.2 rounded text-[9px] bg-purple-500/20 text-purple-300">QUARANTINE</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Execution Telemetry Summary -->
+            <div class="mt-6 pt-4 border-t border-slate-800">
+              <div class="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">Last Execution Telemetry</div>
+              <div class="space-y-1.5 font-mono text-slate-300">
+                <div class="flex justify-between">
+                  <span class="text-slate-500">Duration:</span>
+                  <span class="text-emerald-400 font-bold">14.2 ms</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-slate-500">Rows Written:</span>
+                  <span>10,000</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-slate-500">Quarantined:</span>
+                  <span class="text-purple-400">0 rows</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-slate-500">Storage Sink:</span>
+                  <span class="text-slate-400">telemetry.duckdb</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Universal Storage Connectors Grid -->
+  <section id="connectors" class="py-20 border-t border-dark-border">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <div class="text-center max-w-3xl mx-auto mb-16">
+        <h2 class="text-xs font-bold uppercase tracking-wider text-brand-400 mb-3">Seamless Interoperability</h2>
+        <p class="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">14+ Built-In Storage Connectors</p>
+        <p class="mt-4 text-slate-400 text-sm sm:text-base">
+          From relational engines and flat files to open lakehouse formats and cloud storage, `det` mounts any source into vectorized DuckDB sessions.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+        
+        <!-- Delta Lake -->
+        <div class="p-5 rounded-xl bg-dark-card border border-dark-border hover:border-yellow-500/40 transition-all">
+          <div class="flex items-center gap-2 mb-2 text-yellow-400 font-semibold text-sm">
+            <i class="fa-solid fa-database"></i> Delta Lake
+          </div>
+          <p class="text-xs text-slate-400">Vectorized <code class="text-yellow-300">delta_scan</code> read &amp; streaming Arrow ACID write (append/replace).</p>
+        </div>
+
+        <!-- AWS S3 -->
+        <div class="p-5 rounded-xl bg-dark-card border border-dark-border hover:border-brand-500/40 transition-all">
+          <div class="flex items-center gap-2 mb-2 text-brand-400 font-semibold text-sm">
+            <i class="fa-brands fa-aws"></i> Amazon S3 &bull; R2
+          </div>
+          <p class="text-xs text-slate-400">AWS S3, MinIO, and Cloudflare R2 object stores with IAM key &amp; token secrets.</p>
+        </div>
+
+        <!-- Azure ADLS Gen2 -->
+        <div class="p-5 rounded-xl bg-dark-card border border-dark-border hover:border-blue-500/40 transition-all">
+          <div class="flex items-center gap-2 mb-2 text-blue-400 font-semibold text-sm">
+            <i class="fa-brands fa-microsoft"></i> Azure ADLS Gen2
+          </div>
+          <p class="text-xs text-slate-400">Azure Blob &amp; Data Lake Gen2 (<code class="text-blue-300">abfss://</code>) via Service Principal authentication.</p>
+        </div>
+
+        <!-- Google Cloud Storage -->
+        <div class="p-5 rounded-xl bg-dark-card border border-dark-border hover:border-emerald-500/40 transition-all">
+          <div class="flex items-center gap-2 mb-2 text-emerald-400 font-semibold text-sm">
+            <i class="fa-brands fa-google"></i> Google Cloud Storage
+          </div>
+          <p class="text-xs text-slate-400">GCS buckets (<code class="text-emerald-300">gs://</code>) with HMAC credentials or Bearer Tokens.</p>
+        </div>
+
+        <!-- Fabric OneLake -->
+        <div class="p-5 rounded-xl bg-dark-card border border-dark-border hover:border-indigo-500/40 transition-all">
+          <div class="flex items-center gap-2 mb-2 text-indigo-400 font-semibold text-sm">
+            <i class="fa-solid fa-building"></i> Fabric OneLake
+          </div>
+          <p class="text-xs text-slate-400">Microsoft Fabric OneLake lakehouse delta tables and workspace directories.</p>
+        </div>
+
+        <!-- Apache Iceberg -->
+        <div class="p-5 rounded-xl bg-dark-card border border-dark-border hover:border-cyan-500/40 transition-all">
+          <div class="flex items-center gap-2 mb-2 text-cyan-400 font-semibold text-sm">
+            <i class="fa-solid fa-snowflake"></i> Apache Iceberg
+          </div>
+          <p class="text-xs text-slate-400">Vectorized Iceberg metadata reader and snapshot snapshot scanner.</p>
+        </div>
+
+        <!-- Parquet -->
+        <div class="p-5 rounded-xl bg-dark-card border border-dark-border hover:border-emerald-500/40 transition-all">
+          <div class="flex items-center gap-2 mb-2 text-emerald-400 font-semibold text-sm">
+            <i class="fa-solid fa-file-code"></i> Parquet Filesystem
+          </div>
+          <p class="text-xs text-slate-400">High-throughput Snappy / ZSTD columnar Parquet reader and writer.</p>
+        </div>
+
+        <!-- PostgreSQL -->
+        <div class="p-5 rounded-xl bg-dark-card border border-dark-border hover:border-blue-400/40 transition-all">
+          <div class="flex items-center gap-2 mb-2 text-blue-400 font-semibold text-sm">
+            <i class="fa-solid fa-server"></i> PostgreSQL
+          </div>
+          <p class="text-xs text-slate-400">Direct query pushdown and bidirectional database table mounting.</p>
+        </div>
+
+        <!-- MySQL -->
+        <div class="p-5 rounded-xl bg-dark-card border border-dark-border hover:border-orange-400/40 transition-all">
+          <div class="flex items-center gap-2 mb-2 text-orange-400 font-semibold text-sm">
+            <i class="fa-solid fa-database"></i> MySQL
+          </div>
+          <p class="text-xs text-slate-400">Fast relational table attach and query federation.</p>
+        </div>
+
+        <!-- SQLite -->
+        <div class="p-5 rounded-xl bg-dark-card border border-dark-border hover:border-sky-400/40 transition-all">
+          <div class="flex items-center gap-2 mb-2 text-sky-400 font-semibold text-sm">
+            <i class="fa-solid fa-hard-drive"></i> SQLite
+          </div>
+          <p class="text-xs text-slate-400">Local embedded SQLite database attach with read &amp; write capabilities.</p>
+        </div>
+
+        <!-- Microsoft SQL Server -->
+        <div class="p-5 rounded-xl bg-dark-card border border-dark-border hover:border-red-400/40 transition-all">
+          <div class="flex items-center gap-2 mb-2 text-red-400 font-semibold text-sm">
+            <i class="fa-solid fa-cubes-stacked"></i> SQL Server / Fabric
+          </div>
+          <p class="text-xs text-slate-400">MSSQL and Microsoft Fabric SQL endpoints connectivity.</p>
+        </div>
+
+        <!-- CSV / JSON / Excel -->
+        <div class="p-5 rounded-xl bg-dark-card border border-dark-border hover:border-green-400/40 transition-all">
+          <div class="flex items-center gap-2 mb-2 text-green-400 font-semibold text-sm">
+            <i class="fa-solid fa-file-excel"></i> Excel &bull; CSV &bull; JSON
+          </div>
+          <p class="text-xs text-slate-400">Auto-schema inferencing for Excel (.xlsx), CSV, and NDJSON files.</p>
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Product Comparison Table -->
+  <section class="py-20 border-t border-dark-border bg-dark-card/30">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <div class="text-center max-w-3xl mx-auto mb-16">
+        <h2 class="text-xs font-bold uppercase tracking-wider text-brand-400 mb-3">Architectural Comparison</h2>
+        <p class="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">Why Choose `det`?</p>
+        <p class="mt-4 text-slate-400 text-sm sm:text-base">
+          See how `det-core` pairs the developer ergonomics of modern transformation tools with embedded, vectorized execution.
+        </p>
+      </div>
+
+      <div class="overflow-x-auto max-w-5xl mx-auto">
+        <table class="w-full text-left text-xs sm:text-sm border-collapse border border-slate-800 rounded-2xl overflow-hidden">
+          <thead>
+            <tr class="bg-slate-900 border-b border-slate-800 text-slate-300">
+              <th class="p-4 font-semibold">Capability</th>
+              <th class="p-4 font-semibold text-brand-400">det-core</th>
+              <th class="p-4 font-semibold text-slate-400">dbt-core</th>
+              <th class="p-4 font-semibold text-slate-400">Apache Spark</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-800 text-slate-300">
+            <tr class="hover:bg-slate-900/40">
+              <td class="p-4 font-medium text-white">Execution Engine</td>
+              <td class="p-4 text-emerald-400 font-semibold"><i class="fa-solid fa-circle-check"></i> In-Process DuckDB 2.0 (Embedded)</td>
+              <td class="p-4 text-slate-400">External Cloud DWH required</td>
+              <td class="p-4 text-slate-400">JVM / Cluster required</td>
+            </tr>
+            <tr class="hover:bg-slate-900/40">
+              <td class="p-4 font-medium text-white">Delta Lake ACID Writes</td>
+              <td class="p-4 text-emerald-400 font-semibold"><i class="fa-solid fa-circle-check"></i> Native (Append &amp; Overwrite)</td>
+              <td class="p-4 text-slate-400">Adapter dependent</td>
+              <td class="p-4 text-emerald-400 font-semibold"><i class="fa-solid fa-circle-check"></i> Native</td>
+            </tr>
+            <tr class="hover:bg-slate-900/40">
+              <td class="p-4 font-medium text-white">Non-Blocking Row Quarantine</td>
+              <td class="p-4 text-emerald-400 font-semibold"><i class="fa-solid fa-circle-check"></i> Built-in (_quarantine sinks)</td>
+              <td class="p-4 text-slate-400">Fails pipeline run</td>
+              <td class="p-4 text-slate-400">Custom code required</td>
+            </tr>
+            <tr class="hover:bg-slate-900/40">
+              <td class="p-4 font-medium text-white">Embedded Zero-Install Web IDE</td>
+              <td class="p-4 text-emerald-400 font-semibold"><i class="fa-solid fa-circle-check"></i> Included (<code class="text-brand-300">det gui</code>)</td>
+              <td class="p-4 text-slate-400">Cloud SaaS only</td>
+              <td class="p-4 text-slate-400">Heavy notebook servers</td>
+            </tr>
+            <tr class="hover:bg-slate-900/40">
+              <td class="p-4 font-medium text-white">Startup Latency</td>
+              <td class="p-4 text-emerald-400 font-semibold"><i class="fa-solid fa-circle-check"></i> &lt; 0.1s (Instant)</td>
+              <td class="p-4 text-slate-400">Cloud network latency</td>
+              <td class="p-4 text-slate-400">30s &ndash; 2min cluster spin-up</td>
+            </tr>
+            <tr class="hover:bg-slate-900/40">
+              <td class="p-4 font-medium text-white">Automated Documentation Portal</td>
+              <td class="p-4 text-emerald-400 font-semibold"><i class="fa-solid fa-circle-check"></i> Static HTML + Mermaid Lineage</td>
+              <td class="p-4 text-emerald-400 font-semibold"><i class="fa-solid fa-circle-check"></i> Static site</td>
+              <td class="p-4 text-slate-400">None</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Documentation & Wiki Navigation Hub -->
+  <section id="architecture" class="py-20 border-t border-dark-border">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <div class="text-center max-w-3xl mx-auto mb-16">
+        <h2 class="text-xs font-bold uppercase tracking-wider text-brand-400 mb-3">Documentation &amp; Learning</h2>
+        <p class="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">Developer Guides &amp; References</p>
+        <p class="mt-4 text-slate-400 text-sm sm:text-base">
+          Read in-depth architectural overviews, connector configurations, and pipeline authoring tutorials on the GitHub Wiki.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        
+        <a href="https://github.com/det-Labs/det/wiki/Quickstart-&-Installation" target="_blank" class="p-6 rounded-2xl bg-dark-card border border-dark-border hover:border-brand-500/50 transition-all block group">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="font-bold text-white group-hover:text-brand-400 transition-colors">Quickstart &amp; Installation</h3>
+            <i class="fa-solid fa-arrow-up-right-from-square text-xs text-slate-500 group-hover:text-brand-400 transition-colors"></i>
+          </div>
+          <p class="text-xs text-slate-400 leading-relaxed">
+            Install from PyPI, scaffold a multi-project workspace, configure connections, and execute your first model.
+          </p>
+        </a>
+
+        <a href="https://github.com/det-Labs/det/wiki/Core-Directives-&-Architecture" target="_blank" class="p-6 rounded-2xl bg-dark-card border border-dark-border hover:border-brand-500/50 transition-all block group">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="font-bold text-white group-hover:text-brand-400 transition-colors">Core Directives &amp; Architecture</h3>
+            <i class="fa-solid fa-arrow-up-right-from-square text-xs text-slate-500 group-hover:text-brand-400 transition-colors"></i>
+          </div>
+          <p class="text-xs text-slate-400 leading-relaxed">
+            Deep dive into DuckDB 2.0 in-process analytical execution, Apache Arrow columnar memory, and telemetry sinks.
+          </p>
+        </a>
+
+        <a href="https://github.com/det-Labs/det/wiki/Cloud-Lakehouse-Connectors" target="_blank" class="p-6 rounded-2xl bg-dark-card border border-dark-border hover:border-brand-500/50 transition-all block group">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="font-bold text-white group-hover:text-brand-400 transition-colors">Cloud Lakehouse Guide</h3>
+            <i class="fa-solid fa-arrow-up-right-from-square text-xs text-slate-500 group-hover:text-brand-400 transition-colors"></i>
+          </div>
+          <p class="text-xs text-slate-400 leading-relaxed">
+            Configure S3 credentials, Azure ADLS Gen2 service principals, GCS HMAC keys, and Microsoft Fabric OneLake.
+          </p>
+        </a>
+
+        <a href="https://github.com/det-Labs/det/wiki/SQL-ETL-Pipeline-Authoring" target="_blank" class="p-6 rounded-2xl bg-dark-card border border-dark-border hover:border-brand-500/50 transition-all block group">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="font-bold text-white group-hover:text-brand-400 transition-colors">SQL ETL Pipeline Authoring</h3>
+            <i class="fa-solid fa-arrow-up-right-from-square text-xs text-slate-500 group-hover:text-brand-400 transition-colors"></i>
+          </div>
+          <p class="text-xs text-slate-400 leading-relaxed">
+            Learn multi-stage DAG pipelines, Jinja model macros, quarantine error handling, and output modes.
+          </p>
+        </a>
+
+        <a href="https://github.com/det-Labs/det/wiki/Custom-Connectors-Guide" target="_blank" class="p-6 rounded-2xl bg-dark-card border border-dark-border hover:border-brand-500/50 transition-all block group">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="font-bold text-white group-hover:text-brand-400 transition-colors">Custom Connectors Guide</h3>
+            <i class="fa-solid fa-arrow-up-right-from-square text-xs text-slate-500 group-hover:text-brand-400 transition-colors"></i>
+          </div>
+          <p class="text-xs text-slate-400 leading-relaxed">
+            Author and package custom Python storage connector extensions with the <code class="text-slate-300">BaseConnector</code> interface.
+          </p>
+        </a>
+
+        <a href="https://github.com/det-Labs/det/wiki/CLI-&-Web-IDE-Reference" target="_blank" class="p-6 rounded-2xl bg-dark-card border border-dark-border hover:border-brand-500/50 transition-all block group">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="font-bold text-white group-hover:text-brand-400 transition-colors">CLI &amp; Web IDE Reference</h3>
+            <i class="fa-solid fa-arrow-up-right-from-square text-xs text-slate-500 group-hover:text-brand-400 transition-colors"></i>
+          </div>
+          <p class="text-xs text-slate-400 leading-relaxed">
+            Full CLI command syntax (<code class="text-slate-300">det run</code>, <code class="text-slate-300">det test</code>, <code class="text-slate-300">det gui</code>), flags, and Web IDE shortcuts.
+          </p>
+        </a>
+
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="py-12 border-t border-dark-border bg-dark-base text-slate-400 text-xs">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-6">
+      
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-lg bg-brand-600 flex items-center justify-center font-bold text-white text-base">
+          d
+        </div>
+        <div>
+          <span class="font-bold text-white text-sm">det (Data Engineering Tool)</span>
+          <p class="text-slate-500">Fast, local-first SQL ETL &amp; Lakehouse Orchestration Engine</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-6 text-slate-400">
+        <a href="https://github.com/det-Labs/det" target="_blank" class="hover:text-white transition-colors">GitHub</a>
+        <a href="https://pypi.org/project/det-core/" target="_blank" class="hover:text-white transition-colors">PyPI</a>
+        <a href="https://github.com/det-Labs/det/wiki" target="_blank" class="hover:text-white transition-colors">Wiki</a>
+        <a href="https://github.com/det-Labs/det/issues" target="_blank" class="hover:text-white transition-colors">Issues</a>
+      </div>
+
+      <div class="text-slate-500 text-center sm:text-right">
+        Maintained by <strong class="text-slate-400">Saurabh Rai</strong> &bull; Released under the <a href="https://opensource.org/licenses/MIT" target="_blank" class="text-brand-400 hover:underline">MIT License</a>
+      </div>
+
+    </div>
+  </footer>
+
+  <script>
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-pane').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('[id^="tab-btn-"]').forEach(btn => {
+        btn.classList.remove('bg-brand-600', 'text-white', 'shadow-md');
+        btn.classList.add('bg-slate-800', 'text-slate-300');
+      });
+      document.getElementById('tab-' + tabId).classList.remove('hidden');
+      const activeBtn = document.getElementById('tab-btn-' + tabId);
+      activeBtn.classList.remove('bg-slate-800', 'text-slate-300');
+      activeBtn.classList.add('bg-brand-600', 'text-white', 'shadow-md');
+    }
+
+    function copyQuickstart() {
+      const text = "pip install det-core deltalake\ndet init my_pipeline\ncd my_pipeline\ndet gui --port 8080";
+      navigator.clipboard.writeText(text).then(() => {
+        const btn = document.getElementById('copyText');
+        btn.innerText = 'Copied!';
+        setTimeout(() => { btn.innerText = 'Copy'; }, 2000);
+      });
+    }
+  </script>
+
+</body>
+</html>
