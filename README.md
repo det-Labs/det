@@ -131,7 +131,7 @@ We are actively developing the following enhancements:
 ```bash
 pytest
 ```
-*175 passing unit and integration tests (94% code coverage).*
+*Automated unit and integration test suite.*
 
 ---
 

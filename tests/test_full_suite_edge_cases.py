@@ -1,4 +1,4 @@
-"""Exhaustive edge-case and boundary test suite to achieve enterprise-grade test coverage."""
+"""Exhaustive edge-case and boundary test suite for robust pipeline execution."""
 
 import io
 import json
