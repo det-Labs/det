@@ -74,3 +74,8 @@ Any storage technology can be integrated into `det` by registering a connector d
 ### Interoperable Multi-Source SQL
 Because connectors register views into DuckDB's session, a single SQL query can join an Excel spreadsheet with a Delta Lake table and write to Parquet or PostgreSQL in a single pipeline.
 
+---
+
+| ⬅️ Previous Page | 🏠 Overview | Next Page ➡️ |
+| :--- | :---: | ---: |
+| [**← Quickstart & Installation**](Quickstart-&-Installation) | [**Wiki Index**](Home) | [**SQL ETL Pipeline Authoring ➔**](SQL-ETL-Pipeline-Authoring) |

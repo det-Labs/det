@@ -35,12 +35,12 @@ The platform is designed to adapt to any modern or legacy data ecosystem:
 
 | Guide | Description |
 | :--- | :--- |
-| **[[Quickstart & Installation|Quickstart-&-Installation]]** | Install `det-core` from PyPI, initialize a workspace, and run your first pipeline. |
-| **[[Core Directives & Architecture|Core-Directives-&-Architecture]]** | Deep dive into engine architecture, in-memory execution, and storage sinks. |
-| **[[SQL ETL Pipeline Authoring|SQL-ETL-Pipeline-Authoring]]** | Learn multi-stage DAG pipelines, data tests, row quarantine, and output destinations. |
-| **[[Cloud Lakehouse Connectors|Cloud-Lakehouse-Connectors]]** | Configure AWS S3, Azure ADLS Gen2, GCS, OneLake, and Delta Lake reads and writes. |
-| **[[Custom Connectors Guide|Custom-Connectors-Guide]]** | Build and mount custom source and destination connectors. |
-| **[[CLI & Web IDE Reference|CLI-&-Web-IDE-Reference]]** | Command-line arguments, keyboard shortcuts, and Web IDE capabilities. |
+| [**Quickstart & Installation**](Quickstart-&-Installation) | Install `det-core` from PyPI, initialize a workspace, and run your first pipeline. |
+| [**Core Directives & Architecture**](Core-Directives-&-Architecture) | Deep dive into engine architecture, in-memory execution, and storage sinks. |
+| [**SQL ETL Pipeline Authoring**](SQL-ETL-Pipeline-Authoring) | Learn multi-stage DAG pipelines, data tests, row quarantine, and output destinations. |
+| [**Cloud Lakehouse Connectors**](Cloud-Lakehouse-Connectors) | Configure AWS S3, Azure ADLS Gen2, GCS, OneLake, and Delta Lake reads and writes. |
+| [**Custom Connectors Guide**](Custom-Connectors-Guide) | Build and mount custom source and destination connectors. |
+| [**CLI & Web IDE Reference**](CLI-&-Web-IDE-Reference) | Command-line arguments, keyboard shortcuts, and Web IDE capabilities. |
 
 ---
 
@@ -53,3 +53,9 @@ A major upcoming enhancement is **in-editor SQL autocompletion** powered by a li
 - **PyPI Package**: [`pip install det-core`](https://pypi.org/project/det-core/)
 - **Main Codebase**: [det-Labs/det on GitHub](https://github.com/det-Labs/det)
 - **Issue Tracker**: [GitHub Issues](https://github.com/det-Labs/det/issues)
+
+---
+
+| 🏠 Overview | Next Page ➡️ |
+| :--- | ---: |
+| **det Wiki Home** | [**Quickstart & Installation ➔**](Quickstart-&-Installation) |

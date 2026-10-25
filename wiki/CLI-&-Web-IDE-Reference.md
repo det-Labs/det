@@ -78,3 +78,8 @@ The `det` Web IDE offers a clean, dual-pane architecture:
 - `Ctrl + Enter` (or `Cmd + Enter`): Run active SQL query or pipeline
 - `Escape`: Close modals and inspection drawers
 
+---
+
+| ⬅️ Previous Page | 🏠 Overview | Next Page ➡️ |
+| :--- | :---: | ---: |
+| [**← Custom Connectors Guide**](Custom-Connectors-Guide) | [**Wiki Index**](Home) | [**Back to Home ➔**](Home) |

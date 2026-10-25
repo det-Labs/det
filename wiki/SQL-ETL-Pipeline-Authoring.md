@@ -88,3 +88,8 @@ Supported destination formats include:
 - **Pre-flight & Post-flight Audits**: Validate `not_null`, `unique`, `accepted_values`, and custom SQL expressions.
 - **Row-Level Quarantine**: Route violating rows to `.det/quarantine/` while allowing conforming rows to proceed downstream, preventing entire pipeline crashes due to isolated dirty records.
 
+---
+
+| ⬅️ Previous Page | 🏠 Overview | Next Page ➡️ |
+| :--- | :---: | ---: |
+| [**← Core Directives & Architecture**](Core-Directives-&-Architecture) | [**Wiki Index**](Home) | [**Cloud Lakehouse Connectors ➔**](Cloud-Lakehouse-Connectors) |

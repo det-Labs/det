@@ -104,3 +104,8 @@ Generate standalone documentation complete with SVG/Mermaid DAG lineage and sche
 det doc my_project/fct_orders
 ```
 
+---
+
+| ⬅️ Previous Page | 🏠 Overview | Next Page ➡️ |
+| :--- | :---: | ---: |
+| [**← Home Overview**](Home) | [**Wiki Index**](Home) | [**Core Directives & Architecture ➔**](Core-Directives-&-Architecture) |

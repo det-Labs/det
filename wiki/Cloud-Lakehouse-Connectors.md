@@ -115,3 +115,9 @@ connections:
       client_id: "${AZURE_CLIENT_ID}"
       client_secret: "${AZURE_CLIENT_SECRET}"
 ```
+
+---
+
+| ⬅️ Previous Page | 🏠 Overview | Next Page ➡️ |
+| :--- | :---: | ---: |
+| [**← SQL ETL Pipeline Authoring**](SQL-ETL-Pipeline-Authoring) | [**Wiki Index**](Home) | [**Custom Connectors Guide ➔**](Custom-Connectors-Guide) |

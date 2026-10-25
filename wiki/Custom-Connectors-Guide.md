@@ -52,3 +52,8 @@ Custom connectors can be maintained:
 my_connector = "my_package.connector:MyExtension"
 ```
 
+---
+
+| ⬅️ Previous Page | 🏠 Overview | Next Page ➡️ |
+| :--- | :---: | ---: |
+| [**← Cloud Lakehouse Connectors**](Cloud-Lakehouse-Connectors) | [**Wiki Index**](Home) | [**CLI & Web IDE Reference ➔**](CLI-&-Web-IDE-Reference) |
