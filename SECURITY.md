@@ -1,14 +1,5 @@
 # Security Policy
 
-## Supported Versions
-
-We release security patches for the following versions of `det-core`:
-
-| Version | Supported          |
-| ------- | ------------------ |
-| 0.2.x   | :white_check_mark: |
-| < 0.2.0 | :x:                |
-
 ## Reporting a Vulnerability
 
 The `det` team takes software security seriously. If you discover a vulnerability or security issue, please do **NOT** open a public issue on GitHub.
