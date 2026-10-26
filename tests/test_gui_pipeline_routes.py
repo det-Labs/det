@@ -30,7 +30,7 @@ def _post_json(url: str, payload: dict[str, Any]) -> dict[str, Any]:
 
 def _create_sample_models(base_dir: Path) -> None:
     """Scaffold staging and marts models for testing DAG compilation."""
-    models_dir = base_dir / "projects" / "default" / "models"
+    models_dir = base_dir / "pipelines" / "default" / "models"
     stg = models_dir / "staging" / "stg_users.sql"
     stg.parent.mkdir(parents=True, exist_ok=True)
     stg.write_text("{{ config(materialized='view') }}\nSELECT 1 AS user_id\n", encoding="utf-8")
@@ -128,7 +128,7 @@ def test_pipeline_model_schema_dual_mode(tmp_path: Path) -> None:
         assert uid_col["description"] == "Unique user ID identifier"
 
         # Verify schema.yml written to disk
-        schema_file = tmp_path / "projects" / "default" / "models" / "schema.yml"
+        schema_file = tmp_path / "pipelines" / "default" / "models" / "schema.yml"
         assert schema_file.exists()
         assert "Unique user ID identifier" in schema_file.read_text(encoding="utf-8")
 
@@ -185,13 +185,13 @@ def test_pipeline_routes_create_and_delete_pipeline(tmp_path: Path) -> None:
         res_create = _post_json(f"{base_url}/api/pipelines/create", {"name": "finance_pipeline"})
         assert res_create["status"] == "ok"
         assert res_create["created"] == "finance_pipeline"
-        assert (tmp_path / "projects" / "finance_pipeline" / "models").exists()
+        assert (tmp_path / "pipelines" / "finance_pipeline" / "models").exists()
 
         # 2. Delete pipeline
         res_delete = _post_json(f"{base_url}/api/pipelines/delete", {"name": "finance_pipeline"})
         assert res_delete["status"] == "ok"
         assert res_delete["deleted"] == "finance_pipeline"
-        assert not (tmp_path / "projects" / "finance_pipeline").exists()
+        assert not (tmp_path / "pipelines" / "finance_pipeline").exists()
 
         # 3. Deleting non-existent returns 404
         try:
@@ -209,7 +209,7 @@ def test_pipeline_concurrency_guard(tmp_path: Path) -> None:
     ws = Workspace.init(tmp_path)
     _create_sample_models(tmp_path)
     # Also scaffold a second pipeline
-    p2_dir = tmp_path / "projects" / "p2" / "models"
+    p2_dir = tmp_path / "pipelines" / "p2" / "models"
     p2_dir.mkdir(parents=True, exist_ok=True)
     (p2_dir / "m2.sql").write_text("{{ config(materialized='table') }}\nSELECT 42 AS val\n", encoding="utf-8")
 

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "det-core"
-version = "0.3.2"
+version = "0.3.3"
 description = "Fast, local-first SQL ETL workspace and pipeline orchestration engine powered by DuckDB 2.0"
 readme = "README.md"
 license = "MIT"

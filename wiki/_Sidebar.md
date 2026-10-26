@@ -14,7 +14,7 @@
 
 - [Web IDE Overview & Getting Started](Web-IDE-Overview-&-Getting-Started)
 - [Pipelines & DAG Studio](Web-IDE-Pipelines-&-DAG-Studio)
-- [Data Quality & Quarantine](Web-IDE-Data-Quality-&-Quarantine)
+- [Data Quality & Policies](Web-IDE-Data-Quality-&-Policies)
 - [Catalog & Lakehouse Connections](Web-IDE-Catalog-&-Lakehouse-Connections)
 - [Monitoring & Living Documentation](Web-IDE-Monitoring-&-Living-Documentation)
 

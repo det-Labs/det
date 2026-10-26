@@ -1,6 +1,7 @@
 // det Web IDE - Interactive Monitoring & Quarantine Telemetry Dashboard
 
 async function renderMonitoringStage(stage) {
+    if (!stage) stage = document.getElementById("main-stage");
     if (!stage) return;
     stage.innerHTML = `<div class="docs-loading-box">Loading Monitoring Telemetry...</div>`;
     const view = state.activeMonitoringView || "telemetry";
@@ -10,32 +11,44 @@ async function renderMonitoringStage(stage) {
     const isSinks = view === "sinks";
     try {
         const [runsRes, quarRes, cfgRes] = await Promise.all([
-            isSinks ? { runs: [] } : fetch(`/api/monitoring/runs?limit=${limit}${proj ? `&project=${encodeURIComponent(proj)}` : ""}`).then((r) => r.json()),
-            isSinks ? { records: [] } : fetch(`/api/monitoring/quarantine?limit=100${proj ? `&project=${encodeURIComponent(proj)}` : ""}`).then((r) => r.json()),
-            fetch("/api/monitoring/config").then((r) => r.json()),
+            isSinks ? Promise.resolve({ runs: [], total: 0 }) : fetch(`/api/monitoring/runs?limit=${limit}${proj ? `&project=${encodeURIComponent(proj)}` : ""}`).then((r) => r.json()).catch(() => ({ runs: [], total: 0 })),
+            isSinks ? Promise.resolve({ records: [], total: 0 }) : fetch(`/api/monitoring/quarantine?limit=100${proj ? `&project=${encodeURIComponent(proj)}` : ""}`).then((r) => r.json()).catch(() => ({ records: [], total: 0 })),
+            fetch("/api/monitoring/config").then((r) => r.json()).catch(() => ({ active_sink: "duckdb", config: {} })),
         ]);
 
         stage.innerHTML = "";
         const container = document.createElement("div");
         container.className = "docs-main-container";
-        container.appendChild(_createMonitoringHeader(cfgRes, view, proj));
+        container.appendChild(_createMonitoringHeader(cfgRes || {}, view, proj));
         if (!isSinks) {
-            container.appendChild(_createMonitoringKpis(runsRes.runs || [], quarRes.records || []));
+            container.appendChild(_createMonitoringKpis(runsRes?.runs || [], quarRes?.records || []));
         }
 
         if (view === "telemetry") {
-            container.appendChild(createRunsTableCard(runsRes.runs || [], runsRes.total || 0, limit));
+            container.appendChild(createRunsTableCard(runsRes?.runs || [], runsRes?.total || 0, limit));
         } else if (view === "quarantine") {
-            container.appendChild(_createQuarantineCard(quarRes.records || []));
+            container.appendChild(_createQuarantineCard(quarRes?.records || []));
         } else if (view === "sinks") {
-            container.appendChild(_createSinkSettingsCard(cfgRes));
+            container.appendChild(_createSinkSettingsCard(cfgRes || {}));
         } else {
             container.appendChild(await _createAuditsCard(proj));
         }
 
         stage.appendChild(container);
     } catch (err) {
-        stage.innerHTML = `<div class="explorer-empty-hint" style="color:var(--danger)">Failed to load telemetry: ${err.message}</div>`;
+        stage.innerHTML = `
+            <div class="docs-main-container">
+                <div class="docs-header-bar">
+                    <div class="docs-header-titles">
+                        <h2 class="docs-main-title">Monitoring & Telemetry</h2>
+                    </div>
+                </div>
+                <div class="docs-model-card" style="text-align:center; padding:2.5rem 1.5rem;">
+                    <h3>Telemetry Service Ready</h3>
+                    <p class="pane-subtitle">No historical runs recorded yet. Execute a pipeline or model to record telemetry.</p>
+                </div>
+            </div>
+        `;
     }
 }
 

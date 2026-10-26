@@ -76,7 +76,18 @@ class TestDefinition:
         test_type = TestType(raw_type)
 
         raw_sev = data.get("severity", TestSeverity.ERROR.value)
-        severity = TestSeverity(raw_sev) if isinstance(raw_sev, str) else raw_sev
+        if isinstance(raw_sev, str):
+            sev_str = raw_sev.lower()
+            if sev_str in ("warn", "warning"):
+                severity = TestSeverity.WARN
+            elif sev_str == "drop":
+                severity = TestSeverity.DROP
+            elif sev_str == "quarantine":
+                severity = TestSeverity.QUARANTINE
+            else:
+                severity = TestSeverity.ERROR
+        else:
+            severity = raw_sev
 
         name = data.get("name") or f"{model_name}_{col or 'tbl'}_{test_type.value}"
         params = {k: v for k, v in data.items() if k not in ("name", "column", "column_name", "type", "test_type", "severity", "custom_query")}

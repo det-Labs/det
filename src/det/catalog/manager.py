@@ -18,7 +18,13 @@ logger = logging.getLogger(__name__)
 
 
 class CatalogManager(BaseCatalogManager):
-    """Coordinates connection definitions, file persistence, and health testing."""
+    """Coordinates connection definitions, file persistence, and health testing.
+    
+    Strictly binds to connections.yaml within catalog/. Any other yaml files in that
+    folder are completely ignored.
+    """
+
+    CANONICAL_FILENAME = "connections.yaml"
 
     def __init__(
         self,
@@ -28,7 +34,20 @@ class CatalogManager(BaseCatalogManager):
         tester: ConnectionTester | None = None,
         auto_load: bool = True,
     ) -> None:
-        self._file_path = file_path
+        p = Path(file_path).resolve()
+        if p.is_dir():
+            target_file = p / self.CANONICAL_FILENAME
+        elif p.name != self.CANONICAL_FILENAME and p.parent.name == "catalog":
+            logger.debug(
+                "Ignoring non-canonical catalog file '%s'; strictly using '%s'",
+                p.name,
+                self.CANONICAL_FILENAME,
+            )
+            target_file = p.parent / self.CANONICAL_FILENAME
+        else:
+            target_file = p
+
+        self._file_path = target_file
         self._reader = reader or CatalogReader()
         self._writer = writer or CatalogWriter()
         self._tester = tester or ConnectionTester()
@@ -53,13 +72,61 @@ class CatalogManager(BaseCatalogManager):
         """Persist current in-memory connection definitions to disk."""
         self._writer.write_yaml(self._file_path, self._connections)
 
-    def list_connections(self) -> list[ConnectionDefinition]:
-        """Return sorted list of all active connection definitions."""
-        return sorted(self._connections.values(), key=lambda c: c.name)
+    def list_connections(
+        self, folder: str | None = None, name_filter: str | None = None
+    ) -> list[ConnectionDefinition]:
+        """Return sorted list of all active connection definitions, optionally filtered by folder and name substring."""
+        conns = sorted(self._connections.values(), key=lambda c: c.name)
+        if folder is not None:
+            target_f = folder.strip().lower()
+            conns = [c for c in conns if (c.folder or "").strip().lower() == target_f]
+        if name_filter is not None:
+            q = name_filter.strip().lower()
+            conns = [c for c in conns if q in c.name.lower()]
+        return conns
 
     def get_connection(self, name: str) -> ConnectionDefinition | None:
         """Retrieve a connection definition by its identifier."""
         return self._connections.get(name)
+
+    def get_connection_details(self, name: str) -> dict[str, Any]:
+        """Retrieve complete properties and metadata for a given connection."""
+        conn_def = self.get_connection(name)
+        if conn_def is None:
+            raise KeyError(f"Connection '{name}' not found in catalog.")
+
+        sanitized_creds: dict[str, Any] = {}
+        for k, v in conn_def.credentials.items():
+            if any(term in k.lower() for term in ("key", "secret", "password", "token", "auth")):
+                sanitized_creds[k] = "******"
+            else:
+                sanitized_creds[k] = v
+
+        return {
+            "name": conn_def.name,
+            "type": conn_def.type,
+            "tier": conn_def.tier_value,
+            "folder": conn_def.folder or "(Root)",
+            "description": conn_def.description or "",
+            "options": dict(conn_def.options or {}),
+            "credentials": sanitized_creds,
+            "mount_sql": conn_def.get_mount_sql(),
+        }
+
+    def display_connection(
+        self, con: duckdb.DuckDBPyConnection, name: str, limit: int = 10
+    ) -> tuple[list[str], list[tuple[Any, ...]]]:
+        """Query and return top N rows from the mounted connection view/table."""
+        conn_def = self.get_connection(name)
+        if conn_def is None:
+            raise KeyError(f"Connection '{name}' not found in catalog.")
+
+        mount_sql = conn_def.get_mount_sql()
+        con.execute(mount_sql)
+        cursor = con.execute(f"SELECT * FROM {name} LIMIT {int(limit)}")
+        columns = [desc[0] for desc in cursor.description] if cursor.description else []
+        rows = cursor.fetchall()
+        return columns, rows
 
     def add_connection(
         self, conn_def: ConnectionDefinition, persist: bool = True
@@ -70,7 +137,7 @@ class CatalogManager(BaseCatalogManager):
             self.save()
 
     def delete_connection(self, name: str, persist: bool = True) -> bool:
-        """Remove a connection definition from the catalog."""
+        """Remove an individual connection definition from the catalog."""
         if name not in self._connections:
             return False
         del self._connections[name]
@@ -94,6 +161,21 @@ class CatalogManager(BaseCatalogManager):
         return {
             name: self._tester.test_connection(con, conn_def)
             for name, conn_def in self._connections.items()
+        }
+
+    def test_connections(
+        self,
+        con: duckdb.DuckDBPyConnection,
+        connection: str | None = None,
+        folder: str | None = None,
+    ) -> dict[str, ConnectionTestResult]:
+        """Health check a single connection, connections in a folder, or all connections."""
+        if connection:
+            return {connection: self.test_connection(con, connection)}
+        targets = self.list_connections(folder=folder)
+        return {
+            c.name: self._tester.test_connection(con, c)
+            for c in targets
         }
 
     def get_mountable_items(self) -> list[ConnectionDefinition]:

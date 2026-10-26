@@ -20,6 +20,10 @@ def send_json(
     handler.send_header("Access-Control-Allow-Headers", "Content-Type")
     handler.end_headers()
     handler.wfile.write(payload)
+    try:
+        handler.wfile.flush()
+    except Exception:
+        pass
 
 
 def send_error_json(

@@ -48,13 +48,21 @@ det --version
    det init
    ```
 
-   This creates:
-   - `catalog/`: Connector YAML declarations for raw and curated data sources.
-   - `projects/`: SQL pipeline models organized in domain folders with `det_project.yaml`.
+   This creates the standardized 4-directory layout:
+   - `catalog/`: Contains `connections.yaml` for data source declarations using absolute file paths.
+   - `pipelines/`: SQL pipeline models organized in pipeline directories with `det_project.yaml` and `models/`.
+   - `data/`: Storage for local data files (Parquet, CSV, Delta, DuckDB).
    - `extensions/`: Built-in and custom storage engine connectors.
    - `.det/`: Local runtime state, telemetry databases, and session caches.
 
-3. **Launch the interactive Web IDE**:
+3. **Verify Catalog Connections**:
+
+   ```bash
+   det catalog list
+   det catalog test
+   ```
+
+4. **Launch the interactive Web IDE**:
 
    ```bash
    det gui
@@ -64,44 +72,56 @@ det --version
 
 ---
 
-## 🏃 Running Pipelines via CLI
+## 🏃 Compiling & Running Pipelines via CLI
 
-Run a single pipeline by name or project folder:
+Compile DAG dependencies without scanning data:
 
 ```bash
-det run my_project/fct_orders
+det compile retail_medallion
 ```
 
-Run with verbose execution output and step breakdown:
+Run a pipeline with multi-threaded execution:
 
 ```bash
-det run my_project/fct_orders --verbose
+det run retail_medallion --threads 4
 ```
 
----
-
-## 🧪 Validating & Testing Pipelines Headless
-
-Verify SQL syntax, column references, and dependency topologies before running:
+Run with variable substitution:
 
 ```bash
-det validate my_project/fct_orders
-```
-
-Execute data quality audits and tests (e.g. `not_null`, `unique`, `accepted_values`, `row_condition`):
-
-```bash
-det test my_project/fct_orders
+det run retail_medallion --vars '{"environment": "prod"}'
 ```
 
 ---
 
-## 📚 Generating Pipeline Documentation
+## 🧪 Testing Data Quality
 
-Generate standalone documentation complete with SVG/Mermaid DAG lineage and schema contracts:
+Execute data quality assertions against configured enforcement policies (`error`, `warning`, `drop`):
 
 ```bash
-det doc my_project/fct_orders
+det test retail_medallion
+```
+
+---
+
+## 📊 Monitoring Execution History
+
+Inspect run telemetry and stage durations:
+
+```bash
+det monitor runs retail_medallion
+det monitor audits retail_medallion
+```
+
+---
+
+## 📚 Generating Living Documentation
+
+Generate a standalone interactive HTML documentation portal complete with SVG/Mermaid DAG lineage:
+
+```bash
+det docs generate retail_medallion
+det docs open retail_medallion --serve
 ```
 
 ---

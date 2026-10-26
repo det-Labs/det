@@ -7,13 +7,16 @@ from det.workspace import Workspace
 
 
 def test_workspace_init_and_scaffold(tmp_path: Path) -> None:
-    """Verify Workspace.init scaffolds standard folder structure."""
+    """Verify Workspace.init scaffolds standard folder structure (catalog, pipelines, data, extensions, .det)."""
     ws = Workspace.init(tmp_path)
     assert (tmp_path / ".det" / "config.yaml").exists()
     assert (tmp_path / "catalog" / "connections.yaml").exists()
-    assert (tmp_path / "projects" / "default" / "det_project.yaml").exists()
-    assert (tmp_path / "projects" / "default" / "models" / "staging").exists()
-    assert (tmp_path / "projects" / "default" / "models" / "marts").exists()
+    assert (tmp_path / "pipelines" / "default" / "det_project.yaml").exists()
+    assert (tmp_path / "pipelines" / "default" / "models" / "staging").exists()
+    assert (tmp_path / "pipelines" / "default" / "models" / "marts").exists()
+    assert (tmp_path / "data").exists()
+    assert (tmp_path / "extensions").exists()
+    assert not (tmp_path / "projects").exists()
     ws.engine.close()
 
 
@@ -30,7 +33,7 @@ def _setup_feed_connection_and_model(ws: Workspace, tmp_path: Path) -> None:
     )
     ws.mount_catalog()
     model_sql = "{{ config(materialized='table', unique_key='id') }}\nSELECT id, UPPER(val) AS val FROM raw_feed"
-    model_file = tmp_path / "projects" / "default" / "models" / "staging" / "stg_feed.sql"
+    model_file = tmp_path / "pipelines" / "default" / "models" / "staging" / "stg_feed.sql"
     model_file.write_text(model_sql, encoding="utf-8")
 
 

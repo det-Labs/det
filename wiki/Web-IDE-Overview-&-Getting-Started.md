@@ -45,7 +45,7 @@ The Web IDE features an intuitive 4-tier interface:
 
 ```
 +-------------------------------------------------------------------------------+
-| ⚡ det v0.3.2   [Catalog]  [Pipelines]  [Monitoring]  [Docs]    [Theme] ● Ready |
+| ⚡ det v0.3.3   [Catalog]  [Pipelines]  [Monitoring]  [Docs]    [Theme] ● Ready |
 +-----------------------+-------------------------------------------------------+
 |  PRIMARY EXPLORER     |  MAIN WORKSPACE STAGE                                 |
 |                       |                                                       |

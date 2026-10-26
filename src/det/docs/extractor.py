@@ -102,11 +102,13 @@ class DocsExtractor(BaseDocsExtractor):
         details: list[TestDoc] = []
         for t in tests:
             sev_val = t.severity.value if hasattr(t.severity, "value") else str(t.severity)
-            action = (
-                "Isolates violating records to quarantine sink; pipeline continues"
-                if sev_val == "quarantine"
-                else ("Logs warning notification; pipeline continues" if sev_val == "warn" else "Halts pipeline execution immediately; prevents downstream write")
-            )
+            sev_clean = sev_val.lower()
+            if sev_clean in ("drop", "quarantine"):
+                action = "Drops violating records in-engine (EXCEPT ALL); pipeline continues"
+            elif sev_clean in ("warn", "warning"):
+                action = "Logs warning count in monitoring; pipeline continues"
+            else:
+                action = "Halts pipeline execution immediately; prevents downstream write"
             ttype_val = t.test_type.value if hasattr(t.test_type, "value") else str(t.test_type)
             params = getattr(t, "parameters", None) or getattr(t, "params", {}) or {}
             cond = f"Values: {params.get('values', [])}" if ttype_val == "accepted_values" else (f"Expr: {params.get('expression', '')}" if ttype_val == "expression" else ("Zero duplicate values" if ttype_val == "unique" else "Zero NULL values"))
@@ -135,6 +137,7 @@ class DocsExtractor(BaseDocsExtractor):
         """Extract model-level and column-level descriptions from schema.yml files."""
         model_descs: dict[str, str] = {}
         col_descs: dict[str, dict[str, str]] = {}
+        models_dir = Path(models_dir).resolve()
         if not models_dir.exists():
             return model_descs, col_descs
         import yaml
@@ -179,7 +182,7 @@ class DocsExtractor(BaseDocsExtractor):
         for t in tests:
             if t.column_name == column_name:
                 badge = f"{t.test_type.value.upper()}"
-                if t.severity.value == "quarantine":
-                    badge += " (QUARANTINE)"
+                if t.severity.value in ("quarantine", "drop"):
+                    badge += f" ({t.severity.value.upper()})"
                 badges.append(badge)
         return sorted(badges)

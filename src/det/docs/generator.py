@@ -50,12 +50,13 @@ class DocsGenerator(BaseDocsGenerator):
 
     def write_docs(self, output_dir: Path, project_doc: ProjectDoc) -> Path:
         """Atomically persist index.html and manifest.json into destination directory."""
-        output_dir.mkdir(parents=True, exist_ok=True)
-        html_path = output_dir / "index.html"
-        json_path = output_dir / "manifest.json"
+        abs_output_dir = output_dir.resolve()
+        abs_output_dir.mkdir(parents=True, exist_ok=True)
+        html_path = (abs_output_dir / "index.html").resolve()
+        json_path = (abs_output_dir / "manifest.json").resolve()
         html_path.write_text(self.generate_html(project_doc), encoding="utf-8")
         json_path.write_text(json.dumps(self._build_manifest(project_doc), indent=2), encoding="utf-8")
-        logger.info("Generated documentation in '%s'", output_dir)
+        logger.info("Generated documentation in '%s'", abs_output_dir)
         return html_path
 
     def _render_header(self, doc: ProjectDoc) -> str:
@@ -186,8 +187,8 @@ class DocsGenerator(BaseDocsGenerator):
         .badge-tier { background: #6366f1; color: #fff; }
         .badge-test { background: rgba(16, 185, 129, 0.15); color: #059669; border: 1px solid rgba(16, 185, 129, 0.4); }
         .badge-sev-error { background: rgba(239, 68, 68, 0.15); color: #dc2626; border: 1px solid rgba(239, 68, 68, 0.4); }
-        .badge-sev-quarantine { background: rgba(168, 85, 247, 0.15); color: #7c3aed; border: 1px solid rgba(168, 85, 247, 0.4); }
-        .badge-sev-warn { background: rgba(245, 158, 11, 0.15); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.4); }
+        .badge-sev-quarantine, .badge-sev-drop { background: rgba(168, 85, 247, 0.15); color: #7c3aed; border: 1px solid rgba(168, 85, 247, 0.4); }
+        .badge-sev-warn, .badge-sev-warning { background: rgba(245, 158, 11, 0.15); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.4); }
         .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
         .kpi-card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
         .kpi-card h3 { color: var(--muted); font-size: 0.82rem; text-transform: uppercase; }

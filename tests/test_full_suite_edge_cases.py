@@ -437,11 +437,11 @@ def test_workspace_lifecycle_edge_cases(tmp_path: Path):
 
     # Delete pipeline and ensure default re-scaffolding
     assert ws.delete_pipeline("default") is True
-    # Projects dir should re-create default models
-    assert (ws.root / "projects" / "default" / "models").exists()
+    # Pipelines dir should re-create default models
+    assert (ws.root / "pipelines" / "default" / "models").exists()
 
     # Schema file with invalid YAML in _load_explicit_tests
-    models_dir = ws.root / "projects" / "default" / "models"
+    models_dir = ws.root / "pipelines" / "default" / "models"
     (models_dir / "schema.yml").write_text(": bad [yaml syntax", encoding="utf-8")
     tests = ws._load_explicit_tests("default")
     assert isinstance(tests, dict)

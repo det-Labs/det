@@ -63,7 +63,7 @@
         </div>
         <div class="flex items-baseline gap-2">
           <span class="text-xl font-bold tracking-tight text-white">det</span>
-          <span class="text-xs px-2 py-0.5 rounded-full font-mono font-medium bg-brand-500/10 text-brand-400 border border-brand-500/20">v0.3.2</span>
+          <span class="text-xs px-2 py-0.5 rounded-full font-mono font-medium bg-brand-500/10 text-brand-400 border border-brand-500/20">v0.3.3</span>
         </div>
       </div>
 
@@ -72,6 +72,7 @@
         <a href="#lakehouse" class="hover:text-white transition-colors">Multi-Cloud</a>
         <a href="#connectors" class="hover:text-white transition-colors">Connectors</a>
         <a href="#ide" class="hover:text-white transition-colors">Web IDE</a>
+        <a href="#cli" class="hover:text-white transition-colors">CLI Commands</a>
         <a href="#architecture" class="hover:text-white transition-colors">Architecture</a>
         <a href="https://github.com/det-Labs/det/wiki" target="_blank" class="hover:text-white transition-colors flex items-center gap-1.5">
           Wiki <i class="fa-solid fa-arrow-up-right-from-square text-xs text-slate-500"></i>
@@ -96,7 +97,7 @@
       <!-- Announcement Pill -->
       <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-medium bg-slate-800/80 border border-slate-700 text-slate-300 mb-8 shadow-sm">
         <span class="flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
-        <span class="font-semibold text-white">v0.3.2 Live:</span> Multi-Cloud Storage, Delta Lake ACID Writes &amp; Interactive Web IDE
+        <span class="font-semibold text-white">v0.3.3 Live:</span> Multi-Cloud Storage, Delta Lake ACID Writes &amp; Interactive Web IDE
         <i class="fa-solid fa-arrow-right text-xs text-slate-500"></i>
       </div>
 
@@ -107,7 +108,7 @@
 
       <p class="mt-6 text-lg sm:text-xl text-slate-300 max-w-3xl mx-auto leading-relaxed">
         Powered by <strong class="text-white">DuckDB 2.0</strong> and <strong class="text-white">Apache Arrow</strong>. 
-        Author declarative SQL pipeline DAGs, isolate violating records with non-blocking row quarantine, and orchestrate across AWS S3, Azure ADLS Gen2, GCS, OneLake, and Delta Lake—at bare-metal in-process speed.
+        Author declarative SQL pipeline DAGs, enforce resilient data quality policies (<code class="text-emerald-300">error</code>, <code class="text-yellow-300">warning</code>, <code class="text-sky-300">drop</code>), and orchestrate across AWS S3, Azure ADLS Gen2, GCS, OneLake, and Delta Lake—at bare-metal in-process speed.
       </p>
 
       <!-- Quickstart Box -->
@@ -127,10 +128,10 @@
           <pre class="font-mono text-sm leading-relaxed text-slate-200 overflow-x-auto"><span class="text-slate-500"># 1. Install det-core from PyPI</span>
 <span class="text-brand-400">pip</span> install det-core deltalake
 
-<span class="text-slate-500"># 2. Scaffold workspace &amp; launch local Web IDE</span>
-<span class="text-brand-400">det</span> init my_pipeline
-<span class="text-brand-400">cd</span> my_pipeline
-<span class="text-brand-400">det</span> gui --port 8080</pre>
+<span class="text-slate-500"># 2. Initialize workspace &amp; launch Web IDE</span>
+<span class="text-brand-400">mkdir</span> my_workspace &amp;&amp; <span class="text-brand-400">cd</span> my_workspace
+<span class="text-brand-400">det</span> init
+<span class="text-brand-400">det</span> gui</pre>
         </div>
       </div>
 
@@ -149,7 +150,7 @@
           <i class="fa-solid fa-cloud text-indigo-400"></i> AWS S3 &bull; Azure &bull; GCS &bull; OneLake
         </span>
         <span class="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 flex items-center gap-1.5">
-          <i class="fa-solid fa-shield-halved text-purple-400"></i> Automated Data Quality &amp; Quarantine
+          <i class="fa-solid fa-shield-halved text-purple-400"></i> Resilient Data Quality Policies
         </span>
       </div>
 
@@ -246,8 +247,8 @@
         <button onclick="switchTab('sql')" id="tab-btn-sql" class="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 transition-all">
           <i class="fa-solid fa-code mr-1.5"></i> Declarative SQL Model
         </button>
-        <button onclick="switchTab('quarantine')" id="tab-btn-quarantine" class="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 transition-all">
-          <i class="fa-solid fa-shield-halved mr-1.5"></i> Data Quality &amp; Quarantine
+        <button onclick="switchTab('quality')" id="tab-btn-quality" class="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 transition-all">
+          <i class="fa-solid fa-shield-halved mr-1.5"></i> Data Quality &amp; Policies
         </button>
         <button onclick="switchTab('python')" id="tab-btn-python" class="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 transition-all">
           <i class="fa-brands fa-python mr-1.5"></i> Python SDK
@@ -345,32 +346,35 @@ postgres_metadata <span class="text-blue-400">AS</span> (
   <span class="text-blue-400">ON</span> o.customer_id = c.id;</pre>
           </div>
 
-          <!-- Data Quality & Quarantine Tab -->
-          <div id="tab-quarantine" class="tab-pane hidden p-6 text-sm">
+          <!-- Data Quality & Policies Tab -->
+          <div id="tab-quality" class="tab-pane hidden p-6 text-sm">
             <div class="flex items-center justify-between pb-3 mb-4 border-b border-slate-800 text-xs text-slate-400">
               <span class="font-mono text-brand-400">models/schema.yml</span>
-              <span>Declarative Assertions &amp; Non-Blocking Quarantine</span>
+              <span>Declarative Assertions &amp; Three Clean Policies (Error, Warning, Drop)</span>
             </div>
             <pre class="font-mono text-xs sm:text-sm text-slate-200 overflow-x-auto leading-relaxed"><span class="text-blue-400">version</span>: 2
 <span class="text-blue-400">models</span>:
   - <span class="text-yellow-400">name</span>: <span class="text-emerald-300">stg_orders</span>
-    <span class="text-slate-400">description</span>: <span class="text-emerald-300">"Staging orders with row quarantine enforcement."</span>
+    <span class="text-slate-400">description</span>: <span class="text-emerald-300">"Staging orders with data quality policy enforcement."</span>
     <span class="text-slate-400">columns</span>:
       - <span class="text-slate-400">name</span>: <span class="text-emerald-300">order_id</span>
         <span class="text-slate-400">tests</span>:
-          - <span class="text-emerald-300">not_null</span>
-          - <span class="text-emerald-300">unique</span>
+          - <span class="text-emerald-300">not_null</span>:
+              <span class="text-slate-400">policy</span>: <span class="text-red-400">error</span>      <span class="text-slate-500"># Stop pipeline immediately on failure</span>
+          - <span class="text-emerald-300">unique</span>:
+              <span class="text-slate-400">policy</span>: <span class="text-red-400">error</span>
 
       - <span class="text-slate-400">name</span>: <span class="text-emerald-300">net_amount</span>
         <span class="text-slate-400">tests</span>:
           - <span class="text-slate-400">expression</span>:
               <span class="text-slate-400">expression</span>: <span class="text-emerald-300">"net_amount >= 0.0"</span>
-              <span class="text-slate-400">severity</span>: <span class="text-emerald-300">quarantine</span>  <span class="text-slate-500"># Routes bad rows to _quarantine_stg_orders</span>
+              <span class="text-slate-400">policy</span>: <span class="text-sky-300">drop</span>          <span class="text-slate-500"># Drop violating rows in-engine (EXCEPT ALL)</span>
 
       - <span class="text-slate-400">name</span>: <span class="text-emerald-300">order_status</span>
         <span class="text-slate-400">tests</span>:
           - <span class="text-slate-400">accepted_values</span>:
-              <span class="text-slate-400">values</span>: [<span class="text-emerald-300">'PENDING'</span>, <span class="text-emerald-300">'COMPLETED'</span>, <span class="text-emerald-300">'CANCELLED'</span>]</pre>
+              <span class="text-slate-400">values</span>: [<span class="text-emerald-300">'PENDING'</span>, <span class="text-emerald-300">'COMPLETED'</span>, <span class="text-emerald-300">'CANCELLED'</span>]
+              <span class="text-slate-400">policy</span>: <span class="text-yellow-300">warning</span>       <span class="text-slate-500"># Process normally, log count in telemetry without bloat</span></pre>
           </div>
 
           <!-- Python SDK Tab -->
@@ -393,9 +397,9 @@ print(<span class="text-emerald-300">"Catalog Status:"</span>, health)
 report = ws.run()
 print(f<span class="text-emerald-300">"Executed {report.total_models} models in {report.duration_ms:.1f}ms"</span>)
 
-<span class="text-slate-500"># 4. Run data quality assertions with quarantine routing</span>
+<span class="text-slate-500"># 4. Run data quality assertions with policy evaluation</span>
 test_suite = ws.test()
-print(f<span class="text-emerald-300">"Tests Passed: {test_suite.passed}, Quarantined: {test_suite.quarantined}"</span>)
+print(f<span class="text-emerald-300">"Passed: {test_suite.passed}, Warned: {test_suite.warned}, Dropped: {test_suite.dropped}, Errored: {test_suite.errored}"</span>)
 
 <span class="text-slate-500"># 5. Compile static HTML documentation</span>
 docs_path = ws.generate_docs()
@@ -416,7 +420,7 @@ print(<span class="text-emerald-300">"Documentation generated at:"</span>, docs_
         <h2 class="text-xs font-bold uppercase tracking-wider text-brand-400 mb-3">Embedded Developer Studio</h2>
         <p class="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">Zero-Install Browser Web IDE</p>
         <p class="mt-4 text-slate-400 text-sm sm:text-base">
-          Launch with <code class="text-brand-300 font-mono">det gui</code>. Visualize DAG lineages, write SQL with live data introspection, audit quarantined rows, and view stage execution durations in milliseconds.
+          Launch with <code class="text-brand-300 font-mono">det gui</code>. Visualize DAG lineages, write SQL with live data introspection, evaluate data quality policies, and view stage execution durations in milliseconds.
         </p>
       </div>
 
@@ -526,17 +530,17 @@ print(<span class="text-emerald-300">"Documentation generated at:"</span>, docs_
           <!-- Slide 2: Data Quality & Assertions -->
           <div id="ide-slide-2" class="ide-slide hidden transition-opacity duration-300">
             <a href="screenshots/04_assertions.png" target="_blank" title="Click to view full resolution image" class="block cursor-zoom-in">
-              <img src="screenshots/04_assertions.png" alt="det Web IDE Data Quality Assertions and Non-Blocking Quarantine" class="w-full h-auto object-cover border-b border-slate-800" loading="lazy">
+              <img src="screenshots/04_assertions.png" alt="det Web IDE Data Quality Assertions and Non-Bloating Policies" class="w-full h-auto object-cover border-b border-slate-800" loading="lazy">
             </a>
             <div class="p-6 bg-slate-900/60 border-t border-slate-800/80">
               <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                   <div class="flex items-center gap-2 mb-2">
-                    <span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">Quality &amp; Quarantine</span>
-                    <h3 class="text-lg font-bold text-white">Automated Assertions &amp; Non-Blocking Quarantine</h3>
+                    <span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">Quality &amp; Policies</span>
+                    <h3 class="text-lg font-bold text-white">Automated Assertions &amp; Three Clean Policies</h3>
                   </div>
                   <p class="text-sm text-slate-300 leading-relaxed max-w-3xl">
-                    Define column assertions (<code class="text-emerald-300 font-mono">not_null</code>, <code class="text-emerald-300 font-mono">unique</code>, range checks) in declarative YAML. Evaluates 232 test rules in milliseconds. Violating records are dynamically routed to quarantine sinks without interrupting upstream pipelines.
+                    Define column assertions (<code class="text-emerald-300 font-mono">not_null</code>, <code class="text-emerald-300 font-mono">unique</code>, range checks, custom SQL) in declarative YAML or visual controls. Evaluates quality test rules in milliseconds with three non-bloating enforcement policies: <code class="text-red-400 font-mono">error</code> (halt pipeline), <code class="text-yellow-400 font-mono">warning</code> (log count without bloat), or <code class="text-sky-300 font-mono">drop</code> (in-engine EXCEPT ALL filtering).
                   </p>
                 </div>
                 <div class="flex items-center gap-3 shrink-0">
@@ -586,7 +590,7 @@ print(<span class="text-emerald-300">"Documentation generated at:"</span>, docs_
                     <h3 class="text-lg font-bold text-white">Millisecond Execution Telemetry &amp; Run History</h3>
                   </div>
                   <p class="text-sm text-slate-300 leading-relaxed max-w-3xl">
-                    Detailed per-stage execution durations (e.g. 12.1ms for 5,000 rows, 217.8ms for 25,000 rows), throughput counters, and quarantine status audits. All metrics are automatically recorded to local DuckDB or flat-file sinks for long-term pipeline observability.
+                    Detailed per-stage execution durations (e.g. 12.1ms for 5,000 rows, 217.8ms for 25,000 rows), throughput counters, and policy enforcement audits. All metrics are automatically recorded to local DuckDB or flat-file sinks for long-term pipeline observability.
                   </p>
                 </div>
                 <div class="flex items-center gap-3 shrink-0">
@@ -799,10 +803,10 @@ print(<span class="text-emerald-300">"Documentation generated at:"</span>, docs_
               <td class="p-4 text-emerald-400 font-semibold"><i class="fa-solid fa-circle-check"></i> Native</td>
             </tr>
             <tr class="hover:bg-slate-900/40">
-              <td class="p-4 font-medium text-white">Non-Blocking Row Quarantine</td>
-              <td class="p-4 text-emerald-400 font-semibold"><i class="fa-solid fa-circle-check"></i> Built-in (_quarantine sinks)</td>
-              <td class="p-4 text-slate-400">Fails pipeline run</td>
-              <td class="p-4 text-slate-400">Custom code required</td>
+              <td class="p-4 font-medium text-white">Three Clean Quality Policies</td>
+              <td class="p-4 text-emerald-400 font-semibold"><i class="fa-solid fa-circle-check"></i> Built-in (<code class="text-emerald-300 font-mono">error</code>, <code class="text-yellow-300 font-mono">warning</code>, <code class="text-sky-300 font-mono">drop</code>)</td>
+              <td class="p-4 text-slate-400">Fails pipeline run only</td>
+              <td class="p-4 text-slate-400">Custom boilerplate required</td>
             </tr>
             <tr class="hover:bg-slate-900/40">
               <td class="p-4 font-medium text-white">Embedded Zero-Install Web IDE</td>
@@ -824,6 +828,175 @@ print(<span class="text-emerald-300">"Documentation generated at:"</span>, docs_
             </tr>
           </tbody>
         </table>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- CLI Commands Reference & Headless Matrix -->
+  <section id="cli" class="py-20 border-t border-dark-border bg-dark-card/20">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <div class="text-center max-w-3xl mx-auto mb-16">
+        <h2 class="text-xs font-bold uppercase tracking-wider text-brand-400 mb-3">Headless Operations &amp; CI/CD</h2>
+        <p class="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">Complete CLI Commands Reference</p>
+        <p class="mt-4 text-slate-400 text-sm sm:text-base">
+          Every command, action, and flag implemented in <code class="text-brand-300 font-mono">det</code>. Automate compilation, quality test policies, and lakehouse execution seamlessly.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        
+        <!-- Workspace & Environment -->
+        <div class="p-6 rounded-2xl bg-dark-card border border-dark-border">
+          <div class="flex items-center gap-2 mb-4 text-brand-400 font-semibold text-sm">
+            <i class="fa-solid fa-folder-tree"></i> Workspace &amp; Session
+          </div>
+          <ul class="space-y-3 text-xs text-slate-300">
+            <li>
+              <code class="text-emerald-300 font-mono block mb-0.5">det init [path]</code>
+              <span class="text-slate-400">Scaffold a workspace with 4-folder structure (catalog, pipelines, data, extensions).</span>
+            </li>
+            <li>
+              <code class="text-emerald-300 font-mono block mb-0.5">det activate &lt;path&gt;</code>
+              <span class="text-slate-400">Set active workspace directory in local user session.</span>
+            </li>
+            <li>
+              <code class="text-emerald-300 font-mono block mb-0.5">det status</code>
+              <span class="text-slate-400">Show active workspace resolution, scoped folder verification, and health.</span>
+            </li>
+            <li>
+              <code class="text-emerald-300 font-mono block mb-0.5">det demo [--open] [--remote]</code>
+              <span class="text-slate-400">Generate retail medallion demo environment and auto-launch Web IDE.</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Pipeline Execution -->
+        <div class="p-6 rounded-2xl bg-dark-card border border-dark-border">
+          <div class="flex items-center gap-2 mb-4 text-indigo-400 font-semibold text-sm">
+            <i class="fa-solid fa-play"></i> Execution &amp; Testing
+          </div>
+          <ul class="space-y-3 text-xs text-slate-300">
+            <li>
+              <code class="text-emerald-300 font-mono block mb-0.5">det compile [pipeline]</code>
+              <span class="text-slate-400">Parse SQL/YAML, resolve <code class="text-slate-400 font-mono">{{ ref() }}</code>, and validate DAG without data scans.</span>
+            </li>
+            <li>
+              <code class="text-emerald-300 font-mono block mb-0.5">det run [pipeline] [--threads N]</code>
+              <span class="text-slate-400">Execute models in topological dependency order using multi-threaded DuckDB.</span>
+            </li>
+            <li>
+              <code class="text-emerald-300 font-mono block mb-0.5">det test [pipeline] [--vars '...']</code>
+              <span class="text-slate-400">Evaluate quality assertions against <code class="text-red-400 font-mono">error</code>, <code class="text-yellow-400 font-mono">warning</code>, and <code class="text-sky-300 font-mono">drop</code> policies.</span>
+            </li>
+            <li>
+              <code class="text-emerald-300 font-mono block mb-0.5">det gui [--port 8080]</code>
+              <span class="text-slate-400">Launch embedded Web IDE and automatically open browser at local address.</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Pipeline Lifecycle -->
+        <div class="p-6 rounded-2xl bg-dark-card border border-dark-border">
+          <div class="flex items-center gap-2 mb-4 text-blue-400 font-semibold text-sm">
+            <i class="fa-solid fa-diagram-project"></i> Pipeline Management
+          </div>
+          <ul class="space-y-3 text-xs text-slate-300">
+            <li>
+              <code class="text-emerald-300 font-mono block mb-0.5">det pipeline list [--filter q]</code>
+              <span class="text-slate-400">List all discovered pipelines in the active workspace.</span>
+            </li>
+            <li>
+              <code class="text-emerald-300 font-mono block mb-0.5">det pipeline run &lt;name&gt; [-s model]</code>
+              <span class="text-slate-400">Run pipeline with optional model selector (+model, model+).</span>
+            </li>
+            <li>
+              <code class="text-emerald-300 font-mono block mb-0.5">det pipeline models &lt;name&gt;</code>
+              <span class="text-slate-400">List all models defined in a specific pipeline.</span>
+            </li>
+            <li>
+              <code class="text-emerald-300 font-mono block mb-0.5">det pipeline delete &lt;name&gt; [--yes]</code>
+              <span class="text-slate-400">Safely delete a pipeline and its transformation model files.</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Catalog Connections -->
+        <div class="p-6 rounded-2xl bg-dark-card border border-dark-border">
+          <div class="flex items-center gap-2 mb-4 text-yellow-400 font-semibold text-sm">
+            <i class="fa-solid fa-database"></i> Catalog Connections
+          </div>
+          <ul class="space-y-3 text-xs text-slate-300">
+            <li>
+              <code class="text-emerald-300 font-mono block mb-0.5">det catalog list [--folder f]</code>
+              <span class="text-slate-400">List all data connections declared in <code class="text-slate-400 font-mono">catalog/connections.yaml</code>.</span>
+            </li>
+            <li>
+              <code class="text-emerald-300 font-mono block mb-0.5">det catalog test [connection]</code>
+              <span class="text-slate-400">Probe live read latency, authentication, and network health.</span>
+            </li>
+            <li>
+              <code class="text-emerald-300 font-mono block mb-0.5">det catalog display &lt;conn&gt; [-n 10]</code>
+              <span class="text-slate-400">Preview top records from a catalog connection interactively.</span>
+            </li>
+            <li>
+              <code class="text-emerald-300 font-mono block mb-0.5">det catalog details &lt;conn&gt;</code>
+              <span class="text-slate-400">Inspect full metadata, connection options, and DuckDB mount SQL.</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Monitoring & Telemetry -->
+        <div class="p-6 rounded-2xl bg-dark-card border border-dark-border">
+          <div class="flex items-center gap-2 mb-4 text-purple-400 font-semibold text-sm">
+            <i class="fa-solid fa-chart-line"></i> Monitoring &amp; Telemetry
+          </div>
+          <ul class="space-y-3 text-xs text-slate-300">
+            <li>
+              <code class="text-emerald-300 font-mono block mb-0.5">det monitor runs [--failed] [--limit 20]</code>
+              <span class="text-slate-400">View recent pipeline executions (inclusive priority up to 30 days).</span>
+            </li>
+            <li>
+              <code class="text-emerald-300 font-mono block mb-0.5">det monitor run &lt;run_id&gt;</code>
+              <span class="text-slate-400">Inspect single run stage durations, row throughput, and error traces.</span>
+            </li>
+            <li>
+              <code class="text-emerald-300 font-mono block mb-0.5">det monitor audits [--failed]</code>
+              <span class="text-slate-400">List assertion evaluation audits and action-taken summaries.</span>
+            </li>
+            <li>
+              <code class="text-emerald-300 font-mono block mb-0.5">det monitor clean [--days 60] [--yes]</code>
+              <span class="text-slate-400">Purge telemetry records older than N days to conserve disk space.</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Living Documentation -->
+        <div class="p-6 rounded-2xl bg-dark-card border border-dark-border">
+          <div class="flex items-center gap-2 mb-4 text-emerald-400 font-semibold text-sm">
+            <i class="fa-solid fa-book-open"></i> Living Documentation
+          </div>
+          <ul class="space-y-3 text-xs text-slate-300">
+            <li>
+              <code class="text-emerald-300 font-mono block mb-0.5">det docs generate [pipeline]</code>
+              <span class="text-slate-400">Introspect output schemas and compile self-contained HTML docs.</span>
+            </li>
+            <li>
+              <code class="text-emerald-300 font-mono block mb-0.5">det docs open [pipeline] [--serve]</code>
+              <span class="text-slate-400">Launch and view the interactive documentation portal in default browser.</span>
+            </li>
+            <li>
+              <code class="text-emerald-300 font-mono block mb-0.5">det docs export &lt;pipeline&gt; [-o path]</code>
+              <span class="text-slate-400">Export a portable, single-file HTML documentation bundle.</span>
+            </li>
+            <li>
+              <code class="text-emerald-300 font-mono block mb-0.5">det docs delete [pipeline]</code>
+              <span class="text-slate-400">Remove generated documentation artifacts for a pipeline.</span>
+            </li>
+          </ul>
+        </div>
+
       </div>
 
     </div>
@@ -879,7 +1052,7 @@ print(<span class="text-emerald-300">"Documentation generated at:"</span>, docs_
             <i class="fa-solid fa-arrow-up-right-from-square text-xs text-slate-500 group-hover:text-brand-400 transition-colors"></i>
           </div>
           <p class="text-xs text-slate-400 leading-relaxed">
-            Learn multi-stage DAG pipelines, Jinja model macros, quarantine error handling, and output modes.
+            Learn multi-stage DAG pipelines, Jinja model macros, data quality policy enforcement (error, warning, drop), and output modes.
           </p>
         </a>
 
@@ -1013,7 +1186,7 @@ print(<span class="text-emerald-300">"Documentation generated at:"</span>, docs_
     resetIdeTimer();
 
     function copyQuickstart() {
-      const text = "pip install det-core deltalake\ndet init my_pipeline\ncd my_pipeline\ndet gui --port 8080";
+      const text = "pip install det-core deltalake\nmkdir my_workspace && cd my_workspace\ndet init\ndet gui";
       navigator.clipboard.writeText(text).then(() => {
         const btn = document.getElementById('copyText');
         btn.innerText = 'Copied!';

@@ -40,7 +40,7 @@ def _setup_test_server(tmp_path: Path) -> tuple[GUIServer, str, Workspace]:
     ws = Workspace.init(tmp_path)
 
     # Scaffold a sample pipeline
-    models_dir = tmp_path / "projects" / "core_pipeline" / "models"
+    models_dir = tmp_path / "pipelines" / "core_pipeline" / "models"
     stg = models_dir / "staging" / "raw_events.sql"
     stg.parent.mkdir(parents=True, exist_ok=True)
     stg.write_text("{{ config(materialized='view') }}\nSELECT 1 AS event_id, 'click' AS event_name;\n", encoding="utf-8")
@@ -87,7 +87,7 @@ def test_pipeline_routes_model_run_save_compile(tmp_path: Path) -> None:
         assert save_res["status"] == "ok"
 
         # Read back saved file
-        saved_file = tmp_path / "projects" / "core_pipeline" / "models" / "staging" / "raw_events.sql"
+        saved_file = tmp_path / "pipelines" / "core_pipeline" / "models" / "staging" / "raw_events.sql"
         assert "purchase" in saved_file.read_text(encoding="utf-8")
 
         # 4. Error case: Missing model name in save
@@ -111,7 +111,7 @@ def test_pipeline_create_delete_model_and_pipeline(tmp_path: Path) -> None:
             {"name": "finance_pipeline", "folder": "Core Pipelines"},
         )
         assert create_res["status"] == "ok"
-        assert (tmp_path / "projects" / "finance_pipeline" / "models").exists()
+        assert (tmp_path / "pipelines" / "finance_pipeline" / "models").exists()
 
         # 2. Delete a single model
         del_model_res = _post_json(
@@ -119,7 +119,7 @@ def test_pipeline_create_delete_model_and_pipeline(tmp_path: Path) -> None:
             {"project": "core_pipeline", "name": "raw_events"},
         )
         assert del_model_res["status"] == "ok"
-        assert not (tmp_path / "projects" / "core_pipeline" / "models" / "staging" / "raw_events.sql").exists()
+        assert not (tmp_path / "pipelines" / "core_pipeline" / "models" / "staging" / "raw_events.sql").exists()
 
         # 3. Delete pipeline
         del_res = _post_json(
@@ -127,7 +127,7 @@ def test_pipeline_create_delete_model_and_pipeline(tmp_path: Path) -> None:
             {"name": "finance_pipeline"},
         )
         assert del_res["status"] == "ok"
-        assert not (tmp_path / "projects" / "finance_pipeline").exists()
+        assert not (tmp_path / "pipelines" / "finance_pipeline").exists()
     finally:
         server.stop()
 

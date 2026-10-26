@@ -152,12 +152,17 @@ def generate_demo_connections(workspace_root: Path) -> Path:
     cat_dir.mkdir(parents=True, exist_ok=True)
     conn_file = cat_dir / "connections.yaml"
 
+    cust_abs = (workspace_root / "data" / "customers.parquet").resolve().as_posix()
+    orders_abs = (workspace_root / "data" / "sales_orders.csv").resolve().as_posix()
+    events_abs = (workspace_root / "data" / "web_events.json").resolve().as_posix()
+    inv_abs = (workspace_root / "data" / "inventory.csv").resolve().as_posix()
+
     config = {
         "connections": {
             "customers_data": {
                 "type": "parquet",
                 "tier": "entity",
-                "options": {"path": "data/customers.parquet"},
+                "options": {"path": cust_abs},
                 "description": "Master customer entity containing 5,000 vectorized profile records with loyalty brackets, demographic attributes, and registration dates.",
                 "folder": "sample_connections",
             },
@@ -165,7 +170,7 @@ def generate_demo_connections(workspace_root: Path) -> Path:
                 "type": "csv",
                 "tier": "entity",
                 "options": {
-                    "path": "data/sales_orders.csv",
+                    "path": orders_abs,
                     "header": True,
                     "delimiter": ",",
                 },
@@ -175,7 +180,7 @@ def generate_demo_connections(workspace_root: Path) -> Path:
             "web_events_data": {
                 "type": "json",
                 "tier": "entity",
-                "options": {"path": "data/web_events.json", "format": "auto"},
+                "options": {"path": events_abs, "format": "auto"},
                 "description": "High-velocity clickstream event log capturing 15,000 page views, search intents, cart additions, and semi-structured UTM campaign telemetry.",
                 "folder": "sample_connections",
             },
@@ -183,7 +188,7 @@ def generate_demo_connections(workspace_root: Path) -> Path:
                 "type": "csv",
                 "tier": "entity",
                 "options": {
-                    "path": "data/inventory.csv",
+                    "path": inv_abs,
                     "header": True,
                     "delimiter": ",",
                 },
@@ -198,9 +203,9 @@ def generate_demo_connections(workspace_root: Path) -> Path:
 
 
 def generate_demo_pipelines(workspace_root: Path) -> list[str]:
-    """Create realistic sample pipelines inside projects/sample_pipelines/."""
-    projects_dir = workspace_root / "projects"
-    sample_dir = projects_dir / "sample_pipelines"
+    """Create realistic sample pipelines inside pipelines/sample_pipelines/."""
+    pipelines_dir = workspace_root / "pipelines"
+    sample_dir = pipelines_dir / "sample_pipelines"
 
     # Clean legacy demo folders if they exist
     for legacy_name in [
@@ -209,9 +214,15 @@ def generate_demo_pipelines(workspace_root: Path) -> list[str]:
         "executive_overview",
         "inventory_compliance",
     ]:
-        legacy_dir = projects_dir / legacy_name
+        legacy_dir = pipelines_dir / legacy_name
         if legacy_dir.exists():
             shutil.rmtree(legacy_dir, ignore_errors=True)
+        old_legacy = workspace_root / "projects" / legacy_name
+        if old_legacy.exists():
+            shutil.rmtree(old_legacy, ignore_errors=True)
+
+    if (workspace_root / "projects" / "sample_pipelines").exists():
+        shutil.rmtree(workspace_root / "projects" / "sample_pipelines", ignore_errors=True)
 
     if sample_dir.exists():
         for old_item in sample_dir.iterdir():
@@ -2028,6 +2039,9 @@ models:
 
 def setup_demo_workspace(workspace_root: Path, use_remote: bool = False) -> dict[str, Any]:
     """Execute complete demo environment setup: datasets, connections, and sample pipelines."""
+    from det.workspace import Workspace
+    Workspace._scaffold_directories(workspace_root)
+    Workspace._scaffold_initial_files(workspace_root)
     data_paths = generate_demo_datasets(workspace_root, use_remote=use_remote)
     conn_path = generate_demo_connections(workspace_root)
     pipeline_names = generate_demo_pipelines(workspace_root)

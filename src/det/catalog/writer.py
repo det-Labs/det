@@ -12,8 +12,28 @@ from det.catalog.definitions import ConnectionDefinition
 logger = logging.getLogger(__name__)
 
 
+REMOTE_SCHEMES = (
+    "s3://", "gs://", "gcs://", "abfss://", "abfs://",
+    "azure://", "r2://", "http://", "https://",
+    "postgres://", "postgresql://", "mysql://", "mssql://",
+)
+
+
+def is_remote_uri(uri: str) -> bool:
+    """Check if URI points to a cloud/network protocol rather than local filesystem."""
+    clean = uri.strip().lower()
+    return any(clean.startswith(s) for s in REMOTE_SCHEMES)
+
+
+def ensure_absolute_path(path_str: str) -> str:
+    """Convert a local filesystem path to an absolute full path formatted with forward slashes."""
+    if not path_str or is_remote_uri(path_str):
+        return path_str
+    return Path(path_str.strip()).resolve().as_posix()
+
+
 class CatalogWriter(BaseCatalogWriter):
-    """Safely serializes and persists catalog definitions to YAML."""
+    """Safely serializes and persists catalog definitions to YAML, enforcing absolute paths."""
 
     def write_yaml(
         self, file_path: Path, connections: dict[str, ConnectionDefinition]
@@ -26,13 +46,18 @@ class CatalogWriter(BaseCatalogWriter):
     def _prepare_payload(
         self, connections: dict[str, ConnectionDefinition]
     ) -> dict[str, Any]:
-        """Convert definitions dictionary to YAML-ready dictionary structure."""
-        return {
-            "connections": {
-                name: conn.to_dict()
-                for name, conn in sorted(connections.items())
-            }
-        }
+        """Convert definitions dictionary to YAML-ready dictionary structure, ensuring all local paths are absolute."""
+        data = {}
+        for name, conn in sorted(connections.items()):
+            conn_dict = conn.to_dict()
+            options = dict(conn_dict.get("options", {}))
+            for key in ("path", "table_path"):
+                val = options.get(key)
+                if val and isinstance(val, str) and not is_remote_uri(val):
+                    options[key] = ensure_absolute_path(val)
+            conn_dict["options"] = options
+            data[name] = conn_dict
+        return {"connections": data}
 
     def _ensure_parent_directory(self, file_path: Path) -> None:
         """Create parent directory if it does not yet exist."""

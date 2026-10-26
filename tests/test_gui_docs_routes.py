@@ -19,7 +19,7 @@ def find_free_port() -> int:
 def _setup_test_workspace(tmp_path: Path) -> Workspace:
     """Create test workspace with sample models, configs, and tests."""
     ws = Workspace.init(tmp_path)
-    model_dir = tmp_path / "projects" / "default" / "models" / "staging"
+    model_dir = tmp_path / "pipelines" / "default" / "models" / "staging"
     model_dir.mkdir(parents=True, exist_ok=True)
     model_file = model_dir / "stg_customers.sql"
     model_file.write_text(
@@ -91,7 +91,7 @@ def test_docs_delete_api_endpoint(tmp_path: Path) -> None:
     try:
         # First generate
         ws.generate_docs(project="default")
-        gen_dir = ws.root / "projects" / "default" / "docs" if (ws.root / "projects").exists() else ws.root / "docs"
+        gen_dir = ws._docs_dir("default")
         assert gen_dir.exists()
 
         # Call delete endpoint

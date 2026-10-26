@@ -18,9 +18,7 @@ __all__ = [
     "DuckDBTelemetrySink",
     "FileTelemetrySink",
     "PipelineRunRecord",
-    "QuarantineRecord",
     "TelemetryManager",
     "TestAuditRecord",
     "generate_telemetry_id",
 ]
-

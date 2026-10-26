@@ -135,7 +135,14 @@ function renderDAGCanvas() {
 
 function selectDAGNode(nodeId, section = null) {
     state.highlightedNode = nodeId;
-    if (section === "tests") state.modelTestsCollapsed = false;
+    if (section === "tests") {
+        state.modelTestsCollapsed = false;
+        state.modelSqlCollapsed = true;
+        state.modelSchemaCollapsed = true;
+        state.dagCanvasCollapsed = true;
+        const dagCard = document.getElementById("dag-canvas-card");
+        if (dagCard) dagCard.classList.add("collapsed");
+    }
     const pipeline = state.pipelines.find((p) => p.name === state.selectedPipeline);
     const isModel = pipeline?.models?.some((m) => m.name === nodeId);
     if (isModel) {

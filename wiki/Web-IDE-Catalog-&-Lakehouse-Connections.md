@@ -52,11 +52,11 @@ SELECT * FROM customers_data WHERE loyalty_tier = 'PLATINUM' LIMIT 10;
 Click the **+ Add Connection** button in the header to open the connection creation dialog:
 1. Select the connection type (e.g. `S3`, `Delta Lake`, `PostgreSQL`, `Parquet`).
 2. Provide an alias identifier (e.g. `raw_events_lake`).
-3. Enter URI path and optional credentials.
-4. Click **Save Connection** — the catalog YAML is immediately updated and mounted into your workspace.
+3. Enter URI path (strictly using absolute paths for local data files) and optional credentials.
+4. Click **Save Connection** — `catalog/connections.yaml` is immediately updated and mounted into your workspace.
 
 ---
 
 | ⬅️ Previous Page | 🏠 Overview | Next Page ➡️ |
 | :--- | :---: | ---: |
-| [**← Web IDE: Data Quality & Quarantine**](Web-IDE-Data-Quality-&-Quarantine) | [**Wiki Index**](Home) | [**Web IDE: Monitoring & Living Documentation ➔**](Web-IDE-Monitoring-&-Living-Documentation) |
+| [**← Web IDE: Data Quality & Policies**](Web-IDE-Data-Quality-&-Policies) | [**Wiki Index**](Home) | [**Web IDE: Monitoring & Living Documentation ➔**](Web-IDE-Monitoring-&-Living-Documentation) |

@@ -19,6 +19,12 @@ document.addEventListener("DOMContentLoaded", async () => {
         if (params.get("model")) state.selectedModel = params.get("model");
         if (params.get("connection")) state.selectedConnection = params.get("connection");
         if (params.get("view")) state.activeMonitoringView = params.get("view");
+        if (params.get("focus") === "tests" || params.get("section") === "tests") {
+            state.dagCanvasCollapsed = true;
+            state.modelSqlCollapsed = true;
+            state.modelSchemaCollapsed = true;
+            state.modelTestsCollapsed = false;
+        }
         if (params.get("autorun") === "1" && state.selectedModel) {
             setTimeout(async () => {
                 await onRunSingleModel(null, state.selectedModel);
@@ -46,6 +52,24 @@ document.addEventListener("DOMContentLoaded", async () => {
         const params = new URLSearchParams(hashQuery);
         if (params.get("doc_model")) {
             setTimeout(() => scrollToDocModel(params.get("doc_model"), params.get("target_sub")), 400);
+        }
+        if (params.get("scroll")) {
+            const scrollTarget = params.get("scroll");
+            setTimeout(() => {
+                if (scrollTarget === "tests") {
+                    const el = document.getElementById("model-tests-card");
+                    if (el) el.scrollIntoView({ behavior: "instant", block: "start" });
+                } else if (scrollTarget === "schema") {
+                    const el = document.getElementById("model-schema-card");
+                    if (el) el.scrollIntoView({ behavior: "instant", block: "start" });
+                } else if (scrollTarget === "editor") {
+                    const el = document.getElementById("model-editor-card");
+                    if (el) el.scrollIntoView({ behavior: "instant", block: "start" });
+                } else {
+                    const el = document.getElementById(scrollTarget);
+                    if (el) el.scrollIntoView({ behavior: "instant", block: "start" });
+                }
+            }, 600);
         }
         if (params.get("collapse_primary") === "1") { state.explorerCollapsed = true; _updatePrimaryExplorerVisibility(); }
         if (params.get("collapse_sub") === "1") { state.subExplorerCollapsed = true; _updateSubExplorerVisibility(); }

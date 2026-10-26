@@ -8,7 +8,7 @@ from typing import Any
 import duckdb
 
 from det.engine.facade import EngineFacade
-from det.models.base import DestinationSpec, WriteMode
+from det.models.base import DestinationSpec, MaterializationType, WriteMode
 from det.models.dag import ModelDAG
 from det.models.definition import ModelDefinition
 
@@ -94,6 +94,23 @@ class PipelineRunner:
         report.duration_ms = round((time.perf_counter() - start_time) * 1000.0, 2)
         return report
 
+    @staticmethod
+    def _prepare_target(con: duckdb.DuckDBPyConnection, target_name: str, target_is_table: bool) -> None:
+        """Ensure target name does not have a conflicting object type (table vs view) in DuckDB."""
+        try:
+            row = con.execute(
+                "SELECT table_type FROM information_schema.tables WHERE table_name = ? LIMIT 1",
+                [target_name],
+            ).fetchone()
+            if row:
+                tbl_type = str(row[0]).upper()
+                if target_is_table and "VIEW" in tbl_type:
+                    con.execute(f"DROP VIEW {target_name}")
+                elif not target_is_table and "TABLE" in tbl_type:
+                    con.execute(f"DROP TABLE {target_name}")
+        except Exception:
+            pass
+
     def _execute_single_model(
         self, con: duckdb.DuckDBPyConnection, model: ModelDefinition
     ) -> ModelExecutionResult:
@@ -101,6 +118,8 @@ class PipelineRunner:
         start = time.perf_counter()
         try:
             # 1. Primary local materialization
+            is_table = model.config.materialized in (MaterializationType.TABLE, MaterializationType.INCREMENTAL)
+            self._prepare_target(con, model.name, target_is_table=is_table)
             ddl_sql = model.get_materialize_sql()
             con.execute(ddl_sql)
 

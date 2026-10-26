@@ -25,8 +25,10 @@ class TestSeverity(str, Enum):
     __test__ = False
 
     WARN = "warn"
+    WARNING = "warning"
     ERROR = "error"
-    QUARANTINE = "quarantine"
+    DROP = "drop"
+    QUARANTINE = "quarantine"  # alias to drop for backward compatibility
 
 
 @dataclass(frozen=True)
@@ -57,6 +59,7 @@ class TestSuiteReport:
     passed: int = 0
     warned: int = 0
     errored: int = 0
+    dropped: int = 0
     quarantined: int = 0
     results: list[TestResult] = field(default_factory=list)
 
@@ -71,9 +74,10 @@ class TestSuiteReport:
         self.results.append(result)
         if result.passed:
             self.passed += 1
-        elif result.severity == TestSeverity.WARN:
+        elif result.severity in (TestSeverity.WARN, TestSeverity.WARNING):
             self.warned += 1
-        elif result.severity == TestSeverity.QUARANTINE:
+        elif result.severity in (TestSeverity.DROP, TestSeverity.QUARANTINE):
+            self.dropped += 1
             self.quarantined += 1
         else:
             self.errored += 1

@@ -20,7 +20,9 @@ class DemoRouteHandler:
         raw_path = path.split("?")[0]
         if raw_path == "/api/demo/status":
             has_demo = (
-                (self._workspace.root / "projects" / "sample_pipelines" / "retail_medallion").exists()
+                (self._workspace.root / "pipelines" / "sample_pipelines" / "retail_medallion").exists()
+                or (self._workspace.root / "pipelines" / "retail_medallion").exists()
+                or (self._workspace.root / "projects" / "sample_pipelines" / "retail_medallion").exists()
                 or (self._workspace.root / "projects" / "retail_medallion").exists()
             )
             send_json(handler, {"status": "ok", "has_demo": has_demo, "workspace": str(self._workspace.root)})

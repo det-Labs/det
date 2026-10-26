@@ -19,11 +19,15 @@ function toggleDAGCanvasCollapse(event) {
 }
 
 async function loadAndRenderDAG(projectName) {
+    if (!projectName) return;
     try {
         const res = await fetch(`/api/pipelines/dag?project=${encodeURIComponent(projectName)}`);
-        state.activeDag = await res.json();
-        renderDAGCanvas();
-        renderPipelinesDAGStage();
+        if (res.ok) {
+            state.activeDag = await res.json();
+            renderDAGCanvas();
+            const badge = document.getElementById("dag-node-count-badge");
+            if (badge) badge.textContent = `${state.activeDag?.nodes?.length || 0} nodes`;
+        }
     } catch (err) {
         console.error("Failed to load pipeline DAG:", err);
     }
@@ -85,18 +89,41 @@ function _renderDAGCard() {
 function renderPipelinesDAGStage(stage) {
     if (!stage) stage = document.getElementById("main-stage");
     if (!stage) return;
+
+    if (!state.pipelines || state.pipelines.length === 0) {
+        const toolbarContainer = document.getElementById("pipeline-toolbar-container");
+        if (toolbarContainer) toolbarContainer.style.display = "none";
+        stage.innerHTML = `
+            <div class="conn-detail-card" style="text-align:center; padding:3rem 1.5rem; margin-top:2rem;">
+                <div style="font-size:2.5rem; margin-bottom:0.75rem; opacity:0.4;">⚡</div>
+                <h2 style="margin:0 0 0.5rem;">No Pipelines Found</h2>
+                <p class="pane-subtitle" style="margin-bottom:1.5rem;">Create your first SQL transformation pipeline or load the demo workspace.</p>
+                <button class="btn btn-primary" onclick="promptCreatePipeline()">${icons.plus} Create Pipeline</button>
+            </div>
+        `;
+        return;
+    }
+
     const pipeline = state.pipelines.find((p) => p.name === state.selectedPipeline) || state.pipelines[0];
+    if (pipeline && state.selectedPipeline !== pipeline.name) {
+        state.selectedPipeline = pipeline.name;
+    }
+
     const toolbarContainer = document.getElementById("pipeline-toolbar-container");
     if (toolbarContainer) {
         toolbarContainer.style.display = "block";
         toolbarContainer.innerHTML = _renderCommandRibbon(pipeline);
     }
+
     const selectedModelDef = pipeline?.models?.find((m) => m.name === state.selectedModel) || pipeline?.models?.[0];
+    if (selectedModelDef && state.selectedModel !== selectedModelDef.name) {
+        state.selectedModel = selectedModelDef.name;
+    }
 
     stage.innerHTML = `
         ${_renderDAGCard()}
         <div id="model-inspector-container">
-            ${selectedModelDef ? renderModelInspector(selectedModelDef) : ""}
+            ${selectedModelDef ? renderModelInspector(selectedModelDef) : '<div class="pane-subtitle" style="padding:1.5rem; text-align:center;">No models in this pipeline yet. Click "+ Model" above to create one.</div>'}
         </div>
     `;
     renderDAGCanvas();

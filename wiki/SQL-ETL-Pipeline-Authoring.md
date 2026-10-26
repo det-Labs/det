@@ -85,11 +85,14 @@ Supported destination formats include:
 
 ---
 
-## 🛡️ Data Quality Audits & Row Quarantine
+## 🛡️ Data Quality Audits & Enforcement Policies
 
-`det` includes native row-level quarantine capabilities:
-- **Pre-flight & Post-flight Audits**: Validate `not_null`, `unique`, `accepted_values`, `expression`, and custom SQL rules.
-- **Row-Level Quarantine**: Route violating rows to `_quarantine_<model>` sinks while allowing conforming rows to proceed downstream, preventing entire pipeline crashes due to isolated dirty records.
+`det` includes native data quality testing with three clean enforcement policies:
+- **Pre-flight & In-flight Assertions**: Validate `not_null`, `unique`, `accepted_values`, `expression`, `relationships`, and custom SQL rules.
+- **Three Enforcement Policies**:
+  1. `error`: Halts the pipeline immediately upon validation failure, preventing any corrupted data from progressing downstream.
+  2. `warning` (`warn`): Allows data processing to proceed normally while logging the total count of violating rows in monitoring/telemetry without bloating run logs.
+  3. `drop`: Uses in-engine set filtering (`EXCEPT ALL` in DuckDB) to drop violating rows and let compliant records continue through downstream models.
 
 ---
 

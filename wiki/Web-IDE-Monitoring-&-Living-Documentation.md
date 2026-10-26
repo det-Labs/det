@@ -13,20 +13,20 @@ Every execution of a `det` pipeline—whether initiated headlessly from CI/CD (`
 ### Telemetry Dashboard Metrics
 
 * **Execution Overview Cards**:
-  * **Total Runs**: Lifetime runs executed in this project workspace.
-  * **Success Rate**: Overall percentage of successful pipeline runs (e.g. `100%`).
+  * **Total Runs**: Lifetime runs executed in this workspace.
+  * **Success Rate**: Overall percentage of successful pipeline runs.
   * **Last Run Duration**: End-to-end wall-clock time in milliseconds (e.g. `1158.4 ms`).
-  * **Pending Quarantine**: Number of non-compliant records quarantined during the last execution.
+  * **Quality Violations**: Summary of records warned or dropped during execution.
 * **Stage-by-Stage Millisecond Breakdown**:
   * An interactive breakdown table showing each model stage in execution order (e.g. `#1 bronze_customers: 12.1ms, 5,000 rows`, `#3 bronze_sales_orders: 217.8ms, 25,000 rows`).
   * Visual status badges (`SUCCESS` vs `FAILURE`).
   * Processed row counts and throughput rates.
-* **Filter Controls**:
-  * Filter runs by date range, execution status, or model name.
-  * Built-in performance guard caps query depth to ensure the UI remains blazing fast.
+* **Inclusive Priority Filter Bounds**:
+  * `det monitor runs` displays the most recent runs up to the specified limit (default 20).
+  * Recent runs have inclusive priority over the 30-day window, ensuring that even infrequent or monthly pipelines always display their latest runs rather than an empty screen.
 
 ### Pluggable Storage Sinks
-Telemetry is stored locally in `.det/telemetry.duckdb` by default. You can configure additional sinks (such as flat JSON lines or database targets) via the persistent **Storage Sinks Config** drawer at the bottom of the sidebar.
+Telemetry is stored locally in `.det/telemetry.duckdb` by default. You can configure additional sinks (such as flat JSON lines in `.det/telemetry/` or database targets) via the persistent **Storage Sinks Config** drawer at the bottom of the sidebar.
 
 ---
 
@@ -39,14 +39,14 @@ The **Docs** module transforms your pipeline YAML contracts and SQL models into 
 ### Data Dictionary Features
 
 * **Introspected Schema Contracts**:
-  * Explore all 160+ columns with their physical DuckDB data types (`BIGINT`, `VARCHAR`, `DOUBLE`, `DATE`).
+  * Explore all columns with their physical DuckDB data types (`BIGINT`, `VARCHAR`, `DOUBLE`, `DATE`).
   * Review column descriptions defined in `schema.yml`.
   * Audit active test assertions attached to each column (`not_null`, `unique`, ranges).
 * **Embedded Pipeline Lineage Graph**:
   * An interactive SVG dependency graph reflects upstream and downstream model relationships.
   * Clicking any node in the graph scrolls directly to that model's documentation card.
 * **Zero-Build Publishing**:
-  * Click the **Generate Docs** button in the header at any time to compile a standalone, self-contained HTML documentation bundle (`det doc`) ready to share with stakeholders or host on GitHub Pages.
+  * Click the **Generate Docs** button in the header at any time or run `det docs generate` / `det docs export` to compile a standalone, self-contained HTML documentation bundle.
 
 ---
 

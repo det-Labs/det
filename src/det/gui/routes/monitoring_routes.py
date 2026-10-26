@@ -1,4 +1,4 @@
-"""HTTP route handlers for Telemetry, Audit Logs, and Quarantine Monitoring."""
+"""HTTP route handlers for Telemetry, Audit Logs, and Monitoring."""
 
 from http.server import BaseHTTPRequestHandler
 from typing import Any
@@ -11,7 +11,7 @@ from det.workspace import Workspace
 
 
 class MonitoringRouteHandler(BaseRouteHandler):
-    """Provides monitoring telemetry, quarantine inspection, and sink management APIs."""
+    """Provides monitoring telemetry, test audits, and sink management APIs."""
 
     def __init__(self, workspace: Workspace) -> None:
         self._workspace = workspace
@@ -22,7 +22,7 @@ class MonitoringRouteHandler(BaseRouteHandler):
     def handle_get(
         self, handler: BaseHTTPRequestHandler, path: str, query: dict[str, list[str]] | None = None
     ) -> bool:
-        """Handle GET requests for monitoring telemetry, audits, and quarantine."""
+        """Handle GET requests for monitoring telemetry and test audits."""
         raw_path = path.split("?")[0]
         parsed_url = urllib.parse.urlparse(handler.path)
         active_query = query or urllib.parse.parse_qs(parsed_url.query)
@@ -73,7 +73,7 @@ class MonitoringRouteHandler(BaseRouteHandler):
     def handle_post(
         self, handler: BaseHTTPRequestHandler, path: str, body: dict[str, Any]
     ) -> bool:
-        """Handle POST requests for sink switching, quarantine remediation, and purging."""
+        """Handle POST requests for sink switching and housekeeping."""
         if path == "/api/monitoring/config":
             sink_type = body.get("sink", "duckdb")
             cfg = body.get("config", {})
@@ -82,6 +82,13 @@ class MonitoringRouteHandler(BaseRouteHandler):
                 send_json(handler, {"status": "ok", "active_sink": self._telemetry.active_sink_type, "info": self._telemetry.get_sink_info()})
             except Exception as e:
                 send_error_json(handler, f"Failed to switch sink: {e}")
+            return True
+
+        if path == "/api/monitoring/clean":
+            days = int(body.get("days", 30))
+            proj = body.get("project")
+            res = self._telemetry.clean(days=days, project=proj)
+            send_json(handler, {"status": "ok", **res})
             return True
 
         if path == "/api/monitoring/quarantine/resolve":

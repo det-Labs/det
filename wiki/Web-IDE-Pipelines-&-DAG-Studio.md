@@ -60,4 +60,4 @@ Beneath the SQL editor, the **Schema & Columns** panel displays the output contr
 
 | ⬅️ Previous Page | 🏠 Overview | Next Page ➡️ |
 | :--- | :---: | ---: |
-| [**← Web IDE Overview & Getting Started**](Web-IDE-Overview-&-Getting-Started) | [**Wiki Index**](Home) | [**Web IDE: Data Quality & Quarantine ➔**](Web-IDE-Data-Quality-&-Quarantine) |
+| [**← Web IDE Overview & Getting Started**](Web-IDE-Overview-&-Getting-Started) | [**Wiki Index**](Home) | [**Web IDE: Data Quality & Policies ➔**](Web-IDE-Data-Quality-&-Policies) |

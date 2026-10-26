@@ -56,7 +56,7 @@ def test_demo_generator_functions(tmp_path: Path) -> None:
     assert "export_analytics" in projects
 
     # Check that SQL models exist
-    bronze_cust = tmp_path / "projects" / "sample_pipelines" / "retail_medallion" / "models" / "bronze" / "bronze_customers.sql"
+    bronze_cust = tmp_path / "pipelines" / "sample_pipelines" / "retail_medallion" / "models" / "bronze" / "bronze_customers.sql"
     assert bronze_cust.exists()
     assert "customers_data" in bronze_cust.read_text(encoding="utf-8")
 
@@ -121,7 +121,7 @@ def test_demo_cli_command(tmp_path: Path, capsys: Any) -> None:
     captured = capsys.readouterr()
     assert "Scaffolding det demo workspace" in captured.out
     assert (tmp_path / "data" / "customers.parquet").exists()
-    assert (tmp_path / "projects" / "sample_pipelines" / "retail_medallion").exists()
+    assert (tmp_path / "pipelines" / "sample_pipelines" / "retail_medallion").exists()
 
 
 def test_demo_http_routes(tmp_path: Path) -> None:

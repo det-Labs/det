@@ -11,7 +11,7 @@
 +-----------------------------------------------------------------------------------+
 |                        det Workspace & Orchestration Engine                       |
 |  - Multi-tier Catalog (YAML)     - DAG Pipeline Resolver     - Telemetry Sinks    |
-|  - Pre-flight SQL Validator      - Row Quarantine Engine     - Testing Runner     |
+|  - Pre-flight DAG Compiler       - Quality Policy Engine     - Testing Runner     |
 +-----------------------------------------------------------------------------------+
                                           |
                                           v
@@ -41,14 +41,15 @@
 ## 1. 🧩 Modularity
 
 ### Workspace Independence
-A workspace is a structured directory on disk containing:
-- `catalog/`: YAML files defining connections, secrets references, and column schemas.
-- `projects/`: Modular pipeline model specifications grouped into domain projects.
+A workspace is a structured directory on disk following a clean 4-folder layout:
+- `catalog/`: Contains `connections.yaml` (the single configuration file defining connections, credentials, and schemas). Strictly uses absolute paths for all local file targets to ensure path stability across environments.
+- `pipelines/`: Modular pipeline specifications and SQL models grouped into pipeline directories (e.g. `pipelines/<pipeline_name>/models/*.sql`).
+- `data/`: Dedicated local data storage (Parquet, Delta, CSV, DuckDB).
 - `extensions/`: Built-in and user-authored storage connector extensions.
-- `.det/`: Telemetry databases (`telemetry.duckdb`), quarantine files, and run logs.
+- `.det/`: Internal runtime state, telemetry databases (`telemetry.duckdb` / JSONL), compiled artifacts, and session caches.
 
 ### Decoupled Data Contracts
-Catalog connections specify strict schemas (column names, types, nullability, descriptions). Pipelines reference connection names rather than hardcoded file paths or connection strings, allowing environments (Dev, Staging, Prod) to swap catalogs effortlessly.
+Catalog connections specify strict schemas (column names, types, nullability, descriptions). Pipelines reference connection names rather than hardcoded connection strings, allowing environments (Dev, Staging, Prod) to swap catalogs effortlessly.
 
 ---
 

@@ -137,7 +137,9 @@ function selectConnection(name) {
 function renderCatalogStage(stage) {
     if (!stage) stage = document.getElementById("main-stage");
     if (!stage) return;
-    const selectedConn = state.connections.find((c) => c.name === state.selectedConnection);
+    const selectedConn = state.connections && state.connections.length > 0
+        ? (state.connections.find((c) => c.name === state.selectedConnection) || state.connections[0])
+        : null;
     const defaultQuery = selectedConn
         ? (selectedConn.tier === "database" ? `SHOW TABLES;` : `SELECT * FROM ${selectedConn.name} LIMIT 10;`)
         : "SELECT 1 AS ready;";

@@ -10,17 +10,17 @@ from det.testing.base import (
     TestSeverity,
 )
 from det.testing.definitions import TestDefinition
-from det.testing.quarantine import QuarantineHandler
 
 logger = logging.getLogger(__name__)
 
 
 class TestEvaluator(BaseTestEvaluator):
-    """Executes test assertion queries and invokes quarantine handling on failure."""
+    """Executes test assertion queries and handles failure policies (halt, warn, drop)."""
 
     __test__ = False
 
-    def __init__(self, quarantine_handler: QuarantineHandler | None = None) -> None:
+    def __init__(self, quarantine_handler: Any = None) -> None:
+        from det.testing.quarantine import QuarantineHandler
         self._quarantine = quarantine_handler or QuarantineHandler()
 
     def evaluate_test(
@@ -89,12 +89,26 @@ class TestEvaluator(BaseTestEvaluator):
         total_count: int,
         elapsed_ms: float,
     ) -> TestResult:
-        """Handle failure by either quarantining or logging violation."""
+        """Handle failure according to policy: error (halt), warn (log count), or drop (filter rows)."""
         quarantine_table: str | None = None
-        if test_def.severity == TestSeverity.QUARANTINE:
+        if test_def.severity == TestSeverity.DROP:
+            try:
+                con.execute(
+                    f"CREATE OR REPLACE TABLE {test_def.model_name} AS "
+                    f"SELECT * FROM {test_def.model_name} EXCEPT ALL ({failing_query})"
+                )
+                quarantine_table = f"Dropped {failing_count} rows"
+            except Exception as e:
+                logger.warning("Could not drop failing rows from '%s': %s", test_def.model_name, e)
+                quarantine_table = f"Failed to drop: {e}"
+        elif test_def.severity == TestSeverity.QUARANTINE:
             quarantine_table = self._quarantine.quarantine_records(
                 con, test_def.model_name, test_def.name, failing_query
             )
+        elif test_def.severity in (TestSeverity.WARN, TestSeverity.WARNING):
+            quarantine_table = f"Warning: {failing_count} rows violated test"
+        else:
+            quarantine_table = f"Error: {failing_count} rows violated test"
 
         return TestResult(
             test_name=test_def.name,

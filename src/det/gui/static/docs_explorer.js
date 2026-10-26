@@ -138,6 +138,13 @@ function scrollToDocModel(modelName, targetSub = null) {
             return;
         }
     }
+    if (targetSub === "tests") {
+        const testsEl = document.getElementById(`docs-tests-${modelName}`);
+        if (testsEl && container) {
+            container.scrollTop = testsEl.offsetTop - 60;
+            return;
+        }
+    }
     const target = document.getElementById(`doc-model-${modelName}`);
     if (target && container) {
         container.scrollTop = target.offsetTop - 60;

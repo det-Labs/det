@@ -30,41 +30,70 @@ class ProjectManager(BaseProjectManager):
         self._resolver = direct_resolver or DirectConnectionResolver()
 
     def discover_projects(self) -> list[str]:
-        """Discover all valid project folders in the workspace, including nested group folders."""
-        projects_dir = self._root / "projects"
-        if projects_dir.exists() and projects_dir.is_dir():
-            found: list[str] = []
-            for d in sorted(projects_dir.iterdir()):
-                if not d.is_dir() or d.name.startswith((".", "_")):
-                    continue
-                # If directory is a project directly (contains models/ or det_project.yaml)
-                if (d / "models").exists() or (d / "det_project.yaml").exists():
-                    found.append(d.name)
-                else:
-                    # Directory is a filesystem group folder (e.g. projects/sample_pipelines/)
-                    for sub in sorted(d.iterdir()):
-                        if sub.is_dir() and not sub.name.startswith((".", "_")):
-                            if (sub / "models").exists() or (sub / "det_project.yaml").exists():
-                                found.append(sub.name)
-            if found:
-                return sorted(list(dict.fromkeys(found)))
+        """Discover all valid pipeline folders, strictly scoped to pipelines/ and projects/."""
+        found: list[str] = []
+        for scope_dir_name in ("pipelines", "projects"):
+            scope_dir = self._root / scope_dir_name
+            if scope_dir.exists() and scope_dir.is_dir():
+                for d in sorted(scope_dir.iterdir()):
+                    if not d.is_dir() or d.name.startswith((".", "_")):
+                        continue
+                    # If directory is a project directly (contains models/ or det_project.yaml)
+                    if (d / "models").exists() or (d / "det_project.yaml").exists():
+                        found.append(d.name)
+                    else:
+                        # Directory is a filesystem group folder (e.g. pipelines/sample_pipelines/)
+                        for sub in sorted(d.iterdir()):
+                            if sub.is_dir() and not sub.name.startswith((".", "_")):
+                                if (sub / "models").exists() or (sub / "det_project.yaml").exists():
+                                    found.append(sub.name)
+        if found:
+            return sorted(list(dict.fromkeys(found)))
 
         # Fallback to default single-project workspace
         if (self._root / "models").exists():
             return ["default"]
         return []
 
+    def list_pipelines(
+        self, folder: str | None = None, name_filter: str | None = None
+    ) -> list[dict[str, Any]]:
+        """List discovered pipelines with metadata, optionally filtered by folder and name substring."""
+        pipelines = []
+        for name in self.discover_projects():
+            p_folder = self.get_project_folder(name)
+            if folder is not None:
+                if (p_folder or "").strip().lower() != folder.strip().lower():
+                    continue
+            if name_filter is not None:
+                if name_filter.strip().lower() not in name.lower():
+                    continue
+            models = self.load_project_models(name)
+            models_dir = self._get_models_directory(name)
+            try:
+                rel_path = models_dir.parent.relative_to(self._root).as_posix()
+            except ValueError:
+                rel_path = f"pipelines/{name}"
+            pipelines.append({
+                "name": name,
+                "folder": p_folder,
+                "models_count": len(models),
+                "path": rel_path,
+            })
+        return sorted(pipelines, key=lambda x: x["name"])
+
     def get_project_folder(self, project_name: str) -> str:
         """Resolve the parent folder name for a project based on its filesystem hierarchy."""
         models_dir = self._get_models_directory(project_name)
         if models_dir.exists():
             proj_dir = models_dir.parent
-            try:
-                rel = proj_dir.relative_to(self._root / "projects")
-                if len(rel.parts) > 1:
-                    return rel.parts[0]
-            except ValueError:
-                pass
+            for parent_scope in ("pipelines", "projects"):
+                try:
+                    rel = proj_dir.relative_to(self._root / parent_scope)
+                    if len(rel.parts) > 1:
+                        return rel.parts[0]
+                except ValueError:
+                    pass
         return "Core Pipelines"
 
     def delete_project(self, project_name: str) -> bool:
@@ -72,17 +101,22 @@ class ProjectManager(BaseProjectManager):
         import shutil
         models_dir = self._get_models_directory(project_name)
         target_dir = models_dir.parent
-        if target_dir.exists() and target_dir.is_dir() and target_dir != self._root / "projects":
-            shutil.rmtree(target_dir, ignore_errors=True)
-            # If parent group folder is now empty (e.g. sample_pipelines), remove it
-            parent = target_dir.parent
-            if parent != self._root / "projects" and parent.exists():
+        for scope_dir_name in ("pipelines", "projects"):
+            scope_root = self._root / scope_dir_name
+            if target_dir.exists() and target_dir.is_dir() and target_dir != scope_root:
                 try:
-                    if not any(parent.iterdir()):
-                        parent.rmdir()
-                except OSError:
-                    pass
-            return True
+                    target_dir.relative_to(scope_root)
+                except ValueError:
+                    continue
+                shutil.rmtree(target_dir, ignore_errors=True)
+                parent = target_dir.parent
+                if parent != scope_root and parent.exists():
+                    try:
+                        if not any(parent.iterdir()):
+                            parent.rmdir()
+                    except OSError:
+                        pass
+                return True
         return False
 
     def load_project_models(self, project_name: str) -> list[ModelDefinition]:
@@ -143,16 +177,21 @@ class ProjectManager(BaseProjectManager):
         """Resolve directory path containing model SQL files for a project."""
         if project_name == "default" and (self._root / "models").exists():
             return self._root / "models"
-        projects_dir = self._root / "projects"
-        direct = projects_dir / project_name / "models"
-        if direct.exists():
-            return direct
-        # Also check nested group folders, e.g. projects/<folder>/<project_name>/models
-        if projects_dir.exists():
-            for p in projects_dir.glob(f"**/{project_name}/models"):
-                if p.is_dir():
-                    return p
-        return direct
+
+        for scope_dir_name in ("pipelines", "projects"):
+            scope_dir = self._root / scope_dir_name
+            direct = scope_dir / project_name / "models"
+            if direct.exists():
+                return direct
+            if scope_dir.exists():
+                for p in scope_dir.glob(f"**/{project_name}/models"):
+                    if p.is_dir():
+                        return p
+
+        # Fallback to pipelines if exists, else projects
+        if (self._root / "pipelines").exists():
+            return self._root / "pipelines" / project_name / "models"
+        return self._root / "projects" / project_name / "models"
 
     def _get_known_connection_names(self) -> set[str]:
         """Fetch all connection identifiers from the catalog manager if present."""

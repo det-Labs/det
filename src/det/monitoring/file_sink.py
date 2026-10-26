@@ -13,10 +13,10 @@ from det.monitoring.base import (
 
 
 class FileTelemetrySink(BaseTelemetrySink):
-    """Persists pipeline runs, test audits, and quarantined rows in JSONL flat files."""
+    """Persists pipeline runs and test audits in JSONL flat files."""
 
     def __init__(self, directory: Path | str) -> None:
-        self.directory = Path(directory)
+        self.directory = Path(directory).resolve()
         self.directory.mkdir(parents=True, exist_ok=True)
         self.runs_file = self.directory / "runs.jsonl"
         self.tests_file = self.directory / "test_audits.jsonl"
@@ -34,7 +34,13 @@ class FileTelemetrySink(BaseTelemetrySink):
         with self.runs_file.open("a", encoding="utf-8") as f:
             f.write(json.dumps(run.to_dict()) + "\n")
 
-    def get_runs(self, project: str | None = None, limit: int = 100) -> list[PipelineRunRecord]:
+    def get_runs(
+        self,
+        project: str | None = None,
+        limit: int = 20,
+        days: int = 30,
+        failed_only: bool = False,
+    ) -> list[PipelineRunRecord]:
         """Read recent runs from runs.jsonl in reverse chronological order."""
         if not self.runs_file.exists():
             return []
@@ -44,12 +50,53 @@ class FileTelemetrySink(BaseTelemetrySink):
             if not line.strip():
                 continue
             data = json.loads(line)
+            if failed_only and data.get("status") != "FAILED":
+                continue
             if not project or data.get("project") == project:
                 data.setdefault("models_detail", [])
                 runs.append(PipelineRunRecord(**data))
             if len(runs) >= safe_limit:
                 break
         return runs
+
+    def get_run(self, run_id: str) -> PipelineRunRecord | None:
+        """Fetch single pipeline run by run_id."""
+        for r in self.get_runs(limit=5000):
+            if r.run_id == run_id:
+                return r
+        return None
+
+    def clean(self, days: int = 30, project: str | None = None) -> dict[str, int]:
+        """Purge telemetry runs and test audits older than N days."""
+        import datetime
+        cutoff = (datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=days)).isoformat()
+        purged_runs = 0
+        if self.runs_file.exists():
+            remaining = []
+            for line in self.runs_file.read_text(encoding="utf-8").splitlines():
+                if not line.strip():
+                    continue
+                d = json.loads(line)
+                if d.get("started_at", "") < cutoff and (not project or d.get("project") == project):
+                    purged_runs += 1
+                else:
+                    remaining.append(line)
+            self.runs_file.write_text("\n".join(remaining) + ("\n" if remaining else ""), encoding="utf-8")
+
+        purged_audits = 0
+        if self.tests_file.exists():
+            remaining_audits = []
+            for line in self.tests_file.read_text(encoding="utf-8").splitlines():
+                if not line.strip():
+                    continue
+                d = json.loads(line)
+                if d.get("executed_at", "") < cutoff and (not project or d.get("project") == project):
+                    purged_audits += 1
+                else:
+                    remaining_audits.append(line)
+            self.tests_file.write_text("\n".join(remaining_audits) + ("\n" if remaining_audits else ""), encoding="utf-8")
+
+        return {"purged_runs": purged_runs, "purged_audits": purged_audits}
 
     def record_test_audits(self, audits: list[TestAuditRecord]) -> None:
         """Append test audit logs to test_audits.jsonl."""
@@ -62,7 +109,7 @@ class FileTelemetrySink(BaseTelemetrySink):
     def get_test_audits(
         self, run_id: str | None = None, project: str | None = None, limit: int = 100
     ) -> list[TestAuditRecord]:
-        """Fetch test audit records matching run_id or project filter."""
+        """Read and filter test audit logs from test_audits.jsonl."""
         if not self.tests_file.exists():
             return []
         audits = []
@@ -117,14 +164,14 @@ class FileTelemetrySink(BaseTelemetrySink):
         """Purge quarantine records by recreating file without matching IDs."""
         if not self.quarantine_file.exists() or not record_ids:
             return 0
-        purge_set = set(record_ids)
+        target_ids = set(record_ids)
         kept_lines = []
         purged = 0
         for line in self.quarantine_file.read_text(encoding="utf-8").splitlines():
             if not line.strip():
                 continue
             data = json.loads(line)
-            if data.get("record_id") in purge_set:
+            if data.get("record_id") in target_ids:
                 purged += 1
             else:
                 kept_lines.append(line)
@@ -143,10 +190,8 @@ class FileTelemetrySink(BaseTelemetrySink):
             data = json.loads(line)
             if data.get("record_id") == record_id:
                 data["status"] = "RESOLVED"
-                data["resolution_notes"] = notes or "Manually reviewed and resolved"
+                data["resolution_notes"] = notes or "Resolved"
                 found = True
             new_lines.append(json.dumps(data))
-        if found:
-            self.quarantine_file.write_text("\n".join(new_lines) + "\n", encoding="utf-8")
+        self.quarantine_file.write_text("\n".join(new_lines) + "\n", encoding="utf-8")
         return found
-

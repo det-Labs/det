@@ -9,7 +9,7 @@ function renderDocModelCard(model) {
     card.appendChild(_renderModelSourcesTable(model.sources_detail || []));
     card.appendChild(_renderModelDestinationsTable(model.destinations_detail || []));
     card.appendChild(_renderModelColumnsTable(model.columns || [], model));
-    card.appendChild(_renderModelTestsTable(model.tests_detail || []));
+    card.appendChild(_renderModelTestsTable(model.tests_detail || [], model));
     card.appendChild(_renderModelSqlViewer(model));
 
     return card;
@@ -162,9 +162,12 @@ function promptEditColumnDesc(project, model, column) {
     });
 }
 
-function _renderModelTestsTable(tests) {
+function _renderModelTestsTable(tests, model = null) {
     const wrap = document.createElement("div");
     wrap.className = "docs-tests-table-wrap";
+    if (model && model.name) {
+        wrap.id = `docs-tests-${model.name}`;
+    }
     if (!tests || tests.length === 0) return wrap;
 
     const rows = tests.map((t) => {

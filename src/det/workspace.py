@@ -6,12 +6,14 @@ import threading
 from typing import Any
 
 from det.catalog.base import ConnectionTestResult
+from det.catalog.definitions import ConnectionDefinition
 from det.catalog.manager import CatalogManager
 from det.config import WorkspaceConfig
 from det.docs.base import ProjectDoc
 from det.docs.extractor import DocsExtractor
 from det.docs.generator import DocsGenerator
 from det.docs.lineage import LineageGenerator
+from det.docs.server import DocsServer
 from det.engine.base import MountReport
 from det.engine.facade import EngineFacade
 from det.models.dag import ModelDAG
@@ -39,7 +41,7 @@ class Workspace:
         tester: TestRunner | None = None,
         docs_gen: DocsGenerator | None = None,
     ) -> None:
-        self.root = root_path
+        self.root = root_path.resolve()
         self.config = config or WorkspaceConfig.load(self.root / ".det" / "config.yaml")
         self.engine = engine or EngineFacade(self.config.to_engine_config(self.root))
         self.catalog = catalog or CatalogManager(self.root / "catalog" / "connections.yaml")
@@ -49,6 +51,7 @@ class Workspace:
         self.docs_gen = docs_gen or DocsGenerator()
         self.lineage_gen = LineageGenerator()
         self.docs_extractor = DocsExtractor()
+        self.docs_server = DocsServer()
         self.monitoring = TelemetryManager(self.root)
         self._active_runs: set[str] = set()
         self._run_lock = threading.Lock()
@@ -86,20 +89,22 @@ class Workspace:
         return result
 
     @classmethod
-    def init(cls, workspace_path: Path) -> "Workspace":
+    def init(cls, workspace_path: Path | str) -> "Workspace":
         """Scaffold standard workspace directory structure and default templates."""
-        workspace_path.mkdir(parents=True, exist_ok=True)
-        cls._scaffold_directories(workspace_path)
-        cls._scaffold_initial_files(workspace_path)
-        logger.info("Initialized new det workspace in '%s'", workspace_path)
-        return cls(workspace_path)
+        resolved = Path(workspace_path).resolve()
+        resolved.mkdir(parents=True, exist_ok=True)
+        cls._scaffold_directories(resolved)
+        cls._scaffold_initial_files(resolved)
+        logger.info("Initialized new det workspace in '%s'", resolved)
+        return cls(resolved)
 
     @classmethod
-    def open(cls, workspace_path: Path) -> "Workspace":
+    def open(cls, workspace_path: Path | str) -> "Workspace":
         """Open an existing workspace, validating directory structure."""
-        if not workspace_path.exists():
-            raise FileNotFoundError(f"Workspace directory '{workspace_path}' does not exist.")
-        return cls(workspace_path)
+        resolved = Path(workspace_path).resolve()
+        if not resolved.exists():
+            raise FileNotFoundError(f"Workspace directory '{resolved}' does not exist.")
+        return cls(resolved)
 
     def run(
         self, project: str | None = None, select: str | None = None
@@ -175,10 +180,16 @@ class Workspace:
         self._explicit_tests_cache[project] = (current_mtime, tests_by_model)
         return tests_by_model
 
-    def test(self, project: str | None = None) -> TestSuiteReport:
-        """Run data quality assertions and update quarantine sinks."""
+    def test(self, project: str | None = None, build: bool = False) -> TestSuiteReport:
+        """Run data quality assertions against configured policies (error, warning, drop)."""
         target_proj = project or self.config.default_project
         dag = self.projects.build_dag(target_proj)
+
+        if build:
+            self.run(target_proj)
+        else:
+            self._ensure_models_staged_for_testing(dag)
+
         explicit_map = self._load_explicit_tests(target_proj)
         all_tests = []
         for model in dag._models.values():
@@ -194,21 +205,69 @@ class Workspace:
             logger.debug("Telemetry test audit notice: %s", e)
         return report
 
-    def _record_telemetry_test_audits(self, project: str, results: list[Any]) -> None:
-        """Convert test results to telemetry audit records and persist."""
+    def _ensure_models_staged_for_testing(self, dag: ModelDAG) -> None:
+        """Ensure all enabled models in the DAG are available in the engine session for assertion testing.
+
+        If a model is already materialized in DuckDB, it is preserved. If not present in the session,
+        it is lazily staged as a transient DuckDB view in topological dependency order. If view
+        creation fails, it falls back to full materialization.
+        """
+        stages = dag.get_execution_stages()
+        for stage in stages:
+            for model_name in stage.models:
+                model = dag.get_model(model_name)
+                if not model or not model.config.enabled:
+                    continue
+                # Check if model table/view already exists in this DuckDB session
+                already_exists = False
+                try:
+                    self.engine.session.execute(f"SELECT 1 FROM {model.name} LIMIT 0")
+                    already_exists = True
+                except Exception:
+                    already_exists = False
+
+                if not already_exists:
+                    try:
+                        PipelineRunner._prepare_target(self.engine.session, model.name, target_is_table=False)
+                        self.engine.session.execute(f"CREATE OR REPLACE VIEW {model.name} AS {model.compiled_sql}")
+                    except Exception as view_exc:
+                        logger.debug(
+                            "Fast JIT view staging for '%s' note: %s. Falling back to materialization.",
+                            model.name,
+                            view_exc,
+                        )
+                        try:
+                            self.runner._execute_single_model(self.engine.session, model)
+                        except Exception as run_exc:
+                            logger.warning("Could not stage model '%s' for testing: %s", model.name, run_exc)
+
+    def _record_telemetry_test_audits(self, project: str, results: list[Any], run_id: str | None = None) -> None:
+        """Convert test results to aggregate telemetry audit records without row-level bloat."""
         import datetime
         from det.monitoring.base import TestAuditRecord, generate_telemetry_id
         now = datetime.datetime.now(datetime.timezone.utc).isoformat()
+        active_run_id = run_id or generate_telemetry_id("run")
         audits = []
         for r in results:
             sev = r.severity.value if hasattr(r.severity, "value") else str(r.severity)
             f_count = getattr(r, "failing_rows_count", 0)
-            msg = getattr(r, "error_message", None) or ("PASSED" if r.passed else f"{f_count} failing rows")
-            act = "QUARANTINE" if getattr(r, "quarantined_table", None) else ("HALT" if not r.passed and sev == "error" else "LOG")
+            if r.passed:
+                act = "PASSED"
+                msg = "PASSED"
+            elif sev.lower() in ("warn", "warning"):
+                act = "WARNED"
+                msg = f"{f_count} rows raised warning"
+            elif sev.lower() in ("drop", "quarantine"):
+                act = "DROPPED"
+                msg = f"Dropped {f_count} failing rows from dataset"
+            else:
+                act = "HALTED"
+                msg = f"Halted: {f_count} rows violated test"
+
             audits.append(
                 TestAuditRecord(
                     audit_id=generate_telemetry_id("audit"),
-                    run_id=generate_telemetry_id("trun"),
+                    run_id=active_run_id,
                     project=project,
                     model_name=getattr(r, "model_name", "unknown"),
                     test_name=getattr(r, "test_name", "test"),
@@ -223,9 +282,52 @@ class Workspace:
             )
         self.monitoring.active_sink.record_test_audits(audits)
 
-    def generate_docs(self, project: str | None = None) -> Path:
-        """Compile and emit self-contained HTML documentation for a project."""
-        proj_name = project or self.config.default_project
+    def monitor_runs(
+        self,
+        project: str | None = None,
+        limit: int = 20,
+        days: int = 30,
+        failed_only: bool = False,
+    ) -> list[Any]:
+        """Fetch recent pipeline execution runs with inclusive priority."""
+        return self.monitoring.get_runs(
+            project=project, limit=limit, days=days, failed_only=failed_only
+        )
+
+    def monitor_run_detail(self, run_id: str) -> Any | None:
+        """Fetch detailed model trace for a single pipeline run."""
+        return self.monitoring.get_run(run_id)
+
+    def monitor_audits(
+        self,
+        project: str | None = None,
+        run_id: str | None = None,
+        failed_only: bool = False,
+        limit: int = 50,
+    ) -> list[Any]:
+        """Fetch data quality test audit records."""
+        audits = self.monitoring.get_test_audits(
+            run_id=run_id, project=project, limit=limit
+        )
+        if failed_only:
+            audits = [a for a in audits if not a.passed]
+        return audits
+
+    def monitor_status(self) -> dict[str, Any]:
+        """Fetch telemetry sink status and storage metadata."""
+        return self.monitoring.get_sink_info()
+
+    def monitor_clean(self, days: int = 30, project: str | None = None) -> dict[str, int]:
+        """Purge telemetry runs and test audits older than N days."""
+        return self.monitoring.clean(days=days, project=project)
+
+    def generate_docs(self, pipeline: str | None = None, project: str | None = None) -> Path:
+        """Compile and emit self-contained HTML documentation for a single pipeline."""
+        proj_name = pipeline or project or self.config.default_project
+        known = self.projects.discover_projects()
+        if known and proj_name not in known:
+            raise KeyError(f"Pipeline '{proj_name}' does not exist.")
+
         dag = self.projects.build_dag(proj_name)
         models = self.projects.load_project_models(proj_name)
 
@@ -236,7 +338,7 @@ class Workspace:
         for t_list in explicit_tests.values():
             all_tests.extend([TestDefinition.from_dict("model", t) if isinstance(t, dict) else t for t in t_list])
 
-        models_dir = self.projects._get_models_directory(proj_name)
+        models_dir = self.projects._get_models_directory(proj_name).resolve()
         m_descs, c_descs = DocsExtractor.load_schema_descriptions(models_dir)
         model_docs = [
             self.docs_extractor.extract_model_doc(
@@ -254,20 +356,46 @@ class Workspace:
             total_models=len(models), total_sources=len(dag._dependencies),
             total_tests=len(all_tests), models=model_docs, lineage_mermaid=lineage,
         )
-        return self.docs_gen.write_docs(self._docs_dir(proj_name), proj_doc)
+        out_dir = self._docs_dir(proj_name).resolve()
+        return self.docs_gen.write_docs(out_dir, proj_doc).resolve()
 
     def _docs_dir(self, proj_name: str) -> Path:
-        """Resolve docs directory path for project."""
-        models_dir = self.projects._get_models_directory(proj_name)
-        if models_dir.parent.exists() and models_dir.parent != self.root:
-            return models_dir.parent / "docs"
-        p_dir = self.root / "projects" / proj_name / "docs"
-        return p_dir if (self.root / "projects").exists() else self.root / "docs"
+        """Resolve absolute docs directory path for pipeline."""
+        root = self.root.resolve()
+        models_dir = self.projects._get_models_directory(proj_name).resolve()
+        if models_dir.parent.exists() and models_dir.parent != root:
+            return (models_dir.parent / "docs").resolve()
+        p_dir = (root / "pipelines" / proj_name / "docs").resolve()
+        return p_dir if (root / "pipelines").exists() else (root / "docs").resolve()
 
-    def delete_docs(self, project: str | None = None) -> bool:
-        """Delete generated static HTML documentation and manifest for a project."""
+    def get_docs_path(self, pipeline: str) -> Path | None:
+        """Return absolute path to generated index.html if it exists, else None."""
+        docs_dir = self._docs_dir(pipeline).resolve()
+        index_file = (docs_dir / "index.html").resolve()
+        return index_file if index_file.exists() else None
+
+    def export_docs(self, pipeline: str, output_path: str | Path | None = None) -> Path:
+        """Export single-file HTML documentation for a single pipeline to an absolute target path."""
+        html_path = self.generate_docs(pipeline=pipeline).resolve()
+        if output_path is None:
+            target = (Path.cwd().resolve() / f"{pipeline}_docs.html").resolve()
+        else:
+            p = Path(output_path).resolve()
+            if p.is_dir() or not p.suffix or str(output_path).endswith(("/", "\\")):
+                target = (p / f"{pipeline}_docs.html").resolve()
+            else:
+                target = p.resolve()
+
+        target.parent.resolve().mkdir(parents=True, exist_ok=True)
         import shutil
-        out_dir = self._docs_dir(project or self.config.default_project)
+        shutil.copy2(html_path, target)
+        return target.resolve()
+
+    def delete_docs(self, pipeline: str | None = None, project: str | None = None) -> bool:
+        """Delete generated static HTML documentation and manifest for a pipeline."""
+        import shutil
+        target = pipeline or project or self.config.default_project
+        out_dir = self._docs_dir(target).resolve()
         if out_dir.exists():
             shutil.rmtree(out_dir, ignore_errors=True)
             return True
@@ -277,34 +405,173 @@ class Workspace:
         """Delete a pipeline project directory and its generated artifacts."""
         deleted = self.projects.delete_project(name)
         if deleted:
-            self.delete_docs(project=name)
+            self.delete_docs(pipeline=name)
             if not self.projects.discover_projects():
-                (self.root / "projects" / "default" / "models").mkdir(parents=True, exist_ok=True)
+                (self.root.resolve() / "pipelines" / "default" / "models").mkdir(parents=True, exist_ok=True)
         return deleted
 
-    def test_catalog(self) -> dict[str, ConnectionTestResult]:
-        """Ping all registered catalog connections and report latency."""
-        return self.catalog.test_all(self.engine.session)
+    def list_pipelines(
+        self, folder: str | None = None, name_filter: str | None = None
+    ) -> list[dict[str, Any]]:
+        """List pipelines with metadata, optionally filtered by folder and name substring."""
+        return self.projects.list_pipelines(folder=folder, name_filter=name_filter)
+
+    def list_pipeline_models(self, pipeline_name: str) -> list[ModelDefinition]:
+        """Return list of parsed model definitions for a given pipeline."""
+        known = self.projects.discover_projects()
+        if pipeline_name not in known:
+            raise KeyError(f"Pipeline '{pipeline_name}' does not exist.")
+        return self.projects.load_project_models(pipeline_name)
+
+    def compile_pipeline(self, pipeline_name: str) -> dict[str, Any]:
+        """Compile and validate pipeline DAG, models, and dependencies without execution."""
+        known = self.projects.discover_projects()
+        if pipeline_name not in known:
+            raise KeyError(f"Pipeline '{pipeline_name}' does not exist.")
+
+        models = self.projects.load_project_models(pipeline_name)
+        dag = self.projects.build_dag(pipeline_name)
+
+        errors: list[str] = []
+
+        # 1. Cycle detection
+        cycles = dag.detect_cycles()
+        if cycles:
+            errors.append(f"Circular dependency detected: {' -> '.join(cycles)}")
+
+        # 2. Dependency verification
+        known_connections = self.projects._get_known_connection_names()
+        known_model_names = set(dag._models.keys())
+
+        all_sources: set[str] = set()
+        all_refs: set[str] = set()
+
+        for m in models:
+            for s in m.sources:
+                all_sources.add(s)
+                if known_connections and s not in known_connections:
+                    errors.append(f"Model '{m.name}' references unknown catalog source('{s}').")
+            for r in m.refs:
+                all_refs.add(r)
+                if r not in known_model_names and (known_connections and r not in known_connections):
+                    errors.append(f"Model '{m.name}' references unknown model ref('{r}').")
+
+        return {
+            "pipeline": pipeline_name,
+            "models_count": len(models),
+            "cycles": cycles,
+            "sources": sorted(all_sources),
+            "refs": sorted(all_refs),
+            "is_valid": len(errors) == 0,
+            "errors": errors,
+        }
+
+    def list_catalog(
+        self, folder: str | None = None, name_filter: str | None = None
+    ) -> list[ConnectionDefinition]:
+        """List registered catalog connections, optionally filtered by folder and name substring."""
+        return self.catalog.list_connections(folder=folder, name_filter=name_filter)
+
+    def test_catalog(
+        self, connection: str | None = None, folder: str | None = None
+    ) -> dict[str, ConnectionTestResult]:
+        """Ping a single connection, connections under a folder, or all connections."""
+        return self.catalog.test_connections(self.engine.session, connection=connection, folder=folder)
+
+    def display_catalog(
+        self, name: str, limit: int = 10
+    ) -> tuple[list[str], list[tuple[Any, ...]]]:
+        """Fetch and return top rows from a registered catalog connection."""
+        return self.catalog.display_connection(self.engine.session, name, limit=limit)
+
+    def details_catalog(self, name: str) -> dict[str, Any]:
+        """Retrieve complete metadata and configuration properties for a connection."""
+        return self.catalog.get_connection_details(name)
+
+    def delete_catalog_connection(self, name: str) -> bool:
+        """Delete an individual connection definition from the catalog."""
+        return self.catalog.delete_connection(name, persist=True)
 
     def close(self) -> None:
         """Safely close active engine session and flush disk buffers."""
         self.engine.close()
 
+    CORE_FOLDERS = ("catalog", "pipelines", "data", "extensions")
+
     @classmethod
     def _scaffold_directories(cls, root: Path) -> None:
-        """Create standard folder layout."""
-        for p in (".det", "catalog", "extensions", "projects/default/models/staging", "projects/default/models/marts"):
-            (root / p).mkdir(parents=True, exist_ok=True)
+        """Create standard folder layout if folders do not already exist."""
+        folders = [
+            ".det",
+            ".det/bin",
+            "catalog",
+            "pipelines",
+            "pipelines/default/models/staging",
+            "pipelines/default/models/marts",
+            "data",
+            "extensions",
+        ]
+        for rel in folders:
+            folder_path = root / rel
+            if not folder_path.exists():
+                folder_path.mkdir(parents=True, exist_ok=True)
 
     @classmethod
     def _scaffold_initial_files(cls, root: Path) -> None:
-        """Write starting templates for config, catalog, and default model."""
+        """Write starting templates if they do not already exist."""
         cfg = root / ".det" / "config.yaml"
         if not cfg.exists():
             WorkspaceConfig().save(cfg)
         cat = root / "catalog" / "connections.yaml"
         if not cat.exists():
             cat.write_text("connections: {}\n", encoding="utf-8")
-        proj = root / "projects" / "default" / "det_project.yaml"
+        proj = root / "pipelines" / "default" / "det_project.yaml"
         if not proj.exists():
+            proj.parent.mkdir(parents=True, exist_ok=True)
             proj.write_text("name: default\nversion: 0.1.0\n", encoding="utf-8")
+
+        cls._scaffold_activation_scripts(root)
+
+    @classmethod
+    def _scaffold_activation_scripts(cls, root: Path) -> None:
+        """Write activation scripts into .det/bin/ if they do not exist."""
+        bin_dir = root / ".det" / "bin"
+        bin_dir.mkdir(parents=True, exist_ok=True)
+
+        ps1 = bin_dir / "activate.ps1"
+        if not ps1.exists():
+            ps1.write_text(
+                '# Activate det environment for PowerShell\n'
+                '$script:DetRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\\..")).Path\n'
+                '$env:DET_ACTIVE_DIR = $script:DetRoot\n'
+                'try {\n'
+                '    $sessionDir = Join-Path $HOME ".det"\n'
+                '    if (-not (Test-Path $sessionDir)) { New-Item -ItemType Directory -Path $sessionDir -Force | Out-Null }\n'
+                '    @{ active_dir = $script:DetRoot } | ConvertTo-Json | Set-Content (Join-Path $sessionDir "session.json") -Encoding utf8\n'
+                '} catch {}\n'
+                'Write-Host "Activated det environment: $env:DET_ACTIVE_DIR" -ForegroundColor Green\n',
+                encoding="utf-8",
+            )
+
+        bat = bin_dir / "activate.bat"
+        if not bat.exists():
+            bat.write_text(
+                '@echo off\n'
+                'pushd "%~dp0..\\.."\n'
+                'set "DET_ACTIVE_DIR=%CD%"\n'
+                'popd\n'
+                'echo Activated det environment: %DET_ACTIVE_DIR%\n',
+                encoding="utf-8",
+            )
+
+        sh = bin_dir / "activate"
+        if not sh.exists():
+            sh.write_text(
+                '#!/usr/bin/env sh\n'
+                'DET_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"\n'
+                'export DET_ACTIVE_DIR="$DET_ROOT"\n'
+                'mkdir -p "$HOME/.det" 2>/dev/null\n'
+                'echo "{\\"active_dir\\": \\"$DET_ROOT\\"}" > "$HOME/.det/session.json" 2>/dev/null\n'
+                'echo "Activated det environment: $DET_ACTIVE_DIR"\n',
+                encoding="utf-8",
+            )

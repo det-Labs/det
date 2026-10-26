@@ -71,7 +71,18 @@ class DuckDBSessionManager(BaseSessionManager):
     ) -> duckdb.DuckDBPyConnection:
         """Instantiate DuckDB connection and load configured extensions."""
         cfg_dict = self._build_config_dict(config)
-        con = duckdb.connect(database=config.database, config=cfg_dict)
+        try:
+            con = duckdb.connect(database=config.database, config=cfg_dict)
+        except Exception as exc:
+            # Handle database file locking gracefully (e.g. concurrent CLI commands while GUI is running)
+            if config.database != ":memory:" and "used by another process" in str(exc).lower() or "io error" in str(exc).lower():
+                logger.info("Database file '%s' locked by another process; opening read-only or in-memory session.", config.database)
+                try:
+                    con = duckdb.connect(database=config.database, read_only=True, config=cfg_dict)
+                except Exception:
+                    con = duckdb.connect(database=":memory:", config=cfg_dict)
+            else:
+                raise
 
         # Enable on-demand auto-installation for extensions required by queries/connectors
         try:

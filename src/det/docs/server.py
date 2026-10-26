@@ -29,11 +29,12 @@ class DocsServer(BaseDocsServer):
         self, docs_dir: Path, port: int = 8080
     ) -> http.server.HTTPServer:
         """Instantiate configured HTTPServer bound to docs directory."""
-        if not docs_dir.exists():
-            raise FileNotFoundError(f"Documentation directory '{docs_dir}' does not exist.")
+        abs_docs_dir = docs_dir.resolve()
+        if not abs_docs_dir.exists():
+            raise FileNotFoundError(f"Documentation directory '{abs_docs_dir}' does not exist.")
 
         handler = functools.partial(
-            http.server.SimpleHTTPRequestHandler, directory=str(docs_dir)
+            http.server.SimpleHTTPRequestHandler, directory=str(abs_docs_dir)
         )
         return http.server.HTTPServer(("127.0.0.1", port), handler)
 

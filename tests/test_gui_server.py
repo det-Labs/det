@@ -53,7 +53,7 @@ def _verify_explorer_and_manifest(base_url: str) -> None:
 def test_gui_server_lifecycle_and_endpoints(tmp_path: Path) -> None:
     """Verify GUIServer starts, serves assets & endpoints, and stops cleanly."""
     ws = Workspace.init(tmp_path)
-    model_file = tmp_path / "projects" / "default" / "models" / "staging" / "sample.sql"
+    model_file = tmp_path / "pipelines" / "default" / "models" / "staging" / "sample.sql"
     model_file.write_text("{{ config(materialized='table') }}\nSELECT 100 AS id, 'alpha' AS tag\n", encoding="utf-8")
     port = find_free_port()
     server = GUIServer(ws)

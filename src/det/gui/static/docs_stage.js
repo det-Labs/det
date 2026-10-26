@@ -1,16 +1,50 @@
 // det Web IDE - Interactive Documentation Portal & Data Dictionary Stage
 
 async function renderDocsStage(stage) {
+    if (!stage) stage = document.getElementById("main-stage");
     if (!stage) return;
-    stage.innerHTML = `<div class="docs-loading-box">Loading Data Dictionary for <strong>${state.selectedPipeline}</strong>...</div>`;
+
+    if (!state.pipelines || state.pipelines.length === 0) {
+        stage.innerHTML = `
+            <div class="docs-main-container">
+                <div class="docs-model-card" style="text-align:center; padding:3rem 1.5rem;">
+                    <div style="font-size:2.5rem; margin-bottom:0.75rem; opacity:0.4;">📖</div>
+                    <h2>No Pipelines to Document</h2>
+                    <p class="pane-subtitle">Documentation will be automatically generated once you create a pipeline.</p>
+                </div>
+            </div>
+        `;
+        return;
+    }
+
+    const targetPipeline = state.selectedPipeline || state.pipelines[0]?.name || "default";
+    stage.innerHTML = `<div class="docs-loading-box">Loading Data Dictionary for <strong>${escapeHtml(targetPipeline)}</strong>...</div>`;
+
     try {
-        const res = await fetch(`/api/docs/content?project=${encodeURIComponent(state.selectedPipeline)}`);
+        const res = await fetch(`/api/docs/content?project=${encodeURIComponent(targetPipeline)}`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
         state.docsData = data;
         _renderDocsContent(stage, data);
     } catch (err) {
-        stage.innerHTML = `<div class="explorer-empty-hint" style="color:var(--danger)">Failed to load documentation: ${err.message}</div>`;
+        stage.innerHTML = `
+            <div class="docs-main-container">
+                <div class="docs-header-bar">
+                    <div class="docs-header-titles">
+                        <h2 class="docs-main-title">Data Dictionary & Pipeline Schema</h2>
+                        <div class="pane-subtitle">Pipeline: <strong>${escapeHtml(targetPipeline)}</strong></div>
+                    </div>
+                    <div class="docs-header-actions">
+                        <button class="btn btn-primary btn-sm" onclick="regenerateStaticDocs('${escapeJs(targetPipeline)}')">${icons.refresh || ""} Generate Docs</button>
+                    </div>
+                </div>
+                <div class="docs-model-card" style="text-align:center; padding:2.5rem 1.5rem;">
+                    <h3>Documentation Not Yet Available</h3>
+                    <p class="pane-subtitle" style="margin-bottom:1rem;">Documentation has not yet been compiled for this pipeline.</p>
+                    <button class="btn btn-primary" onclick="regenerateStaticDocs('${escapeJs(targetPipeline)}')">${icons.refresh || ""} Compile Documentation</button>
+                </div>
+            </div>
+        `;
     }
 }
 

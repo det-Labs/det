@@ -26,7 +26,7 @@ def test_cli_run_test_and_docs_workflow(
     monkeypatch.chdir(target_dir)
 
     # Create simple model
-    model_file = target_dir / "projects" / "default" / "models" / "staging" / "sample.sql"
+    model_file = target_dir / "pipelines" / "default" / "models" / "staging" / "sample.sql"
     model_file.write_text("{{ config(materialized='table', unique_key='x') }}\nSELECT 1 AS x\n", encoding="utf-8")
 
     # 2. Run
@@ -37,8 +37,28 @@ def test_cli_run_test_and_docs_workflow(
 
     # 4. Docs generate
     assert main(["docs", "generate"]) == 0
-    assert (target_dir / "projects" / "default" / "docs" / "index.html").exists()
+    assert (target_dir / "pipelines" / "default" / "docs" / "index.html").exists()
 
-    # 5. Catalog test
+    # 5. Catalog list and test
+    assert main(["catalog"]) == 0
+    assert main(["catalog", "list"]) == 0
     assert main(["catalog", "test"]) == 0
+
+    # Add a mock catalog connection
+    import yaml
+    cat_file = target_dir / "catalog" / "connections.yaml"
+    cat_file.write_text(yaml.dump({
+        "connections": {
+            "test_sample": {
+                "type": "duckdb",
+                "tier": "entity",
+                "options": {"query": "SELECT 1 AS id"}
+            }
+        }
+    }), encoding="utf-8")
+
+    assert main(["catalog", "list"]) == 0
+    assert main(["catalog", "test"]) == 0
+    assert main(["catalog", "test", "test_sample"]) == 0
+    assert main(["catalog", "test", "missing_conn"]) == 1
 

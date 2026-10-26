@@ -280,10 +280,11 @@ class PipelineRouteHandler:
             return True
         try:
             name = validate_identifier(name, "Pipeline name")
+            base_dir = self._workspace.root / "pipelines" if (self._workspace.root / "pipelines").exists() else self._workspace.root / "projects"
             if folder and folder not in ("Core Pipelines", "Ungrouped"):
-                proj_dir = self._workspace.root / "projects" / folder / name / "models"
+                proj_dir = base_dir / folder / name / "models"
             else:
-                proj_dir = self._workspace.root / "projects" / name / "models"
+                proj_dir = base_dir / name / "models"
             proj_dir.mkdir(parents=True, exist_ok=True)
             send_json(handler, {"status": "ok", "created": name, "folder": folder or "Core Pipelines"})
         except Exception as e:

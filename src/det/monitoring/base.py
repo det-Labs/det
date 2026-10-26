@@ -52,20 +52,20 @@ class TestAuditRecord:
 
 @dataclass
 class QuarantineRecord:
-    """Violating data row routed to quarantine sink for human remediation."""
+    """Legacy quarantine record definition (deprecated)."""
 
-    record_id: str
-    run_id: str
-    project: str
-    model_name: str
-    test_name: str
-    quarantined_at: str
-    raw_payload: dict[str, Any]
-    status: str = "QUARANTINED"
+    record_id: str = ""
+    run_id: str = ""
+    project: str = ""
+    model_name: str = ""
+    test_name: str = ""
+    quarantined_at: str = ""
+    raw_payload: dict[str, Any] = field(default_factory=dict)
+    status: str = "DEPRECATED"
     resolution_notes: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
-        """Convert quarantine record to JSON dictionary."""
+        """Convert record to dictionary."""
         return asdict(self)
 
 
@@ -76,7 +76,7 @@ def generate_telemetry_id(prefix: str = "run") -> str:
 
 
 class BaseTelemetrySink(ABC):
-    """Abstract protocol for swappable telemetry, audit logging, and quarantine sinks."""
+    """Abstract protocol for swappable telemetry and audit logging sinks."""
 
     @abstractmethod
     def initialize(self) -> None:
@@ -87,8 +87,22 @@ class BaseTelemetrySink(ABC):
         """Persist a completed pipeline execution run record."""
 
     @abstractmethod
-    def get_runs(self, project: str | None = None, limit: int = 50) -> list[PipelineRunRecord]:
-        """Retrieve recent pipeline execution runs."""
+    def get_runs(
+        self,
+        project: str | None = None,
+        limit: int = 20,
+        days: int = 30,
+        failed_only: bool = False,
+    ) -> list[PipelineRunRecord]:
+        """Retrieve recent pipeline execution runs with inclusive priority."""
+
+    @abstractmethod
+    def get_run(self, run_id: str) -> PipelineRunRecord | None:
+        """Fetch single pipeline run by run_id."""
+
+    @abstractmethod
+    def clean(self, days: int = 30, project: str | None = None) -> dict[str, int]:
+        """Purge telemetry runs and test audits older than N days."""
 
     @abstractmethod
     def record_test_audits(self, audits: list[TestAuditRecord]) -> None:
@@ -100,24 +114,18 @@ class BaseTelemetrySink(ABC):
     ) -> list[TestAuditRecord]:
         """Query test execution results filtered by run_id or project."""
 
-    @abstractmethod
-    def record_quarantine_rows(self, rows: list[QuarantineRecord]) -> None:
-        """Persist isolated rows violating data quality assertions."""
+    def record_quarantine_rows(self, rows: list[Any]) -> None:
+        """Deprecated: quarantine rows are no longer persisted."""
+        pass
 
-    @abstractmethod
-    def get_quarantine_records(
-        self,
-        project: str | None = None,
-        model: str | None = None,
-        status: str | None = None,
-        limit: int = 100,
-    ) -> list[QuarantineRecord]:
-        """Query quarantine records for review and remediation."""
+    def get_quarantine_records(self, **kwargs: Any) -> list[Any]:
+        """Deprecated: quarantine records are no longer used."""
+        return []
 
-    @abstractmethod
     def purge_quarantine_records(self, record_ids: list[str]) -> int:
-        """Permanently purge resolved or obsolete quarantine entries."""
+        """Deprecated: quarantine records are no longer used."""
+        return len(record_ids)
 
-    @abstractmethod
     def resolve_quarantine_record(self, record_id: str, notes: str | None = None) -> bool:
-        """Mark a quarantine record as reviewed and resolved."""
+        """Deprecated: quarantine records are no longer used."""
+        return True
