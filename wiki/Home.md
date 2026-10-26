@@ -31,7 +31,7 @@ The platform is designed to adapt to any modern or legacy data ecosystem:
 
 ---
 
-## 🚀 Quick Navigation
+## 🚀 Quick Navigation: Core CLI Guides
 
 | Guide | Description |
 | :--- | :--- |
@@ -40,7 +40,19 @@ The platform is designed to adapt to any modern or legacy data ecosystem:
 | [**SQL ETL Pipeline Authoring**](SQL-ETL-Pipeline-Authoring) | Learn multi-stage DAG pipelines, data tests, row quarantine, and output destinations. |
 | [**Cloud Lakehouse Connectors**](Cloud-Lakehouse-Connectors) | Configure AWS S3, Azure ADLS Gen2, GCS, OneLake, and Delta Lake reads and writes. |
 | [**Custom Connectors Guide**](Custom-Connectors-Guide) | Build and mount custom source and destination connectors. |
-| [**CLI & Web IDE Reference**](CLI-&-Web-IDE-Reference) | Command-line arguments, keyboard shortcuts, and Web IDE capabilities. |
+| [**CLI & Web IDE Reference**](CLI-&-Web-IDE-Reference) | Command-line arguments, keyboard shortcuts, and headless operations. |
+
+---
+
+## 🖥️ Quick Navigation: Web IDE Visual Studio
+
+| Guide | Description |
+| :--- | :--- |
+| [**Web IDE Overview & Getting Started**](Web-IDE-Overview-&-Getting-Started) | Launching `det gui`, layout architecture, demo mode, and shortcuts. |
+| [**Pipelines & DAG Studio**](Web-IDE-Pipelines-&-DAG-Studio) | Visual DAG lineage, Dual-Mode SQL Editor, live model execution, and schema views. |
+| [**Data Quality & Quarantine**](Web-IDE-Data-Quality-&-Quarantine) | Interactive assertion authoring, test execution badges, and non-blocking quarantine audit. |
+| [**Catalog & Lakehouse Connections**](Web-IDE-Catalog-&-Lakehouse-Connections) | Visual multi-cloud storage setup, latency health probes, and SQL Scratchpad. |
+| [**Monitoring & Living Documentation**](Web-IDE-Monitoring-&-Living-Documentation) | Execution telemetry, millisecond latency tables, and auto-generated data dictionaries. |
 
 ---
 
@@ -51,6 +63,7 @@ A major upcoming enhancement is **in-editor SQL autocompletion** powered by a li
 
 ## 🌐 External Resources
 - **PyPI Package**: [`pip install det-core`](https://pypi.org/project/det-core/)
+- **Product Website**: [det-labs.github.io/det](https://det-labs.github.io/det/)
 - **Main Codebase**: [det-Labs/det on GitHub](https://github.com/det-Labs/det)
 - **Issue Tracker**: [GitHub Issues](https://github.com/det-Labs/det/issues)
 
@@ -58,4 +71,4 @@ A major upcoming enhancement is **in-editor SQL autocompletion** powered by a li
 
 | 🏠 Overview | Next Page ➡️ |
 | :--- | ---: |
-| **det Wiki Home** | [**Quickstart & Installation ➔**](Quickstart-&-Installation) |
+| [**Wiki Index**](Home) | [**Quickstart & Installation ➔**](Quickstart-&-Installation) |

@@ -46,7 +46,7 @@ steps:
       JOIN customer_order_aggregates agg 
         ON c.customer_id = agg.customer_id
     destinations:
-      - name: dw_rfm_segments_csv
+      - name: dw_rfm_segments_delta
         mode: overwrite
 ```
 
@@ -68,25 +68,28 @@ Any step can declare one or more destinations referencing catalog connections:
 destinations:
   - name: dw_fct_orders_parquet
     mode: overwrite   # Options: overwrite, append
+  - name: dw_orders_delta
+    mode: append      # Fully supported for Delta Lake and Parquet
   - name: dw_monthly_report_excel
     mode: overwrite
 ```
 
 Supported destination formats include:
+- **Delta Lake**: Full ACID write destination support via streaming Arrow RecordBatches into `_delta_log` and Parquet files in both `overwrite` (replace) and `append` modes.
 - **Parquet**: Writes columnar Parquet files with compression.
 - **CSV**: Writes delimited text files with headers.
 - **JSON**: Writes structured JSON or NDJSON documents.
 - **Excel**: Exports formatted `.xlsx` workbooks.
 - **Relational Databases**: Mounts and writes to PostgreSQL, MySQL, and SQLite.
-- *(Note: Delta Lake is currently supported as a read-only source; Delta Lake write destination support is scheduled for an upcoming release).*
+- **Cloud Lakehouses**: Direct writes to remote cloud endpoints (`s3://`, `abfss://`, `gs://`).
 
 ---
 
 ## 🛡️ Data Quality Audits & Row Quarantine
 
 `det` includes native row-level quarantine capabilities:
-- **Pre-flight & Post-flight Audits**: Validate `not_null`, `unique`, `accepted_values`, and custom SQL expressions.
-- **Row-Level Quarantine**: Route violating rows to `.det/quarantine/` while allowing conforming rows to proceed downstream, preventing entire pipeline crashes due to isolated dirty records.
+- **Pre-flight & Post-flight Audits**: Validate `not_null`, `unique`, `accepted_values`, `expression`, and custom SQL rules.
+- **Row-Level Quarantine**: Route violating rows to `_quarantine_<model>` sinks while allowing conforming rows to proceed downstream, preventing entire pipeline crashes due to isolated dirty records.
 
 ---
 

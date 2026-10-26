@@ -420,166 +420,227 @@ print(<span class="text-emerald-300">"Documentation generated at:"</span>, docs_
         </p>
       </div>
 
-      <!-- Mock Web IDE Browser Window -->
-      <div class="rounded-2xl border border-slate-700/80 bg-slate-950 shadow-2xl overflow-hidden max-w-6xl mx-auto">
+      <!-- Carousel Navigation Tab Pills -->
+      <div class="flex flex-wrap items-center justify-center gap-2 mb-8 max-w-5xl mx-auto">
+        <button onclick="setIdeSlide(0)" id="ide-tab-0" class="ide-tab-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all flex items-center gap-2 bg-brand-500/20 text-brand-300 border border-brand-500/40 shadow-lg shadow-brand-500/10">
+          <i class="fa-solid fa-diagram-project text-brand-400"></i>
+          <span>Pipeline DAG</span>
+        </button>
+        <button onclick="setIdeSlide(1)" id="ide-tab-1" class="ide-tab-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all flex items-center gap-2 bg-slate-900/80 text-slate-400 hover:text-white border border-slate-800">
+          <i class="fa-solid fa-code text-indigo-400"></i>
+          <span>SQL Editor</span>
+        </button>
+        <button onclick="setIdeSlide(2)" id="ide-tab-2" class="ide-tab-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all flex items-center gap-2 bg-slate-900/80 text-slate-400 hover:text-white border border-slate-800">
+          <i class="fa-solid fa-shield-halved text-emerald-400"></i>
+          <span>Data Quality &amp; Assertions</span>
+        </button>
+        <button onclick="setIdeSlide(3)" id="ide-tab-3" class="ide-tab-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all flex items-center gap-2 bg-slate-900/80 text-slate-400 hover:text-white border border-slate-800">
+          <i class="fa-solid fa-database text-yellow-400"></i>
+          <span>Lakehouse Catalog</span>
+        </button>
+        <button onclick="setIdeSlide(4)" id="ide-tab-4" class="ide-tab-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all flex items-center gap-2 bg-slate-900/80 text-slate-400 hover:text-white border border-slate-800">
+          <i class="fa-solid fa-chart-line text-blue-400"></i>
+          <span>Execution Telemetry</span>
+        </button>
+        <button onclick="setIdeSlide(5)" id="ide-tab-5" class="ide-tab-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all flex items-center gap-2 bg-slate-900/80 text-slate-400 hover:text-white border border-slate-800">
+          <i class="fa-solid fa-book-open text-purple-400"></i>
+          <span>Data Dictionary</span>
+        </button>
+      </div>
+
+      <!-- Carousel Frame with macOS Chrome -->
+      <div class="relative rounded-2xl border border-slate-700/80 bg-slate-950 shadow-2xl overflow-hidden max-w-6xl mx-auto group">
         
-        <!-- IDE Window Header -->
-        <div class="h-10 bg-slate-900 border-b border-slate-800 px-4 flex items-center justify-between text-xs text-slate-400">
+        <!-- Window Chrome Topbar -->
+        <div class="h-11 bg-slate-900/90 backdrop-blur border-b border-slate-800 px-4 flex items-center justify-between text-xs text-slate-400 select-none">
           <div class="flex items-center gap-2">
-            <span class="w-3 h-3 rounded-full bg-red-500/80"></span>
-            <span class="w-3 h-3 rounded-full bg-yellow-500/80"></span>
-            <span class="w-3 h-3 rounded-full bg-emerald-500/80"></span>
+            <span class="w-3 h-3 rounded-full bg-red-500/80 inline-block"></span>
+            <span class="w-3 h-3 rounded-full bg-yellow-500/80 inline-block"></span>
+            <span class="w-3 h-3 rounded-full bg-emerald-500/80 inline-block"></span>
             <span class="ml-3 font-mono text-slate-300 flex items-center gap-1.5">
-              <i class="fa-solid fa-cube text-brand-400"></i> det Web IDE &bull; http://127.0.0.1:8080
+              <i class="fa-solid fa-bolt text-brand-400"></i> det Web IDE &bull; <span class="text-slate-400">http://127.0.0.1:8080</span>
             </span>
           </div>
+          
           <div class="flex items-center gap-3">
-            <span class="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-mono">
-              <i class="fa-solid fa-circle text-[8px] animate-pulse"></i> Session Connected
+            <span class="px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-mono text-[11px] flex items-center gap-1.5">
+              <span class="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Ready
             </span>
-            <span class="px-2 py-0.5 rounded bg-slate-800 text-slate-400 font-mono">default project</span>
+            <span id="ide-slide-indicator" class="font-mono text-slate-500 text-[11px]">Slide 1 of 6</span>
           </div>
         </div>
 
-        <!-- IDE Main Workspace -->
-        <div class="grid grid-cols-1 lg:grid-cols-12 min-h-[500px]">
+        <!-- Slides Viewport -->
+        <div class="relative overflow-hidden bg-slate-950">
           
-          <!-- Sidebar: Pipelines & Catalog -->
-          <div class="lg:col-span-3 border-r border-slate-800 p-4 bg-slate-900/40 text-xs">
-            <div class="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-3">Pipeline Models</div>
-            <div class="space-y-1 font-mono">
-              <div class="p-2 rounded bg-slate-800/80 text-brand-300 font-semibold flex items-center justify-between border border-brand-500/30">
-                <span class="flex items-center gap-1.5"><i class="fa-solid fa-table"></i> stg_orders</span>
-                <span class="text-[10px] px-1.5 py-0.2 rounded bg-brand-500/20 text-brand-300">view</span>
-              </div>
-              <div class="p-2 rounded hover:bg-slate-800/50 text-slate-300 flex items-center justify-between transition-colors">
-                <span class="flex items-center gap-1.5"><i class="fa-solid fa-table"></i> stg_customers</span>
-                <span class="text-[10px] px-1.5 py-0.2 rounded bg-slate-800 text-slate-400">view</span>
-              </div>
-              <div class="p-2 rounded hover:bg-slate-800/50 text-slate-300 flex items-center justify-between transition-colors">
-                <span class="flex items-center gap-1.5"><i class="fa-solid fa-database text-yellow-400"></i> fct_orders_delta</span>
-                <span class="text-[10px] px-1.5 py-0.2 rounded bg-yellow-500/20 text-yellow-300">delta</span>
-              </div>
-              <div class="p-2 rounded hover:bg-slate-800/50 text-slate-300 flex items-center justify-between transition-colors">
-                <span class="flex items-center gap-1.5"><i class="fa-solid fa-chart-pie text-emerald-400"></i> mart_customer_rfm</span>
-                <span class="text-[10px] px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300">table</span>
-              </div>
-            </div>
-
-            <div class="text-[11px] font-bold uppercase tracking-wider text-slate-500 mt-6 mb-3">Catalog Connections</div>
-            <div class="space-y-1 font-mono text-slate-400">
-              <div class="p-1.5 flex items-center gap-1.5 hover:text-white transition-colors">
-                <i class="fa-brands fa-aws text-yellow-500"></i> s3_landing_lake
-              </div>
-              <div class="p-1.5 flex items-center gap-1.5 hover:text-white transition-colors">
-                <i class="fa-brands fa-microsoft text-blue-400"></i> azure_adls_gold
-              </div>
-              <div class="p-1.5 flex items-center gap-1.5 hover:text-white transition-colors">
-                <i class="fa-solid fa-database text-purple-400"></i> customer_delta_lake
+          <!-- Slide 0: DAG -->
+          <div id="ide-slide-0" class="ide-slide block transition-opacity duration-300">
+            <a href="screenshots/02_pipeline_dag.png" target="_blank" title="Click to view full resolution image" class="block cursor-zoom-in">
+              <img src="screenshots/02_pipeline_dag.png" alt="det Web IDE Interactive Pipeline DAG and Lineage" class="w-full h-auto object-cover border-b border-slate-800" loading="lazy">
+            </a>
+            <div class="p-6 bg-slate-900/60 border-t border-slate-800/80">
+              <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                  <div class="flex items-center gap-2 mb-2">
+                    <span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-brand-500/20 text-brand-300 border border-brand-500/30">Pipelines &amp; Lineage</span>
+                    <h3 class="text-lg font-bold text-white">Interactive DAG &amp; Medallion Lineage</h3>
+                  </div>
+                  <p class="text-sm text-slate-300 leading-relaxed max-w-3xl">
+                    Automatic dependency graph constructed from your SQL <code class="text-brand-300 font-mono">{{ ref() }}</code> directives. Visualizes 19 models across Bronze, Silver, and Gold layers with real-time test pass badges, upstream catalog sources, and interactive pan/zoom controls.
+                  </p>
+                </div>
+                <div class="flex items-center gap-3 shrink-0">
+                  <span class="px-3 py-1.5 rounded-lg bg-slate-800 text-xs font-mono text-slate-300 border border-slate-700">
+                    <i class="fa-solid fa-play text-brand-400 mr-1"></i> det run
+                  </span>
+                </div>
               </div>
             </div>
           </div>
 
-          <!-- Center: DAG & Editor Canvas -->
-          <div class="lg:col-span-6 border-r border-slate-800 flex flex-col bg-slate-950">
-            <!-- IDE Toolbar -->
-            <div class="h-10 border-b border-slate-800 px-4 flex items-center justify-between text-xs">
-              <div class="flex items-center gap-2">
-                <span class="text-slate-400 font-mono">Model:</span>
-                <span class="text-white font-semibold font-mono">fct_orders_delta</span>
+          <!-- Slide 1: SQL Editor -->
+          <div id="ide-slide-1" class="ide-slide hidden transition-opacity duration-300">
+            <a href="screenshots/03_sql_editor.png" target="_blank" title="Click to view full resolution image" class="block cursor-zoom-in">
+              <img src="screenshots/03_sql_editor.png" alt="det Web IDE Dual-Mode SQL Model Editor" class="w-full h-auto object-cover border-b border-slate-800" loading="lazy">
+            </a>
+            <div class="p-6 bg-slate-900/60 border-t border-slate-800/80">
+              <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                  <div class="flex items-center gap-2 mb-2">
+                    <span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">Model Authoring</span>
+                    <h3 class="text-lg font-bold text-white">Dual-Mode SQL Model Editor</h3>
+                  </div>
+                  <p class="text-sm text-slate-300 leading-relaxed max-w-3xl">
+                    Author models in standard SQL with instant Jinja macro expansion. Toggle seamlessly between Clean SQL and Compiled SQL, configure Table/View materializations, set primary keys, and execute individual models directly against in-memory DuckDB 2.0.
+                  </p>
+                </div>
+                <div class="flex items-center gap-3 shrink-0">
+                  <span class="px-3 py-1.5 rounded-lg bg-slate-800 text-xs font-mono text-slate-300 border border-slate-700">
+                    <i class="fa-regular fa-keyboard text-indigo-400 mr-1"></i> Ctrl+Enter to Run
+                  </span>
+                </div>
               </div>
-              <div class="flex items-center gap-2">
-                <button class="px-2.5 py-1 rounded bg-brand-600 text-white font-medium hover:bg-brand-500 transition-all flex items-center gap-1">
-                  <i class="fa-solid fa-play text-[10px]"></i> Run Model
-                </button>
-                <button class="px-2.5 py-1 rounded bg-slate-800 text-slate-300 hover:bg-slate-700 transition-all flex items-center gap-1">
-                  <i class="fa-solid fa-vial-circle-check text-[10px] text-emerald-400"></i> Test
-                </button>
-              </div>
-            </div>
-
-            <!-- DAG Flow Preview -->
-            <div class="p-4 bg-slate-900/30 border-b border-slate-800 flex items-center justify-center gap-4 text-xs font-mono">
-              <div class="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-300">
-                s3_landing
-              </div>
-              <i class="fa-solid fa-arrow-right text-slate-600"></i>
-              <div class="px-3 py-1.5 rounded-lg bg-brand-500/20 border border-brand-500/40 text-brand-300 font-semibold">
-                stg_orders
-              </div>
-              <i class="fa-solid fa-arrow-right text-slate-600"></i>
-              <div class="px-3 py-1.5 rounded-lg bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-semibold">
-                fct_orders_delta
-              </div>
-            </div>
-
-            <!-- SQL Query View -->
-            <div class="p-4 flex-1 font-mono text-xs text-slate-300 leading-relaxed overflow-y-auto">
-              <span class="text-purple-400">{{</span> <span class="text-yellow-400">config</span>(materialized=<span class="text-emerald-300">'table'</span>, destinations=[{<span class="text-emerald-300">'target'</span>: <span class="text-emerald-300">'s3://gold/delta_orders'</span>, <span class="text-emerald-300">'format'</span>: <span class="text-emerald-300">'delta'</span>}]) <span class="text-purple-400">}}</span><br><br>
-              <span class="text-blue-400">SELECT</span><br>
-              &nbsp;&nbsp;order_id,<br>
-              &nbsp;&nbsp;customer_id,<br>
-              &nbsp;&nbsp;net_amount,<br>
-              &nbsp;&nbsp;order_timestamp<br>
-              <span class="text-blue-400">FROM</span> <span class="text-purple-400">{{</span> <span class="text-yellow-400">ref</span>(<span class="text-emerald-300">'stg_orders'</span>) <span class="text-purple-400">}}</span><br>
-              <span class="text-blue-400">WHERE</span> net_amount &gt; 0.0;
             </div>
           </div>
 
-          <!-- Right: Inspector & Telemetry Drawer -->
-          <div class="lg:col-span-3 p-4 bg-slate-900/40 text-xs flex flex-col justify-between">
-            <div>
-              <div class="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-3">Model Schema &amp; Assertions</div>
-              <div class="space-y-2">
-                <div class="p-2 rounded bg-slate-800/60 border border-slate-800">
-                  <div class="flex items-center justify-between text-slate-200 font-mono">
-                    <span>order_id</span>
-                    <span class="text-[10px] text-slate-400">VARCHAR</span>
+          <!-- Slide 2: Data Quality & Assertions -->
+          <div id="ide-slide-2" class="ide-slide hidden transition-opacity duration-300">
+            <a href="screenshots/04_assertions.png" target="_blank" title="Click to view full resolution image" class="block cursor-zoom-in">
+              <img src="screenshots/04_assertions.png" alt="det Web IDE Data Quality Assertions and Non-Blocking Quarantine" class="w-full h-auto object-cover border-b border-slate-800" loading="lazy">
+            </a>
+            <div class="p-6 bg-slate-900/60 border-t border-slate-800/80">
+              <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                  <div class="flex items-center gap-2 mb-2">
+                    <span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">Quality &amp; Quarantine</span>
+                    <h3 class="text-lg font-bold text-white">Automated Assertions &amp; Non-Blocking Quarantine</h3>
                   </div>
-                  <div class="flex gap-1 mt-1">
-                    <span class="px-1.5 py-0.2 rounded text-[9px] bg-emerald-500/20 text-emerald-300">NOT NULL</span>
-                    <span class="px-1.5 py-0.2 rounded text-[9px] bg-emerald-500/20 text-emerald-300">UNIQUE</span>
-                  </div>
+                  <p class="text-sm text-slate-300 leading-relaxed max-w-3xl">
+                    Define column assertions (<code class="text-emerald-300 font-mono">not_null</code>, <code class="text-emerald-300 font-mono">unique</code>, range checks) in declarative YAML. Evaluates 232 test rules in milliseconds. Violating records are dynamically routed to quarantine sinks without interrupting upstream pipelines.
+                  </p>
                 </div>
-
-                <div class="p-2 rounded bg-slate-800/60 border border-slate-800">
-                  <div class="flex items-center justify-between text-slate-200 font-mono">
-                    <span>net_amount</span>
-                    <span class="text-[10px] text-slate-400">DOUBLE</span>
-                  </div>
-                  <div class="flex gap-1 mt-1">
-                    <span class="px-1.5 py-0.2 rounded text-[9px] bg-yellow-500/20 text-yellow-300">&gt;= 0.0</span>
-                    <span class="px-1.5 py-0.2 rounded text-[9px] bg-purple-500/20 text-purple-300">QUARANTINE</span>
-                  </div>
+                <div class="flex items-center gap-3 shrink-0">
+                  <span class="px-3 py-1.5 rounded-lg bg-slate-800 text-xs font-mono text-slate-300 border border-slate-700">
+                    <i class="fa-solid fa-vial-circle-check text-emerald-400 mr-1"></i> det test
+                  </span>
                 </div>
               </div>
             </div>
-
-            <!-- Execution Telemetry Summary -->
-            <div class="mt-6 pt-4 border-t border-slate-800">
-              <div class="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">Last Execution Telemetry</div>
-              <div class="space-y-1.5 font-mono text-slate-300">
-                <div class="flex justify-between">
-                  <span class="text-slate-500">Duration:</span>
-                  <span class="text-emerald-400 font-bold">14.2 ms</span>
-                </div>
-                <div class="flex justify-between">
-                  <span class="text-slate-500">Rows Written:</span>
-                  <span>10,000</span>
-                </div>
-                <div class="flex justify-between">
-                  <span class="text-slate-500">Quarantined:</span>
-                  <span class="text-purple-400">0 rows</span>
-                </div>
-                <div class="flex justify-between">
-                  <span class="text-slate-500">Storage Sink:</span>
-                  <span class="text-slate-400">telemetry.duckdb</span>
-                </div>
-              </div>
-            </div>
-
           </div>
 
+          <!-- Slide 3: Lakehouse Catalog -->
+          <div id="ide-slide-3" class="ide-slide hidden transition-opacity duration-300">
+            <a href="screenshots/01_catalog.png" target="_blank" title="Click to view full resolution image" class="block cursor-zoom-in">
+              <img src="screenshots/01_catalog.png" alt="det Web IDE Multi-Cloud Lakehouse Catalog and SQL Scratchpad" class="w-full h-auto object-cover border-b border-slate-800" loading="lazy">
+            </a>
+            <div class="p-6 bg-slate-900/60 border-t border-slate-800/80">
+              <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                  <div class="flex items-center gap-2 mb-2">
+                    <span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-yellow-500/20 text-yellow-300 border border-yellow-500/30">Lakehouse Catalog</span>
+                    <h3 class="text-lg font-bold text-white">Multi-Cloud Storage &amp; Direct SQL Scratchpad</h3>
+                  </div>
+                  <p class="text-sm text-slate-300 leading-relaxed max-w-3xl">
+                    Centrally manage catalog connections across S3, Azure ADLS Gen2, GCS, Microsoft Fabric OneLake, Delta Lake, and Parquet. Built-in latency probe verifies credentials, while the integrated SQL Scratchpad allows exploratory ad-hoc queries with zero scaffolding.
+                  </p>
+                </div>
+                <div class="flex items-center gap-3 shrink-0">
+                  <span class="px-3 py-1.5 rounded-lg bg-slate-800 text-xs font-mono text-slate-300 border border-slate-700">
+                    <i class="fa-solid fa-database text-yellow-400 mr-1"></i> det inspect
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Slide 4: Execution Telemetry -->
+          <div id="ide-slide-4" class="ide-slide hidden transition-opacity duration-300">
+            <a href="screenshots/05_monitoring.png" target="_blank" title="Click to view full resolution image" class="block cursor-zoom-in">
+              <img src="screenshots/05_monitoring.png" alt="det Web IDE Millisecond Execution Telemetry and Audit Trail" class="w-full h-auto object-cover border-b border-slate-800" loading="lazy">
+            </a>
+            <div class="p-6 bg-slate-900/60 border-t border-slate-800/80">
+              <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                  <div class="flex items-center gap-2 mb-2">
+                    <span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-blue-500/20 text-blue-300 border border-blue-500/30">Telemetry &amp; Auditing</span>
+                    <h3 class="text-lg font-bold text-white">Millisecond Execution Telemetry &amp; Run History</h3>
+                  </div>
+                  <p class="text-sm text-slate-300 leading-relaxed max-w-3xl">
+                    Detailed per-stage execution durations (e.g. 12.1ms for 5,000 rows, 217.8ms for 25,000 rows), throughput counters, and quarantine status audits. All metrics are automatically recorded to local DuckDB or flat-file sinks for long-term pipeline observability.
+                  </p>
+                </div>
+                <div class="flex items-center gap-3 shrink-0">
+                  <span class="px-3 py-1.5 rounded-lg bg-slate-800 text-xs font-mono text-slate-300 border border-slate-700">
+                    <i class="fa-solid fa-clock text-blue-400 mr-1"></i> Stage Timings
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Slide 5: Data Dictionary -->
+          <div id="ide-slide-5" class="ide-slide hidden transition-opacity duration-300">
+            <a href="screenshots/06_documentation.png" target="_blank" title="Click to view full resolution image" class="block cursor-zoom-in">
+              <img src="screenshots/06_documentation.png" alt="det Web IDE Living Data Dictionary and Schema Documentation" class="w-full h-auto object-cover border-b border-slate-800" loading="lazy">
+            </a>
+            <div class="p-6 bg-slate-900/60 border-t border-slate-800/80">
+              <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                  <div class="flex items-center gap-2 mb-2">
+                    <span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-purple-500/20 text-purple-300 border border-purple-500/30">Living Documentation</span>
+                    <h3 class="text-lg font-bold text-white">Automated Data Dictionary &amp; Column Contracts</h3>
+                  </div>
+                  <p class="text-sm text-slate-300 leading-relaxed max-w-3xl">
+                    Auto-generated documentation portal created directly from model SQL and schema files. Browse 161 introspected columns, data types, descriptions, active assertion rules, and embedded SVG lineage diagrams—available inside the IDE or exportable as standalone HTML.
+                  </p>
+                </div>
+                <div class="flex items-center gap-3 shrink-0">
+                  <span class="px-3 py-1.5 rounded-lg bg-slate-800 text-xs font-mono text-slate-300 border border-slate-700">
+                    <i class="fa-solid fa-book text-purple-400 mr-1"></i> det doc
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Carousel Controls: Prev / Next Buttons -->
+          <button onclick="prevIdeSlide()" class="absolute left-4 top-1/2 -translate-y-16 sm:-translate-y-12 h-10 w-10 rounded-full bg-slate-900/80 hover:bg-brand-600 text-white border border-slate-700 hover:border-brand-500 flex items-center justify-center transition-all opacity-80 hover:opacity-100 shadow-xl backdrop-blur" aria-label="Previous screenshot">
+            <i class="fa-solid fa-chevron-left text-sm"></i>
+          </button>
+          <button onclick="nextIdeSlide()" class="absolute right-4 top-1/2 -translate-y-16 sm:-translate-y-12 h-10 w-10 rounded-full bg-slate-900/80 hover:bg-brand-600 text-white border border-slate-700 hover:border-brand-500 flex items-center justify-center transition-all opacity-80 hover:opacity-100 shadow-xl backdrop-blur" aria-label="Next screenshot">
+            <i class="fa-solid fa-chevron-right text-sm"></i>
+          </button>
+
+        </div>
+
+        <!-- Carousel Indicators Dots -->
+        <div class="py-4 bg-slate-950 border-t border-slate-800/80 flex items-center justify-center gap-2">
+          <button onclick="setIdeSlide(0)" id="ide-dot-0" class="h-2 w-6 rounded-full bg-brand-500 transition-all" aria-label="Slide 1"></button>
+          <button onclick="setIdeSlide(1)" id="ide-dot-1" class="h-2 w-2 rounded-full bg-slate-700 hover:bg-slate-500 transition-all" aria-label="Slide 2"></button>
+          <button onclick="setIdeSlide(2)" id="ide-dot-2" class="h-2 w-2 rounded-full bg-slate-700 hover:bg-slate-500 transition-all" aria-label="Slide 3"></button>
+          <button onclick="setIdeSlide(3)" id="ide-dot-3" class="h-2 w-2 rounded-full bg-slate-700 hover:bg-slate-500 transition-all" aria-label="Slide 4"></button>
+          <button onclick="setIdeSlide(4)" id="ide-dot-4" class="h-2 w-2 rounded-full bg-slate-700 hover:bg-slate-500 transition-all" aria-label="Slide 5"></button>
+          <button onclick="setIdeSlide(5)" id="ide-dot-5" class="h-2 w-2 rounded-full bg-slate-700 hover:bg-slate-500 transition-all" aria-label="Slide 6"></button>
         </div>
 
       </div>
@@ -887,6 +948,69 @@ print(<span class="text-emerald-300">"Documentation generated at:"</span>, docs_
       activeBtn.classList.remove('bg-slate-800', 'text-slate-300');
       activeBtn.classList.add('bg-brand-600', 'text-white', 'shadow-md');
     }
+
+    let currentIdeSlide = 0;
+    const totalIdeSlides = 6;
+    let ideAutoPlayTimer = null;
+
+    function setIdeSlide(idx) {
+      currentIdeSlide = (idx + totalIdeSlides) % totalIdeSlides;
+      for (let i = 0; i < totalIdeSlides; i++) {
+        const slide = document.getElementById('ide-slide-' + i);
+        const tab = document.getElementById('ide-tab-' + i);
+        const dot = document.getElementById('ide-dot-' + i);
+        if (slide) {
+          if (i === currentIdeSlide) {
+            slide.classList.remove('hidden');
+            slide.classList.add('block');
+          } else {
+            slide.classList.remove('block');
+            slide.classList.add('hidden');
+          }
+        }
+        if (tab) {
+          if (i === currentIdeSlide) {
+            tab.className = "ide-tab-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all flex items-center gap-2 bg-brand-500/20 text-brand-300 border border-brand-500/40 shadow-lg shadow-brand-500/10";
+          } else {
+            tab.className = "ide-tab-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all flex items-center gap-2 bg-slate-900/80 text-slate-400 hover:text-white border border-slate-800";
+          }
+        }
+        if (dot) {
+          if (i === currentIdeSlide) {
+            dot.className = "h-2 w-6 rounded-full bg-brand-500 transition-all";
+          } else {
+            dot.className = "h-2 w-2 rounded-full bg-slate-700 hover:bg-slate-500 transition-all";
+          }
+        }
+      }
+      const indicator = document.getElementById('ide-slide-indicator');
+      if (indicator) {
+        indicator.textContent = `Slide ${currentIdeSlide + 1} of ${totalIdeSlides}`;
+      }
+      resetIdeTimer();
+    }
+
+    function nextIdeSlide() {
+      setIdeSlide(currentIdeSlide + 1);
+    }
+
+    function prevIdeSlide() {
+      setIdeSlide(currentIdeSlide - 1);
+    }
+
+    function resetIdeTimer() {
+      if (ideAutoPlayTimer) clearInterval(ideAutoPlayTimer);
+      ideAutoPlayTimer = setInterval(nextIdeSlide, 8000);
+    }
+
+    // Keyboard navigation
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight') nextIdeSlide();
+      else if (e.key === 'ArrowLeft') prevIdeSlide();
+    });
+
+    // Start carousel timer
+    resetIdeTimer();
 
     function copyQuickstart() {
       const text = "pip install det-core deltalake\ndet init my_pipeline\ncd my_pipeline\ndet gui --port 8080";

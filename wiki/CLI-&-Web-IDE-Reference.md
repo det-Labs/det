@@ -17,7 +17,14 @@ det init [workspace_name]
 Launches the interactive zero-CDN Web IDE and opens your web browser:
 
 ```bash
-det gui [--port 8080] [--host 127.0.0.1] [--no-browser]
+det gui [--port 8080] [--open]
+```
+
+### `det demo`
+Scaffolds an instant demo workspace populated with realistic e-commerce datasets and Medallion pipelines:
+
+```bash
+det demo [demo_dir]
 ```
 
 ### `det run`
@@ -57,29 +64,25 @@ det inspect <connection_name> [--rows 10]
 
 ---
 
-## 🖥️ Web IDE Interface & Modules
+## 🖥️ Deep-Dive Web IDE Visual Studio Guides
 
-The `det` Web IDE offers a clean, dual-pane architecture:
+For comprehensive step-by-step guides on using each visual module in the Web IDE, consult the dedicated studio documentation:
 
-1. **Explorer Bar**:
-   - Filter and search projects and pipeline models
-   - Persistent bottom settings access for common **Storage Sinks Configuration**
-2. **Secondary Collapsible Panel**:
-   - **Execution Telemetry**: Run history, stage durations, and row metrics
-   - **Quarantine Explorer**: Inspection of quarantined rows and validation failure details
-   - **Data Quality Audits**: Pass/fail status across `not_null`, `unique`, and conditional rules
-3. **DAG Lineage Visualizer**:
-   - Interactive SVG/Mermaid graph reflecting transformation flow and upstream dependencies
-4. **Interactive SQL Editor**:
-   - Fast in-browser SQL authoring with real-time execution
-   - *Roadmap*: Native in-editor autocompletion and Language Server Protocol (LSP) diagnostics
+* [**Web IDE Overview & Getting Started**](Web-IDE-Overview-&-Getting-Started): Launching, demo walkthrough, layout, and keyboard shortcuts.
+* [**Web IDE: Pipelines & DAG Studio**](Web-IDE-Pipelines-&-DAG-Studio): Interactive DAG canvas, Dual-Mode SQL editor, and live model execution.
+* [**Web IDE: Data Quality & Quarantine**](Web-IDE-Data-Quality-&-Quarantine): Visual assertion authoring, test badges, and non-blocking quarantine audits.
+* [**Web IDE: Catalog & Lakehouse Connections**](Web-IDE-Catalog-&-Lakehouse-Connections): Multi-cloud storage setup, latency health probes, and SQL Scratchpad.
+* [**Web IDE: Monitoring & Living Documentation**](Web-IDE-Monitoring-&-Living-Documentation): Millisecond stage latency dashboards and auto-generated data dictionaries.
+
+---
 
 ### Keyboard Shortcuts
 - `Ctrl + Enter` (or `Cmd + Enter`): Run active SQL query or pipeline
+- `ArrowLeft` / `ArrowRight`: Navigate between active tabs or views
 - `Escape`: Close modals and inspection drawers
 
 ---
 
 | ⬅️ Previous Page | 🏠 Overview | Next Page ➡️ |
 | :--- | :---: | ---: |
-| [**← Custom Connectors Guide**](Custom-Connectors-Guide) | [**Wiki Index**](Home) | [**Back to Home ➔**](Home) |
+| [**← Custom Connectors Guide**](Custom-Connectors-Guide) | [**Wiki Index**](Home) | [**Web IDE Overview & Getting Started ➔**](Web-IDE-Overview-&-Getting-Started) |

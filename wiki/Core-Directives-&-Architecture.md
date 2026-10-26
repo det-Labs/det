@@ -19,6 +19,7 @@
 |                                  DuckDB 2.0 Engine                                |
 |  - Vectorized Multi-Threaded Execution    - Query Optimizer & Filter Pushdown     |
 |  - In-Process Analytical SQL Processing   - Dynamic Extension Framework           |
+|  - Temporary Cloud Secrets (S3/Azure/GCS) - Native Delta Lake & Parquet Scanners  |
 +-----------------------------------------------------------------------------------+
                                           |
                                           v
@@ -30,7 +31,8 @@
                                           v
 +-----------------------------------------------------------------------------------+
 |                            Heterogeneous Storage Sinks Layer                      |
-|  CSV | Parquet | JSON | XML | Excel | Delta Lake | Iceberg | SQLite | PG | MySQL    |
+|  CSV | Parquet | JSON | Excel | Delta Lake (Read/Write) | Iceberg | SQLite | PG | |
+|  AWS S3 | Azure ADLS Gen2 | Google Cloud Storage | Microsoft Fabric OneLake       |
 +-----------------------------------------------------------------------------------+
 ```
 
@@ -67,12 +69,16 @@ All internal intermediate query steps transfer data using Apache Arrow columnar 
 
 ### Universal Connector Extensions
 Any storage technology can be integrated into `det` by registering a connector definition and a scan/sink implementation. Built-in connectors include:
-- `csv`, `parquet`, `json`, `ndjson`, `xml`, `excel` (`openpyxl`)
-- `delta_lake` (ACID transaction logs - read-only source scanner)
-- `iceberg`, `postgres`, `mysql`, `sqlite`, `s3` (`httpfs`)
+- `csv`, `parquet`, `json`, `ndjson`, `excel` (`openpyxl`)
+- `delta_lake` (ACID transaction logs - high-throughput `delta_scan` reads and `write_deltalake` ACID exports in `append` and `replace` modes)
+- `azure` (Azure Blob Storage / ADLS Gen2 `abfss://` with Service Principal and Connection String auth)
+- `gcs` (Google Cloud Storage `gs://` with HMAC and Bearer Token secrets)
+- `s3` (AWS S3, MinIO, Cloudflare R2 with access keys and session tokens)
+- `onelake` (Microsoft Fabric OneLake lakehouse tables and direct ABFSS URIs)
+- `iceberg`, `postgres`, `mysql`, `sqlite`, `mssql`
 
 ### Interoperable Multi-Source SQL
-Because connectors register views into DuckDB's session, a single SQL query can join an Excel spreadsheet with a Delta Lake table and write to Parquet or PostgreSQL in a single pipeline.
+Because connectors register views into DuckDB's session, a single SQL query can join an Excel spreadsheet with a Delta Lake table and write to Parquet, Delta Lake, or PostgreSQL in a single pipeline.
 
 ---
 
