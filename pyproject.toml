@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "det-core"
-version = "0.3.1"
+version = "0.3.2"
 description = "Fast, local-first SQL ETL workspace and pipeline orchestration engine powered by DuckDB 2.0"
 readme = "README.md"
 license = "MIT"
@@ -65,8 +65,15 @@ Homepage = "https://github.com/det-Labs/det"
 Repository = "https://github.com/det-Labs/det"
 Issues = "https://github.com/det-Labs/det/issues"
 
+[tool.setuptools]
+include-package-data = true
+
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+"*" = ["*.*"]
+"det.gui" = ["static/*", "static/**/*"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src", "."]

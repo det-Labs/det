@@ -98,10 +98,8 @@ class AzureConnector(BaseConnector):
         options: dict[str, Any],
         credentials: dict[str, Any],
     ) -> bool:
-        try:
-            con.load_extension("azure")
-        except Exception:
-            pass
+        from det.engine.session import load_or_install_extension
+        load_or_install_extension(con, "azure")
         sql = f"SELECT 1 FROM ({self.get_read_sql(options)}) LIMIT 1"
         con.execute(sql).fetchall()
         return True

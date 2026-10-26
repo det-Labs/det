@@ -11,6 +11,7 @@ from det.catalog.base import (
     ConnectionTier,
 )
 from det.catalog.definitions import ConnectionDefinition
+from det.engine.session import load_or_install_extension
 
 logger = logging.getLogger(__name__)
 
@@ -47,20 +48,11 @@ class ConnectionTester(BaseConnectionTester):
         """Execute mount and probe queries for entity or database tier."""
         conn_type = conn_def.type.lower()
         if conn_type in ("azure", "abfss", "onelake"):
-            try:
-                con.load_extension("azure")
-            except Exception:
-                pass
+            load_or_install_extension(con, "azure")
         elif conn_type in ("s3", "aws", "gcs", "gs"):
-            try:
-                con.load_extension("httpfs")
-            except Exception:
-                pass
+            load_or_install_extension(con, "httpfs")
         elif conn_type in ("delta", "delta_lake"):
-            try:
-                con.load_extension("delta")
-            except Exception:
-                pass
+            load_or_install_extension(con, "delta")
 
         if hasattr(conn_def, "get_secret_sql"):
             from det.engine.secrets import SecretResolver

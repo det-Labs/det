@@ -5,6 +5,7 @@ import re
 import duckdb
 
 from det.engine.base import BaseMounter, MountReport, Mountable
+from det.engine.session import load_or_install_extension
 
 logger = logging.getLogger(__name__)
 
@@ -48,20 +49,11 @@ class CatalogMounter(BaseMounter):
         # 1. Dynamically load extensions if needed
         conn_type = getattr(item, "type", "").lower()
         if conn_type in ("azure", "abfss", "onelake"):
-            try:
-                con.load_extension("azure")
-            except Exception as exc:
-                logger.debug("Optional extension 'azure' load notice: %s", exc)
+            load_or_install_extension(con, "azure")
         elif conn_type in ("s3", "aws"):
-            try:
-                con.load_extension("aws")
-            except Exception as exc:
-                logger.debug("Optional extension 'aws' load notice: %s", exc)
+            load_or_install_extension(con, "aws")
         elif conn_type in ("delta", "delta_lake"):
-            try:
-                con.load_extension("delta")
-            except Exception as exc:
-                logger.debug("Optional extension 'delta' load notice: %s", exc)
+            load_or_install_extension(con, "delta")
 
         # 2. Configure DuckDB Secrets if credentials or cloud configs exist
         if hasattr(item, "get_secret_sql"):

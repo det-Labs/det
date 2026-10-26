@@ -48,6 +48,8 @@ class GUIRequestHandler(SimpleHTTPRequestHandler):
         self.docs_h = docs_handler
         self.monitoring_h = monitoring_handler
         self.demo_h = demo_handler
+        if not STATIC_DIR.exists():
+            STATIC_DIR.mkdir(parents=True, exist_ok=True)
         super().__init__(*args, directory=str(STATIC_DIR), **kwargs)
 
     def do_GET(self) -> None:
@@ -68,6 +70,21 @@ class GUIRequestHandler(SimpleHTTPRequestHandler):
         if self.docs_h.handle_get(self, raw_path):
             return
         if self.monitoring_h.handle_get(self, raw_path):
+            return
+        if not (STATIC_DIR / "index.html").exists() and raw_path in ("/", "/index.html"):
+            msg = (
+                "<!DOCTYPE html><html><head><title>det Web IDE Error</title></head>"
+                "<body style='font-family:sans-serif;padding:40px;background:#0f172a;color:#f8fafc;'>"
+                "<h2>det Web IDE Frontend Assets Not Found</h2>"
+                f"<p>Static assets expected at <code>{STATIC_DIR}</code> were not found.</p>"
+                "<p>Please reinstall det-core or update to the latest release: <code>pip install --upgrade det-core</code></p>"
+                "</body></html>"
+            )
+            self.send_response(500)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(msg.encode("utf-8"))))
+            self.end_headers()
+            self.wfile.write(msg.encode("utf-8"))
             return
         super().do_GET()
 

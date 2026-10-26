@@ -10,6 +10,24 @@ from det.engine.base import BaseSessionManager, EngineConfig
 logger = logging.getLogger(__name__)
 
 
+def load_or_install_extension(con: Any, ext: str) -> bool:
+    """Load a DuckDB extension, attempting to install it first if missing."""
+    try:
+        con.load_extension(ext)
+        return True
+    except Exception:
+        try:
+            if hasattr(con, "install_extension"):
+                con.install_extension(ext)
+            else:
+                con.execute(f"INSTALL {ext};")
+            con.load_extension(ext)
+            return True
+        except Exception as exc:
+            logger.debug("Failed to load/install extension '%s': %s", ext, exc)
+            return False
+
+
 class DuckDBSessionManager(BaseSessionManager):
     """Manages a singleton-style DuckDB connection lifecycle."""
 
@@ -55,9 +73,16 @@ class DuckDBSessionManager(BaseSessionManager):
         cfg_dict = self._build_config_dict(config)
         con = duckdb.connect(database=config.database, config=cfg_dict)
 
-        # Default core extensions to load
-        core_exts = ["parquet", "json", "httpfs", "delta"] + [
-            ext for ext in config.extensions if ext not in ("parquet", "json", "httpfs", "delta")
+        # Enable on-demand auto-installation for extensions required by queries/connectors
+        try:
+            con.execute("SET autoinstall_known_extensions = true;")
+            con.execute("SET autoload_known_extensions = true;")
+        except Exception as exc:
+            logger.debug("Auto-install extension settings note: %s", exc)
+
+        # Default core extensions to load: only built-in formats (parquet, json)
+        core_exts = ["parquet", "json"] + [
+            ext for ext in config.extensions if ext not in ("parquet", "json")
         ]
         self._load_extensions(con, core_exts)
         return con
@@ -65,10 +90,7 @@ class DuckDBSessionManager(BaseSessionManager):
     def _load_extensions(
         self, con: duckdb.DuckDBPyConnection, extensions: list[str]
     ) -> None:
-        """Load requested extensions, logging any failures without crashing."""
+        """Load requested extensions, installing on-demand if necessary, without crashing."""
         for ext in extensions:
-            try:
-                con.load_extension(ext)
-            except Exception as exc:
-                logger.warning("Failed to load DuckDB extension '%s': %s", ext, exc)
+            load_or_install_extension(con, ext)
 
